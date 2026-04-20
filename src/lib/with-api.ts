@@ -31,7 +31,8 @@ export function withApi<C extends Ctx>(scope: Scope, handler: Handler<C>) {
       return res;
     } catch (err) {
       status = 500;
-      throw err;
+      console.error('[api]', method, path, err);
+      return NextResponse.json({ error: { message: String(err) } }, { status: 500 });
     } finally {
       logApiRequest({
         method,

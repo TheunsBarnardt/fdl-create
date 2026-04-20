@@ -41,9 +41,13 @@ export default async function PagesListPage() {
               {pages.map((p) => (
                 <tr key={p.id} className="border-b border-border hover:bg-secondary/30">
                   <td className="px-3 py-2">
-                    <Link href={`/pages/${p.id}`} className="hover:text-accent">{p.title}</Link>
+                    <Link href={`/pages/edit/${p.id}`} className="hover:text-accent">{p.title}</Link>
                   </td>
-                  <td className="px-3 py-2 font-mono text-xs text-muted-foreground">/{p.slug}</td>
+                  <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
+                    <Link href={p.published ? `/pages/${p.slug}` : `/pages/${p.slug}?preview=1`} target="_blank" className="hover:text-accent">
+                      /pages/{p.slug} ↗
+                    </Link>
+                  </td>
                   <td className="px-3 py-2">
                     <Badge>{p.published ? 'published' : 'draft'}</Badge>
                   </td>

@@ -40,7 +40,7 @@ export function SelectionSyncPlugin({
     const removeSelectCmd = editor.registerCommand(
       SELECT_DECORATOR_COMMAND,
       (key) => {
-        onSelect(key);
+        Promise.resolve().then(() => onSelect(key));
         return true;
       },
       COMMAND_PRIORITY_LOW

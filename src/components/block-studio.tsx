@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { CATEGORY_ORDER, CATEGORY_META } from '@/lib/block-presets';
 
 // Monaco must be client-only (browser-only deps, worker loader).
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
@@ -39,13 +40,16 @@ export function BlockStudio({
   collectionFieldsByName,
   mode
 }: {
-  initial: { id?: string; name: string; source: string; collection?: string | null; slotMap: Record<string, string> };
+  initial: { id?: string; name: string; title?: string | null; description?: string | null; source: string; collection?: string | null; slotMap: Record<string, string>; category?: string | null };
   collections: Array<{ name: string; label: string }>;
   collectionFieldsByName: Record<string, string[]>;
   mode: 'create' | 'edit';
 }) {
   const router = useRouter();
   const [name, setName] = useState(initial.name);
+  const [title, setTitle] = useState(initial.title ?? '');
+  const [description, setDescription] = useState(initial.description ?? '');
+  const [category, setCategory] = useState(initial.category ?? '');
   const [source, setSource] = useState(initial.source || SAMPLE);
   const [collection, setCollection] = useState<string>(initial.collection ?? '');
   const [slotMap, setSlotMap] = useState<Record<string, string>>(initial.slotMap);
@@ -57,6 +61,35 @@ export function BlockStudio({
   const editorRef = useRef<MonacoEditorInstance | null>(null);
   const monacoRef = useRef<MonacoNamespace | null>(null);
   const decorationIdsRef = useRef<string[]>([]);
+  const [editorHeight, setEditorHeight] = useState(300);
+  const isDraggingRef = useRef(false);
+  const dragStartYRef = useRef(0);
+  const dragStartHRef = useRef(0);
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+      const delta = dragStartYRef.current - e.clientY;
+      setEditorHeight(Math.max(60, Math.min(700, dragStartHRef.current + delta)));
+    };
+    const onUp = () => {
+      isDraggingRef.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+  }, []);
+
+  const startResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingRef.current = true;
+    dragStartYRef.current = e.clientY;
+    dragStartHRef.current = editorHeight;
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+  };
 
   const detectedSlots = useMemo(() => {
     const re = /\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g;
@@ -68,6 +101,15 @@ export function BlockStudio({
 
   const availableFields = collection ? collectionFieldsByName[collection] ?? [] : [];
   const mappedCount = detectedSlots.filter((s) => slotMap[s]).length;
+
+  // Slots used inside href="..." or action="..." attributes are link-type slots.
+  const linkSlots = useMemo(() => {
+    const re = /(?:href|action)="[^"]*\{\{(\w+)\}\}[^"]*"/g;
+    const out = new Set<string>();
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(source)) !== null) out.add(m[1]);
+    return out;
+  }, [source]);
   const boundCollection = collections.find((c) => c.name === collection);
 
   const preview = useMemo(() => {
@@ -115,7 +157,10 @@ export function BlockStudio({
         source,
         slotMap,
         collection: collection || null,
-        ...(mode === 'create' && { name })
+        title: title || null,
+        description: description || null,
+        category: category || null,
+        ...(mode === 'create' ? { name } : { name: name || undefined })
       };
       const res = await fetch(
         mode === 'create' ? '/api/blocks' : `/api/blocks/${initial.id}`,
@@ -161,11 +206,10 @@ export function BlockStudio({
           </Link>
           <span className="text-xs text-neutral-400">›</span>
           <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder={mode === 'create' ? 'Untitled block' : ''}
-            disabled={mode === 'edit'}
-            className="display text-lg bg-transparent focus:outline-none focus:ring-0 min-w-[140px] max-w-[280px] disabled:opacity-100"
+            value={title || name}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Block title"
+            className="display text-lg bg-transparent focus:outline-none focus:ring-0 min-w-[140px] max-w-[280px]"
           />
           {boundCollection ? (
             <span className="chip bg-accent-soft text-accent">Bound to {boundCollection.label}</span>
@@ -289,8 +333,16 @@ export function BlockStudio({
             </div>
           </div>
 
+          {/* Drag handle */}
+          <div
+            onMouseDown={startResize}
+            className="h-2 bg-[#1e1e1e] border-t border-neutral-200 cursor-row-resize flex items-center justify-center shrink-0 group"
+          >
+            <div className="w-10 h-0.5 rounded-full bg-white/20 group-hover:bg-accent/60 transition-colors" />
+          </div>
+
           {/* BOTTOM — Monaco source */}
-          <div className="h-[45%] border-t border-neutral-200 bg-[#1e1e1e] text-white flex flex-col shrink-0">
+          <div className="border-neutral-200 bg-[#1e1e1e] text-white flex flex-col shrink-0" style={{ height: editorHeight }}>
             <div className="px-4 py-2 border-b border-white/10 flex items-center justify-between text-[11px]">
               <div className="flex items-center gap-2">
                 <span
@@ -354,6 +406,40 @@ export function BlockStudio({
 
         {/* RIGHT — Slot mapping */}
         <aside className="w-80 border-l border-neutral-200 bg-white flex flex-col overflow-hidden">
+          <div className="p-4 border-b border-neutral-200 space-y-3">
+            <div className="text-[10px] uppercase tracking-wider text-neutral-400 mb-1">Block info</div>
+            <div>
+              <label className="text-[10px] text-neutral-400">Slug (machine name)</label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/--+/g, '-'))}
+                placeholder="my-block-name"
+                className="mt-0.5 w-full border border-neutral-200 rounded-md px-2 py-1.5 text-[12px] mono"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-neutral-400">Description</label>
+              <input
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Short description shown in the block library"
+                className="mt-0.5 w-full border border-neutral-200 rounded-md px-2 py-1.5 text-[12px]"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-neutral-400">Category</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="mt-0.5 w-full border border-neutral-200 rounded-md px-2 py-1.5 text-[12px] bg-white"
+              >
+                <option value="">— uncategorised —</option>
+                {CATEGORY_ORDER.map((c) => (
+                  <option key={c} value={c}>{CATEGORY_META[c].label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
           <div className="p-4 border-b border-neutral-200">
             <div className="flex items-center justify-between">
               <div className="text-[10px] uppercase tracking-wider text-neutral-400">Bind to collection</div>
@@ -394,28 +480,40 @@ export function BlockStudio({
                 No slots declared yet. Use <code className="mono">{'{{name}}'}</code> in the source.
               </p>
             )}
-            <div className="space-y-2">
-              {detectedSlots.map((slot) => (
-                <div key={slot} className="flex items-center gap-2">
-                  <code className="mono text-[11px] bg-accent/10 text-accent px-1.5 py-0.5 rounded flex-shrink-0 w-24 truncate">
-                    {'{' + slot + '}'}
-                  </code>
-                  <span className="text-neutral-400">→</span>
-                  <select
-                    value={slotMap[slot] ?? ''}
-                    onChange={(e) => setSlotMap({ ...slotMap, [slot]: e.target.value })}
-                    disabled={!collection}
-                    className="flex-1 text-[12px] px-2 py-1 border border-neutral-200 rounded disabled:bg-neutral-50 disabled:text-neutral-400"
-                  >
-                    <option value="">— unmapped —</option>
-                    {availableFields.map((f) => (
-                      <option key={f} value={f}>
-                        {f}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ))}
+            <div className="space-y-2.5">
+              {detectedSlots.map((slot) => {
+                const isLink = linkSlots.has(slot);
+                return (
+                  <div key={slot}>
+                    <div className="flex items-center gap-2">
+                      <code className={cn(
+                        'mono text-[11px] px-1.5 py-0.5 rounded flex-shrink-0 w-24 truncate flex items-center gap-1',
+                        isLink ? 'bg-purple-50 text-purple-600' : 'bg-accent/10 text-accent'
+                      )}>
+                        {isLink && <span title="Link slot (href/action)">🔗</span>}
+                        {'{' + slot + '}'}
+                      </code>
+                      <span className="text-neutral-400">→</span>
+                      <select
+                        value={slotMap[slot] ?? ''}
+                        onChange={(e) => setSlotMap({ ...slotMap, [slot]: e.target.value })}
+                        disabled={!collection}
+                        className="flex-1 text-[12px] px-2 py-1 border border-neutral-200 rounded disabled:bg-neutral-50 disabled:text-neutral-400"
+                      >
+                        <option value="">— unmapped —</option>
+                        {availableFields.map((f) => (
+                          <option key={f} value={f}>{f}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {isLink && !collection && (
+                      <p className="text-[10px] text-purple-400 mt-0.5 pl-1">
+                        Link slot — fill in on the page editor, e.g. <span className="mono">/sign-up</span>
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 

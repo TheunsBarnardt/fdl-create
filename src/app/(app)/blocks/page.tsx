@@ -65,7 +65,7 @@ export default async function BlocksListPage({ searchParams }: { searchParams: P
 
             <div className="text-[12px] text-neutral-500 mb-4">{CATEGORY_META[cat].blurb}</div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4" suppressHydrationWarning>
               {grouped[cat].map((p) => (
                 <PresetCard key={p.id} preset={p} />
               ))}
@@ -89,26 +89,50 @@ export default async function BlocksListPage({ searchParams }: { searchParams: P
                 <Link href="/blocks/new" className="text-accent hover:underline">paste your own JSX →</Link>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 {blocks.map((b) => {
                   const slotMap = b.slotMap ? JSON.parse(b.slotMap) : {};
                   const slots = Object.keys(slotMap);
                   return (
-                    <Link key={b.id} href={`/blocks/${b.id}`} className="block bg-white border border-neutral-200 rounded-md p-4 hover:border-accent transition-colors">
-                      <div className="mono text-sm font-semibold">{b.name}</div>
-                      <div className="text-[11px] text-neutral-500 mt-1">
-                        {slots.length} slot{slots.length === 1 ? '' : 's'}
-                        {b.collection && <> · bound to <span className="mono">{b.collection}</span></>}
-                        {!b.collection && slots.length === 0 && <> · static</>}
+                    <div key={b.id} className="bg-white border border-neutral-200 rounded-md p-4 flex flex-col gap-3">
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <div className="font-semibold text-sm">{(b as any).title || b.name}</div>
+                          <span className="text-[10px] mono text-neutral-400">{b.name}</span>
+                        </div>
+                        <div className="text-[11px] text-neutral-500 mt-0.5">
+                          {(b as any).description || (
+                            <>
+                              {slots.length} slot{slots.length === 1 ? '' : 's'}
+                              {b.collection && <> · bound to <span className="mono">{b.collection}</span></>}
+                              {!b.collection && slots.length === 0 && <> · static</>}
+                            </>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {slots.slice(0, 6).map((s) => (
-                          <span key={s} className="text-[10px] mono bg-accent-soft text-accent px-1.5 py-0.5 rounded">
-                            {s} → {slotMap[s]}
-                          </span>
-                        ))}
+                      <div className="h-32 overflow-hidden rounded border border-neutral-100 relative bg-white">
+                        <div
+                          className="absolute inset-0 origin-top-left scale-[0.4] w-[250%] h-[250%] pointer-events-none"
+                          dangerouslySetInnerHTML={{ __html: b.source.replace(/className=/g, 'class=') }}
+                          suppressHydrationWarning
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white/80" />
                       </div>
-                    </Link>
+                      {slots.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {slots.slice(0, 6).map((s) => (
+                            <span key={s} className="text-[10px] mono bg-accent-soft text-accent px-1.5 py-0.5 rounded">
+                              {s} → {slotMap[s] || 'unmapped'}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex items-center justify-end mt-auto">
+                        <Link href={`/blocks/${b.id}`} className="px-2.5 py-1 text-[11px] rounded-md bg-ink-950 text-paper hover:bg-ink-900">
+                          Edit →
+                        </Link>
+                      </div>
+                    </div>
                   );
                 })}
               </div>
@@ -135,6 +159,7 @@ function PresetCard({ preset }: { preset: { id: string; name: string; title: str
         <div
           className="absolute inset-0 origin-top-left scale-[0.4] w-[250%] h-[250%] pointer-events-none"
           dangerouslySetInnerHTML={{ __html: preset.source.replace(/className=/g, 'class=') }}
+        suppressHydrationWarning
         />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white/80" />
       </div>

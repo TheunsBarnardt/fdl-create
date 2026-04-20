@@ -394,7 +394,83 @@ function DecoratorDeleteButton({ nodeKey }: { nodeKey: NodeKey }) {
   );
 }
 
-export const DECORATOR_NODES = [ImageNode, ButtonNode, CollectionListNode];
+// ---------- PresetBlockNode ----------
+
+function jsxToHtml(src: string): string {
+  return src
+    .replace(/className=/g, 'class=')
+    .replace(
+      /<(div|section|article|span|p|ul|li|ol|form|footer|nav|header|main|blockquote)(\s[^>]*)?\s*\/>/g,
+      (_, tag, attrs) => `<${tag}${attrs ?? ''}></${tag}>`
+    );
+}
+
+export type SerializedPresetBlockNode = Spread<
+  { type: 'fdl-preset-block'; version: 1; presetId: string; source: string; slots: Record<string, string> },
+  SerializedLexicalNode
+>;
+
+export class PresetBlockNode extends DecoratorNode<React.JSX.Element> {
+  __presetId: string;
+  __source: string;
+  __slots: Record<string, string>;
+
+  static getType() { return 'fdl-preset-block'; }
+  static clone(n: PresetBlockNode) { return new PresetBlockNode(n.__presetId, n.__source, n.__slots, n.__key); }
+
+  constructor(presetId: string, source: string, slots: Record<string, string> = {}, key?: NodeKey) {
+    super(key);
+    this.__presetId = presetId;
+    this.__source = source;
+    this.__slots = slots;
+  }
+  createDOM() { return document.createElement('div'); }
+  updateDOM() { return false; }
+  getPresetId() { return this.__presetId; }
+  getSource() { return this.__source; }
+  getSlots() { return this.__slots; }
+  setSlots(v: Record<string, string>) { this.getWritable().__slots = v; }
+
+  static importJSON(j: SerializedPresetBlockNode) {
+    return new PresetBlockNode(j.presetId, j.source, j.slots ?? {});
+  }
+  exportJSON(): SerializedPresetBlockNode {
+    return { type: 'fdl-preset-block', version: 1, presetId: this.__presetId, source: this.__source, slots: this.__slots };
+  }
+  decorate(editor: LexicalEditor) {
+    return <PresetBlock nodeKey={this.__key} presetId={this.__presetId} source={this.__source} slots={this.__slots} editor={editor} />;
+  }
+}
+
+function fillSlots(html: string, slots: Record<string, string>) {
+  return html.replace(/\{\{(\w+)\}\}/g, (_, name) => slots[name] ?? `[${name}]`);
+}
+
+function PresetBlock({
+  presetId, source, slots, nodeKey, editor
+}: { presetId: string; source: string; slots: Record<string, string>; nodeKey: NodeKey; editor: LexicalEditor }) {
+  const isSelected = useNodeSelected(nodeKey);
+  const select = () => editor.dispatchCommand(SELECT_DECORATOR_COMMAND, nodeKey);
+  return (
+    <div
+      onClick={select}
+      className={
+        'relative cursor-pointer rounded-lg border-2 transition-colors ' +
+        (isSelected ? 'border-accent' : 'border-transparent hover:border-accent/30')
+      }
+    >
+      {isSelected && (
+        <>
+          <DecoratorLabel>{presetId}</DecoratorLabel>
+          <DecoratorDeleteButton nodeKey={nodeKey} />
+        </>
+      )}
+      <div dangerouslySetInnerHTML={{ __html: fillSlots(jsxToHtml(source), slots) }} />
+    </div>
+  );
+}
+
+export const DECORATOR_NODES = [ImageNode, ButtonNode, CollectionListNode, PresetBlockNode];
 
 export function getDecoratorLabel(type: string) {
   switch (type) {
@@ -486,6 +562,10 @@ export function getSelectedDecorator(
           sort: cn.getSort()
         }
       };
+    }
+    if (t === 'fdl-preset-block') {
+      const pn = n as PresetBlockNode;
+      return { key, type: t, props: { presetId: pn.getPresetId(), source: pn.getSource(), slots: pn.getSlots() } };
     }
     return null;
   });

@@ -17,9 +17,11 @@ import { LinkNode } from '@lexical/link';
 import {
   $createParagraphNode,
   $createTextNode,
+  $getRoot,
   type LexicalEditor,
   type NodeKey
 } from 'lexical';
+import { SELECT_DECORATOR_COMMAND } from '@/lib/editor/nodes';
 import {
   Heading1,
   Heading2,
@@ -50,7 +52,8 @@ import {
   useRemoveNode,
   ImageNode,
   ButtonNode,
-  CollectionListNode
+  CollectionListNode,
+  PresetBlockNode
 } from '@/lib/editor/nodes';
 import { SelectionSyncPlugin, SlashMenuPlugin, DecoratorDeletePlugin } from '@/lib/editor/plugins';
 import { treeToEditorState } from '@/lib/editor/migrate';
@@ -117,6 +120,7 @@ export function PageEditor({
   const [selectedKey, setSelectedKey] = useState<NodeKey | null>(null);
   const [search, setSearch] = useState('');
   const editorRef = useRef<LexicalEditor | null>(null);
+  const draggedPresetRef = useRef<{ id: string; source: string } | null>(null);
 
   const initialEditorState = JSON.stringify(treeToEditorState(initial.tree));
 
@@ -149,7 +153,7 @@ export function PageEditor({
       );
       if (!res.ok) throw new Error(JSON.stringify((await res.json()).error));
       const data = await res.json();
-      router.push(mode === 'create' ? `/pages/${data.id}` : '/pages');
+      router.push(mode === 'create' ? `/pages/edit/${data.id}` : '/pages');
       router.refresh();
     } catch (e: any) {
       setError(e.message);
@@ -200,13 +204,24 @@ export function PageEditor({
           <ViewportSwitch viewport={viewport} onChange={setViewport} />
           <span className="text-neutral-400 mono hidden xl:inline">{VP_LABELS[viewport]}</span>
           <span className="w-px h-5 bg-neutral-200" />
+          {slug && mode === 'edit' && (
+            <a
+              href={published ? `/pages/${slug}` : `/pages/${slug}?preview=1`}
+              target="_blank"
+              rel="noreferrer"
+              className="px-2.5 py-1 border border-neutral-200 rounded-md hover:bg-neutral-50 flex items-center gap-1.5"
+              title={published ? 'Open live page' : 'Draft preview — only visible while signed in'}
+            >
+              <Eye className="h-3.5 w-3.5" />
+              {published ? 'View live' : 'Preview draft'}
+            </a>
+          )}
           <button
             type="button"
             onClick={() => setPublished(!published)}
             className="px-2.5 py-1 border border-neutral-200 rounded-md hover:bg-neutral-50 flex items-center gap-1.5"
           >
-            <Eye className="h-3.5 w-3.5" />
-            {published ? 'Unpublish' : 'Preview'}
+            {published ? 'Unpublish' : 'Mark published'}
           </button>
           <button
             type="button"
@@ -286,7 +301,7 @@ export function PageEditor({
                     return (
                       <li key={p.id}>
                         <Link
-                          href={`/pages/${p.id}`}
+                          href={`/pages/edit/${p.id}`}
                           className={cn(
                             'block px-2 py-1 rounded truncate',
                             active ? 'bg-accent-soft text-accent font-medium' : 'hover:bg-neutral-100'
@@ -318,11 +333,11 @@ export function PageEditor({
                     Studio →
                   </Link>
                 </div>
-                <PresetBrowser search={search} />
+                <PresetBrowser search={search} draggedPresetRef={draggedPresetRef} />
               </aside>
 
               {/* Canvas */}
-              <CanvasArea viewport={viewport} />
+              <CanvasArea viewport={viewport} draggedPresetRef={draggedPresetRef} />
 
               {/* Right — Data binding panel */}
               <aside className="w-80 border-l border-neutral-200 bg-white flex flex-col overflow-hidden shrink-0">
@@ -351,15 +366,92 @@ function EditorRefPlugin({ editorRef }: { editorRef: React.MutableRefObject<Lexi
   return null;
 }
 
-function CanvasArea({ viewport }: { viewport: Viewport }) {
+function CanvasArea({ viewport, draggedPresetRef }: { viewport: Viewport; draggedPresetRef: React.MutableRefObject<{ id: string; source: string } | null> }) {
   const [anchorElem, setAnchorElem] = useState<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const targetLineRef = useRef<HTMLDivElement>(null);
+  const contentWrapperRef = useRef<HTMLDivElement | null>(null);
+  const [editor] = useLexicalComposerContext();
+  // { y: pixels from top of content wrapper, afterIndex: -1 = before first, n = after nth child }
+  const [dropLine, setDropLine] = useState<{ y: number; afterIndex: number } | null>(null);
+
+  const calcDropLine = (mouseY: number) => {
+    const wrapper = contentWrapperRef.current;
+    if (!wrapper) return null;
+    const contentEl = wrapper.querySelector('[contenteditable]') as HTMLElement | null;
+    if (!contentEl) return null;
+    const children = Array.from(contentEl.children) as HTMLElement[];
+    const wrapperTop = wrapper.getBoundingClientRect().top;
+
+    if (children.length === 0) return { y: 0, afterIndex: -1 };
+
+    // Default: after last child
+    let afterIndex = children.length - 1;
+    let lineY = children[children.length - 1].getBoundingClientRect().bottom - wrapperTop;
+
+    for (let i = 0; i < children.length; i++) {
+      const rect = children[i].getBoundingClientRect();
+      if (mouseY < rect.top + rect.height / 2) {
+        afterIndex = i - 1;
+        lineY = i === 0
+          ? rect.top - wrapperTop - 2
+          : (children[i - 1].getBoundingClientRect().bottom + rect.top) / 2 - wrapperTop;
+        break;
+      }
+    }
+    return { y: lineY, afterIndex };
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (!draggedPresetRef.current) return;
+    e.preventDefault();
+    setDropLine(calcDropLine(e.clientY));
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropLine(null);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const preset = draggedPresetRef.current;
+    const line = dropLine;
+    setDropLine(null);
+    draggedPresetRef.current = null;
+    if (!preset) return;
+
+    editor.update(() => {
+      const node = new PresetBlockNode(preset.id, preset.source);
+      const root = $getRoot();
+      const children = root.getChildren();
+
+      if (!line || line.afterIndex < 0) {
+        // Insert before first child or append if empty
+        children.length > 0 && line?.afterIndex === -1
+          ? children[0].insertBefore(node)
+          : root.append(node);
+      } else {
+        const target = children[line.afterIndex];
+        target ? target.insertAfter(node) : root.append(node);
+      }
+
+      if (!node.getNextSibling()) {
+        const p = $createParagraphNode();
+        node.insertAfter(p);
+      }
+      editor.dispatchCommand(SELECT_DECORATOR_COMMAND, node.getKey());
+    });
+  };
 
   return (
-    <div className="flex-1 overflow-auto scrollbar bg-neutral-100 p-10">
+    <div
+      className="flex-1 overflow-auto scrollbar bg-neutral-100 p-10"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       <div
-        ref={(el) => setAnchorElem(el)}
+        ref={(el) => { setAnchorElem(el); }}
         className={cn(
           'vp-frame bg-white rounded-xl shadow-sm border border-neutral-200 p-10 relative',
           viewport === 'desktop' && 'vp-desktop',
@@ -367,7 +459,7 @@ function CanvasArea({ viewport }: { viewport: Viewport }) {
           viewport === 'mobile' && 'vp-mobile'
         )}
       >
-        <div className="relative">
+        <div className="relative" ref={contentWrapperRef}>
           <RichTextPlugin
             contentEditable={
               <ContentEditable className="outline-none min-h-[400px] text-neutral-700" />
@@ -379,6 +471,16 @@ function CanvasArea({ viewport }: { viewport: Viewport }) {
             }
             ErrorBoundary={LexicalErrorBoundary}
           />
+          {dropLine !== null && (
+            <div
+              className="absolute left-0 right-0 flex items-center gap-1 pointer-events-none z-20"
+              style={{ top: dropLine.y }}
+            >
+              <div className="w-2 h-2 rounded-full bg-accent shrink-0" />
+              <div className="flex-1 h-0.5 bg-accent" />
+              <div className="w-2 h-2 rounded-full bg-accent shrink-0" />
+            </div>
+          )}
         </div>
         {anchorElem && (
           <DraggableBlockPlugin_EXPERIMENTAL
@@ -618,6 +720,51 @@ function BlockPropsPanel({
     );
   }
 
+  // Preset block — slot inputs.
+  if (selected.type === 'fdl-preset-block') {
+    const source = (selected.props.source as string) ?? '';
+    const slots = (selected.props.slots as Record<string, string>) ?? {};
+    const slotNames = [...new Set([...source.matchAll(/\{\{(\w+)\}\}/g)].map((m) => m[1]))];
+    return (
+      <>
+        <div className="p-4 border-b border-neutral-200 flex items-center justify-between">
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-neutral-400">Preset block</div>
+            <div className="text-sm font-semibold mono">{selected.props.presetId}</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => remove(selected.key)}
+            className="text-[11px] text-neutral-400 hover:text-danger"
+            title="Delete block"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="flex-1 overflow-auto scrollbar p-4 space-y-4 text-sm">
+          {slotNames.length === 0 ? (
+            <p className="text-[12px] text-neutral-400">Static block — no editable slots.</p>
+          ) : (
+            slotNames.map((name) => (
+              <Field key={name} label={name}>
+                <input
+                  value={slots[name] ?? ''}
+                  onChange={(e) =>
+                    update(selected.key, (n) =>
+                      (n as PresetBlockNode).setSlots({ ...slots, [name]: e.target.value })
+                    )
+                  }
+                  placeholder={`[${name}]`}
+                  className="w-full border border-neutral-200 rounded-md px-3 py-2 text-sm"
+                />
+              </Field>
+            ))
+          )}
+        </div>
+      </>
+    );
+  }
+
   // Image / Button — simple props.
   return (
     <>
@@ -837,8 +984,9 @@ function DataBindingPanel({
   );
 }
 
-function PresetBrowser({ search }: { search: string }) {
+function PresetBrowser({ search, draggedPresetRef }: { search: string; draggedPresetRef: React.MutableRefObject<{ id: string; source: string } | null> }) {
   const q = search.trim().toLowerCase();
+  const insert = useInsertNode();
   return (
     <div className="space-y-3">
       {CATEGORY_ORDER.map((cat) => {
@@ -850,20 +998,30 @@ function PresetBrowser({ search }: { search: string }) {
               {CATEGORY_META[cat].label}
               <span className="ml-1 text-neutral-300 normal-case">({items.length})</span>
             </div>
-            <ul className="space-y-0.5">
+            <div className="space-y-2">
               {items.map((p) => (
-                <li key={p.id}>
-                  <Link
-                    href={`/blocks/new?preset=${p.id}`}
-                    className="block px-2 py-1.5 rounded border border-transparent hover:border-neutral-200 hover:bg-white text-[12px]"
-                    title={p.description}
-                  >
-                    <div className="font-medium truncate">{p.title}</div>
-                    <div className="text-[10px] text-neutral-500 truncate">{p.description}</div>
-                  </Link>
-                </li>
+                <div
+                  key={p.id}
+                  draggable
+                  onDragStart={() => { draggedPresetRef.current = { id: p.id, source: p.source }; }}
+                  onDragEnd={() => { draggedPresetRef.current = null; }}
+                  onClick={() => insert(() => new PresetBlockNode(p.id, p.source))}
+                  className="bg-white border border-neutral-200 rounded-md p-2 cursor-pointer hover:border-accent transition-colors select-none"
+                  title={p.description}
+                >
+                  <div className="font-medium text-[11px] truncate">{p.title}</div>
+                  <div className="text-[10px] text-neutral-400 truncate mb-1.5">{p.description}</div>
+                  <div className="h-16 overflow-hidden rounded border border-neutral-100 relative bg-white">
+                    <div
+                      className="absolute inset-0 origin-top-left pointer-events-none"
+                      style={{ transform: 'scale(0.32)', width: '312%', height: '312%' }}
+                      dangerouslySetInnerHTML={{ __html: p.source.replace(/className=/g, 'class=') }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white/70" />
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         );
       })}

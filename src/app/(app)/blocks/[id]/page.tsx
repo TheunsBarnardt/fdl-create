@@ -4,11 +4,12 @@ import { BlockStudio } from '@/components/block-studio';
 import { getCollectionFieldMap } from '@/lib/collections';
 
 export default async function EditBlockPage({ params }: { params: { id: string } }) {
-  const [block, collections, fieldMap] = await Promise.all([
-    prisma.customBlock.findUnique({ where: { id: params.id } }),
+  const [rows, collections, fieldMap] = await Promise.all([
+    prisma.$queryRaw<any[]>`SELECT * FROM "CustomBlock" WHERE id = ${params.id} LIMIT 1`,
     prisma.collection.findMany({ orderBy: { label: 'asc' } }),
     getCollectionFieldMap()
   ]);
+  const block = rows[0];
   if (!block) notFound();
 
   return (
@@ -19,9 +20,12 @@ export default async function EditBlockPage({ params }: { params: { id: string }
       initial={{
         id: block.id,
         name: block.name,
+        title: block.title ?? '',
+        description: block.description ?? '',
         source: block.source,
         collection: block.collection,
-        slotMap: block.slotMap ? JSON.parse(block.slotMap) : {}
+        slotMap: block.slotMap ? JSON.parse(block.slotMap) : {},
+        category: block.category ?? ''
       }}
     />
   );

@@ -4,7 +4,7 @@
   "private": true,
   "description": "Visual user-driven CMS + app-data platform. Companion reference implementation for the ai-fdl-kit brainstorm output (Lattice).",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3100",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
