@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(openssl rand *)",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:3000)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/sign-in)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill //PID 29420 //F)",
+      "Bash(curl -s -o /dev/null http://localhost:3000/sign-in)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} %{redirect_url}\\\\n\" http://localhost:3100/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3100/sign-in)",
+      "Bash(npx tsc *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3100/pages/new)",
+      "Bash(curl -s http://localhost:3100/pages)",
+      "Bash(node -e 'const l = require\\('\\\\''lexical'\\\\''\\); console.log\\('\\\\''OK'\\\\'', typeof l.LexicalComposer, typeof l.$createParagraphNode, typeof l.$createTextNode, typeof l.$getRoot\\)')",
+      "Bash(npx prisma *)",
+      "Bash(tasklist //FI \"IMAGENAME eq node.exe\")"
+    ]
+  }
+}

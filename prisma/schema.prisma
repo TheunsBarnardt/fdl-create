@@ -1,0 +1,162 @@
+// Lattice / fdl-create — schema-as-data runtime + Auth.js
+// Collection/Record store the *meta-schema*; tenant data lives in Record.data (JSON).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---- Auth.js (NextAuth v5) ----
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  passwordHash  String?
+  emailVerified DateTime?
+  image         String?
+  role          String    @default("editor") // admin | editor | viewer
+  disabledAt    DateTime?
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  accounts Account[]
+  sessions Session[]
+  audits   AiAuditLog[]
+  tokens   ApiToken[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  @@unique([identifier, token])
+}
+
+// ---- Schema-as-data (Lattice runtime) ----
+model Collection {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  label       String
+  description String?
+  schema      String   // JSON: { fields: [{name,type,required,unique,default,...}] }
+  aiOptIn     Boolean  @default(false)
+  redactions  String?  // JSON array of field names
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  records Record[]
+}
+
+model Record {
+  id           String   @id @default(cuid())
+  collectionId String
+  data         String   // JSON payload matching Collection.schema
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  @@index([collectionId])
+}
+
+model Page {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  tree      String   // JSON block tree
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CustomBlock {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  source     String   // pasted JSX/HTML
+  slotMap    String?  // JSON { slotName: fieldName }
+  collection String?
+  createdAt  DateTime @default(now())
+}
+
+model Theme {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  tokens    String   // JSON design tokens
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model AiAuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  collection String?
+  action     String   // read | write | suggest
+  scope      String   // JSON: fields touched, redaction summary
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  @@index([collection])
+}
+
+// ---- Platform observability + Management API ----
+model ApiRequestLog {
+  id         String   @id @default(cuid())
+  method     String   // GET | POST | PATCH | DELETE
+  path       String   // e.g. /api/collections/customers/records
+  status     Int
+  durationMs Int
+  userId     String?
+  tokenId    String?  // ApiToken.id when auth was a PAT
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([path])
+  @@index([status])
+}
+
+model ApiToken {
+  id         String    @id @default(cuid())
+  userId     String
+  name       String
+  prefix     String    @unique // first 12 chars — shown in UI/logs
+  tokenHash  String    // sha256(full token)
+  scopes     String    // JSON: string[]
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}

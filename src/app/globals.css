@@ -1,0 +1,184 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 98%;
+    --foreground: 240 10% 4%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 4%;
+    --primary: 240 10% 4%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 10% 4%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
+    --accent: 199 89% 48%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 199 89% 48%;
+    --radius: 0.5rem;
+  }
+  .dark {
+    --background: 240 10% 4%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 6%;
+    --card-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 10% 4%;
+    --secondary: 240 4% 12%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 4% 12%;
+    --muted-foreground: 240 5% 65%;
+    --accent: 199 89% 48%;
+    --accent-foreground: 0 0% 100%;
+    --border: 240 4% 16%;
+    --input: 240 4% 16%;
+    --ring: 199 89% 48%;
+  }
+  * { @apply border-border; }
+  html, body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+  }
+  .display { font-family: 'Inter', sans-serif; font-weight: 600; letter-spacing: -0.028em; }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-feature-settings: 'zero' on; }
+}
+
+@layer components {
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1;
+  }
+  .kbd {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 5px;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    background: #f1f1ee;
+    border: 1px solid #e2e2dc;
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    color: #4b5563;
+  }
+  .dot-grid {
+    background-image: radial-gradient(#e4e4e7 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+  .scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+  .scrollbar::-webkit-scrollbar-thumb { background: #e4e4e7; border-radius: 4px; }
+  .scrollbar::-webkit-scrollbar-thumb:hover { background: #a1a1aa; }
+  .ent {
+    position: absolute;
+    background: white;
+    border: 1px solid #e2e2dc;
+    border-radius: 10px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 8px 20px -12px rgba(0, 0, 0, 0.08);
+  }
+  .ent-head {
+    background: #111420;
+    color: #fafaf7;
+    padding: 8px 12px;
+    border-radius: 9px 9px 0 0;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .ent-field {
+    padding: 6px 12px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid #f1f1ee;
+  }
+  .ent-field:first-of-type { border-top: none; }
+  .ent-field .type { color: #6b7280; font-size: 11px; }
+  .field-row:hover { background: #f1f1ee; }
+  .relation { stroke: #0ea5e9; stroke-width: 1.5; fill: none; }
+  .relation-label { fill: #0369a1; font-size: 10px; font-weight: 500; font-family: Inter; }
+  .navbtn-active { background: #111420; color: #fafaf7; }
+  .vp-btn { color: #6b7280; font-size: 11px; font-weight: 500; transition: all 0.15s; }
+  .vp-btn:hover { color: #111420; }
+  .vp-btn-active { background: white; color: #111420; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06); }
+  .vp-frame { transition: max-width 0.3s ease, margin 0.3s ease; margin-left: auto; margin-right: auto; }
+  .vp-frame.vp-desktop { max-width: 64rem; }
+  .vp-frame.vp-tablet { max-width: 42rem; outline: 12px solid #1a1e2c; outline-offset: -1px; border-radius: 24px; }
+  .vp-frame.vp-mobile { max-width: 22rem; outline: 10px solid #1a1e2c; outline-offset: -1px; border-radius: 30px; }
+  .vp-frame.vp-mobile > * { max-width: 100%; }
+
+  /* Monaco slot highlight */
+  .monaco-slot-highlight {
+    background: rgba(14, 165, 233, 0.18);
+    border-radius: 3px;
+  }
+
+  /* Theme preview scope — all values scoped so changes don't leak to app chrome */
+  .theme-preview {
+    --bg: 0 0% 100%;
+    --fg: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-fg: 222 47% 11%;
+    --primary: 222 47% 11%;
+    --primary-fg: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-fg: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-fg: 215 16% 47%;
+    --accent: 210 40% 96%;
+    --accent-fg: 222 47% 11%;
+    --destructive: 0 84% 60%;
+    --destructive-fg: 210 40% 98%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 222 47% 11%;
+    --radius: 0.5rem;
+    background: hsl(var(--bg));
+    color: hsl(var(--fg));
+    font-family: var(--theme-font, 'Inter');
+  }
+  .theme-preview.dark {
+    --bg: 222 47% 11%;
+    --fg: 210 40% 98%;
+    --card: 222 47% 11%;
+    --card-fg: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-fg: 222 47% 11%;
+    --secondary: 217 33% 17%;
+    --secondary-fg: 210 40% 98%;
+    --muted: 217 33% 17%;
+    --muted-fg: 215 20% 65%;
+    --accent: 217 33% 17%;
+    --accent-fg: 210 40% 98%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 212 27% 84%;
+  }
+  .tp-card { background: hsl(var(--card)); color: hsl(var(--card-fg)); border: 1px solid hsl(var(--border)); border-radius: var(--radius); }
+  .tp-btn-primary { background: hsl(var(--primary)); color: hsl(var(--primary-fg)); border-radius: var(--radius); padding: 8px 14px; font-size: 13px; font-weight: 500; border: none; cursor: pointer; }
+  .tp-btn-secondary { background: hsl(var(--secondary)); color: hsl(var(--secondary-fg)); border-radius: var(--radius); padding: 8px 14px; font-size: 13px; font-weight: 500; border: none; cursor: pointer; }
+  .tp-btn-outline { background: transparent; color: hsl(var(--fg)); border: 1px solid hsl(var(--border)); border-radius: var(--radius); padding: 7px 14px; font-size: 13px; font-weight: 500; cursor: pointer; }
+  .tp-btn-ghost { background: transparent; color: hsl(var(--fg)); border-radius: var(--radius); padding: 8px 14px; font-size: 13px; font-weight: 500; border: none; cursor: pointer; }
+  .tp-btn-destructive { background: hsl(var(--destructive)); color: hsl(var(--destructive-fg)); border-radius: var(--radius); padding: 8px 14px; font-size: 13px; font-weight: 500; border: none; cursor: pointer; }
+  .tp-input { background: transparent; color: hsl(var(--fg)); border: 1px solid hsl(var(--input)); border-radius: var(--radius); padding: 7px 11px; font-size: 13px; width: 100%; }
+  .tp-input:focus { outline: 2px solid hsl(var(--ring)); outline-offset: 1px; }
+  .tp-badge { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 9999px; font-size: 11px; font-weight: 500; background: hsl(var(--primary)); color: hsl(var(--primary-fg)); }
+  .tp-badge-secondary { background: hsl(var(--secondary)); color: hsl(var(--secondary-fg)); }
+  .tp-badge-destructive { background: hsl(var(--destructive)); color: hsl(var(--destructive-fg)); }
+  .tp-muted { color: hsl(var(--muted-fg)); }
+  .tp-divider { border-top: 1px solid hsl(var(--border)); }
+  .swatch { width: 22px; height: 22px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.08); }
+}
