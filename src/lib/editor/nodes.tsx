@@ -459,8 +459,8 @@ function PresetBlock({
     <div
       onClick={select}
       className={
-        'relative cursor-pointer rounded-lg border-2 transition-colors ' +
-        (isSelected ? 'border-accent' : 'border-transparent hover:border-accent/30')
+        'relative cursor-pointer rounded-lg transition-colors ' +
+        (isSelected ? 'ring-2 ring-accent ring-offset-2' : 'ring-2 ring-transparent hover:ring-accent/30')
       }
     >
       {isSelected && (
@@ -474,7 +474,57 @@ function PresetBlock({
   );
 }
 
-export const DECORATOR_NODES = [ImageNode, ButtonNode, CollectionListNode, PresetBlockNode];
+// ---------- ShadcnBlockNode ----------
+
+import { ShadcnBlockRenderer, type TreeUpdateFn } from './visual-renderer';
+import type { VisualNode } from './visual-registry';
+
+export class ShadcnBlockNode extends DecoratorNode<React.JSX.Element> {
+  __tree: VisualNode;
+
+  static getType() { return 'fdl-shadcn-block'; }
+  static clone(n: ShadcnBlockNode) { return new ShadcnBlockNode(n.__tree, n.__key); }
+
+  constructor(tree: VisualNode, key?: NodeKey) {
+    super(key);
+    this.__tree = tree;
+  }
+
+  createDOM() {
+    const el = document.createElement('div');
+    el.className = 'my-2';
+    return el;
+  }
+  updateDOM() { return false; }
+  getTree() { return this.__tree; }
+  setTree(tree: VisualNode) { this.getWritable().__tree = tree; }
+
+  static importJSON(j: any) { return new ShadcnBlockNode(j.tree); }
+  exportJSON() { return { type: 'fdl-shadcn-block' as const, version: 1, tree: this.__tree }; }
+
+  decorate(editor: LexicalEditor) {
+    const nodeKey = this.__key;
+    const tree = this.__tree;
+    const onUpdate: TreeUpdateFn = (updater) => {
+      editor.update(() => {
+        const n = $getNodeByKey(nodeKey) as ShadcnBlockNode | null;
+        if (n) n.setTree(updater(n.getTree()));
+      });
+    };
+    return <ShadcnBlockRenderer tree={tree} nodeKey={nodeKey} onUpdate={onUpdate} />;
+  }
+}
+
+export function getShadcnNodeInfo(editor: LexicalEditor, key: NodeKey | null): { tree: VisualNode } | null {
+  if (!key) return null;
+  return editor.getEditorState().read(() => {
+    const n = $getNodeByKey(key);
+    if (!n || !(n instanceof ShadcnBlockNode)) return null;
+    return { tree: n.getTree() };
+  });
+}
+
+export const DECORATOR_NODES = [ImageNode, ButtonNode, CollectionListNode, PresetBlockNode, ShadcnBlockNode];
 
 export function getDecoratorLabel(type: string) {
   switch (type) {

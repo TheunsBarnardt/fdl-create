@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -25,6 +25,9 @@ import {
   type NodeKey
 } from 'lexical';
 import { SELECT_DECORATOR_COMMAND } from '@/lib/editor/nodes';
+import { VisualSelCtx, DragCtx, type VisualSel } from '@/lib/editor/visual-renderer';
+import { COMPONENT_REGISTRY, REGISTRY_MAP, COMPONENT_CATEGORIES, updatePropsInTree, findNodeInTree, removeFromTree, type PropDef } from '@/lib/editor/visual-registry';
+import { ShadcnBlockNode, getShadcnNodeInfo } from '@/lib/editor/nodes';
 import {
   Heading1,
   Heading2,
@@ -132,6 +135,9 @@ export function PageEditor({
   const [sideTab, setSideTab] = useState<SideTab>('library');
   const editorRef = useRef<LexicalEditor | null>(null);
   const draggedPresetRef = useRef<{ id: string; source: string } | null>(null);
+  const draggedShadcnRef = useRef<string | null>(null);
+  const [sel, setSel] = useState<VisualSel>(null);
+  const [dragging, setDragging] = useState<string | null>(null);
 
   const initialEditorState = JSON.stringify(treeToEditorState(initial.tree));
 
@@ -176,6 +182,8 @@ export function PageEditor({
   }
 
   return (
+    <VisualSelCtx.Provider value={{ sel, setSel }}>
+    <DragCtx.Provider value={{ dragging, setDragging }}>
     <section className="flex-1 flex flex-col overflow-hidden">
       {/* Header */}
       <header className="h-14 border-b border-neutral-200 bg-white/60 backdrop-blur px-6 flex items-center justify-between shrink-0">
@@ -317,7 +325,7 @@ export function PageEditor({
 
                 <div className={cn('flex-1 overflow-auto scrollbar p-3 text-sm', sideTab !== 'pages' && 'pt-0')}>
                   {sideTab === 'blocks' && (
-                    <BlockPalette search={search} collections={collections} />
+                    <BlockPalette search={search} collections={collections} draggedShadcnRef={draggedShadcnRef} setDragging={setDragging} />
                   )}
 
                   {sideTab === 'pages' && (
@@ -331,7 +339,7 @@ export function PageEditor({
               </aside>
 
               {/* Canvas */}
-              <CanvasArea viewport={viewport} draggedPresetRef={draggedPresetRef} />
+              <CanvasArea viewport={viewport} draggedPresetRef={draggedPresetRef} draggedShadcnRef={draggedShadcnRef} />
 
               {/* Right — Data binding panel */}
               <aside className="w-80 border-l border-neutral-200 bg-white flex flex-col overflow-hidden shrink-0">
@@ -346,6 +354,8 @@ export function PageEditor({
         </CollectionsProvider>
       </LexicalComposer>
     </section>
+    </DragCtx.Provider>
+    </VisualSelCtx.Provider>
   );
 }
 
@@ -437,7 +447,7 @@ function EditorRefPlugin({ editorRef }: { editorRef: React.MutableRefObject<Lexi
   return null;
 }
 
-function CanvasArea({ viewport, draggedPresetRef }: { viewport: Viewport; draggedPresetRef: React.MutableRefObject<{ id: string; source: string } | null> }) {
+function CanvasArea({ viewport, draggedPresetRef, draggedShadcnRef }: { viewport: Viewport; draggedPresetRef: React.MutableRefObject<{ id: string; source: string } | null>; draggedShadcnRef: React.MutableRefObject<string | null> }) {
   const [anchorElem, setAnchorElem] = useState<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const targetLineRef = useRef<HTMLDivElement>(null);
@@ -474,7 +484,7 @@ function CanvasArea({ viewport, draggedPresetRef }: { viewport: Viewport; dragge
   };
 
   const handleDragOver = (e: React.DragEvent) => {
-    if (!draggedPresetRef.current) return;
+    if (!draggedPresetRef.current && !draggedShadcnRef.current) return;
     e.preventDefault();
     setDropLine(calcDropLine(e.clientY));
   };
@@ -486,32 +496,44 @@ function CanvasArea({ viewport, draggedPresetRef }: { viewport: Viewport; dragge
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const preset = draggedPresetRef.current;
+    const shadcnName = draggedShadcnRef.current;
     const line = dropLine;
     setDropLine(null);
     draggedPresetRef.current = null;
-    if (!preset) return;
+    draggedShadcnRef.current = null;
 
-    editor.update(() => {
-      const node = new PresetBlockNode(preset.id, preset.source);
-      const root = $getRoot();
-      const children = root.getChildren();
+    const insertNode = (node: any) => {
+      editor.update(() => {
+        const root = $getRoot();
+        const children = root.getChildren();
 
-      if (!line || line.afterIndex < 0) {
-        // Insert before first child or append if empty
-        children.length > 0 && line?.afterIndex === -1
-          ? children[0].insertBefore(node)
-          : root.append(node);
-      } else {
-        const target = children[line.afterIndex];
-        target ? target.insertAfter(node) : root.append(node);
-      }
+        if (!line || line.afterIndex < 0) {
+          children.length > 0 && line?.afterIndex === -1
+            ? children[0].insertBefore(node)
+            : root.append(node);
+        } else {
+          const target = children[line.afterIndex];
+          target ? target.insertAfter(node) : root.append(node);
+        }
 
-      if (!node.getNextSibling()) {
-        const p = $createParagraphNode();
-        node.insertAfter(p);
-      }
-      editor.dispatchCommand(SELECT_DECORATOR_COMMAND, node.getKey());
-    });
+        if (!node.getNextSibling()) {
+          const p = $createParagraphNode();
+          node.insertAfter(p);
+        }
+        editor.dispatchCommand(SELECT_DECORATOR_COMMAND, node.getKey());
+      });
+    };
+
+    if (shadcnName) {
+      const def = REGISTRY_MAP[shadcnName];
+      if (!def) return;
+      insertNode(new ShadcnBlockNode(def.defaultNode()));
+      return;
+    }
+
+    if (preset) {
+      insertNode(new PresetBlockNode(preset.id, preset.source));
+    }
   };
 
   return (
@@ -593,10 +615,14 @@ function CanvasArea({ viewport, draggedPresetRef }: { viewport: Viewport; dragge
 
 function BlockPalette({
   search,
-  collections
+  collections,
+  draggedShadcnRef,
+  setDragging,
 }: {
   search: string;
   collections: Array<{ name: string; label: string }>;
+  draggedShadcnRef: React.MutableRefObject<string | null>;
+  setDragging: (v: string | null) => void;
 }) {
   const insert = useInsertNode();
   const q = search.trim().toLowerCase();
@@ -705,6 +731,57 @@ function BlockPalette({
           </div>
         );
       })}
+
+      {/* Shadcn components grouped by category */}
+      {(() => {
+        const catOrder = Object.entries(COMPONENT_CATEGORIES).sort((a, b) => a[1].order - b[1].order);
+        return catOrder.map(([catKey, catMeta]) => {
+          const comps = COMPONENT_REGISTRY.filter(
+            (c) => c.category === catKey && (!q || c.label.toLowerCase().includes(q) || c.description.toLowerCase().includes(q))
+          );
+          if (comps.length === 0) return null;
+          const groupKey = `shadcn-${catKey}`;
+          const isOpen = open === groupKey || !!q;
+          return (
+            <div key={groupKey} className="border border-neutral-100 rounded-md overflow-hidden">
+              <button
+                type="button"
+                onClick={() => toggle(groupKey)}
+                className="w-full flex items-center justify-between px-2 py-1.5 bg-neutral-50 hover:bg-neutral-100 text-left"
+              >
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">{catMeta.label}</span>
+                <span className="flex items-center gap-1.5 text-[10px] text-neutral-400">
+                  {comps.length}
+                  <svg className={cn('h-3 w-3 transition-transform', isOpen && 'rotate-180')} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
+                </span>
+              </button>
+              {isOpen && (
+                <div className="p-1.5 space-y-1">
+                  {comps.map((compDef) => (
+                    <div
+                      key={compDef.name}
+                      draggable
+                      onDragStart={() => {
+                        draggedShadcnRef.current = compDef.name;
+                        setDragging(compDef.name);
+                      }}
+                      onDragEnd={() => {
+                        draggedShadcnRef.current = null;
+                        setDragging(null);
+                      }}
+                      onClick={() => insert(() => new ShadcnBlockNode(compDef.defaultNode()))}
+                      className="border border-neutral-200 rounded-md p-2 text-[11px] flex flex-col gap-0.5 cursor-pointer hover:border-accent hover:bg-neutral-50 transition-colors select-none"
+                    >
+                      <span className="font-medium text-neutral-700">{compDef.label}</span>
+                      <span className="text-[10px] text-neutral-400 truncate">{compDef.description}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        });
+      })()}
     </div>
   );
 }
@@ -774,10 +851,17 @@ function BlockPropsPanel({
   const [editor] = useLexicalComposerContext();
   const update = useUpdateSelectedNode();
   const remove = useRemoveNode();
+  const { sel, setSel } = useContext(VisualSelCtx);
   const [, tick] = useState(0);
   useEffect(() => {
     return editor.registerUpdateListener(() => tick((n) => n + 1));
   }, [editor]);
+
+  // Check for ShadcnBlockNode first
+  const shadcnInfo = getShadcnNodeInfo(editor, selectedKey);
+  if (shadcnInfo) {
+    return <ShadcnPropsPanel sel={sel} setSel={setSel} editor={editor} selectedKey={selectedKey!} />;
+  }
 
   const selected = getSelectedDecorator(editor, selectedKey);
 
@@ -1429,6 +1513,210 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div>
       <label className="text-[11px] uppercase tracking-wider text-neutral-400">{label}</label>
       <div className="mt-1">{children}</div>
+    </div>
+  );
+}
+
+// ── Shadcn visual component panels ──────────────────────────────────────────
+
+function ShadcnPropsPanel({
+  sel,
+  setSel,
+  editor,
+  selectedKey,
+}: {
+  sel: VisualSel;
+  setSel: (v: VisualSel) => void;
+  editor: LexicalEditor;
+  selectedKey: NodeKey;
+}) {
+  const [, tick] = useState(0);
+  useEffect(() => editor.registerUpdateListener(() => tick((n) => n + 1)), [editor]);
+
+  if (!sel || sel.nodeKey !== selectedKey) {
+    return (
+      <div className="p-4 text-[12px] text-neutral-400">
+        Select a component to edit its properties.
+      </div>
+    );
+  }
+
+  const shadcnInfo = getShadcnNodeInfo(editor, selectedKey);
+  if (!shadcnInfo) return null;
+
+  const node = findNodeInTree(shadcnInfo.tree, sel.visualId);
+  if (!node) return null;
+
+  const def = REGISTRY_MAP[node.component];
+  if (!def) return null;
+
+  const updateProp = (key: string, value: any) => {
+    editor.update(() => {
+      const n = $getNodeByKey(selectedKey) as ShadcnBlockNode | null;
+      if (n) n.setTree(updatePropsInTree(n.getTree(), sel.visualId, { [key]: value }));
+    });
+  };
+
+  return (
+    <>
+      <div className="p-4 border-b border-neutral-200">
+        <div className="text-[10px] uppercase tracking-wider text-neutral-400">Component</div>
+        <div className="text-sm font-semibold">{def.label}</div>
+        {def.description && <div className="text-[11px] text-neutral-500 mt-0.5">{def.description}</div>}
+      </div>
+      <div className="flex-1 overflow-auto scrollbar p-4 space-y-4 text-sm">
+        {Object.entries(def.props).map(([key, pd]) => (
+          <PropEditor
+            key={key}
+            propKey={key}
+            def={pd}
+            value={node.props[key]}
+            onChange={(v) => updateProp(key, v)}
+          />
+        ))}
+        {Object.keys(def.props).length === 0 && (
+          <p className="text-[12px] text-neutral-400">No configurable properties.</p>
+        )}
+        {def.slots.length > 0 && (
+          <div className="pt-2 border-t border-neutral-100">
+            <div className="text-[10px] uppercase tracking-wider text-neutral-400 mb-2">Slots</div>
+            {def.slots.map((slot) => {
+              const slotNodes = node.slots[slot.name] ?? [];
+              return (
+                <div key={slot.name} className="text-[11px] text-neutral-500">
+                  {slot.label}: {slotNodes.length} item{slotNodes.length !== 1 ? 's' : ''}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => {
+            editor.update(() => {
+              const n = $getNodeByKey(selectedKey) as ShadcnBlockNode | null;
+              if (!n) return;
+              const newTree = removeFromTree(n.getTree(), sel.visualId);
+              if (newTree === null) {
+                n.remove();
+              } else {
+                n.setTree(newTree);
+              }
+            });
+            setSel(null);
+          }}
+          className="w-full mt-2 px-3 py-1.5 text-[11px] text-danger border border-danger/30 rounded-md hover:bg-danger/5"
+        >
+          Remove component
+        </button>
+      </div>
+    </>
+  );
+}
+
+function PropEditor({
+  propKey,
+  def,
+  value,
+  onChange,
+}: {
+  propKey: string;
+  def: PropDef;
+  value: any;
+  onChange: (v: any) => void;
+}) {
+  return (
+    <div>
+      <label className="text-[11px] uppercase tracking-wider text-neutral-400">{def.label}</label>
+      <div className="mt-1">
+        {def.kind === 'string' && (
+          <input
+            value={String(value ?? def.default ?? '')}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full border border-neutral-200 rounded-md px-3 py-2 text-sm"
+          />
+        )}
+        {def.kind === 'text' && (
+          <textarea
+            value={String(value ?? def.default ?? '')}
+            onChange={(e) => onChange(e.target.value)}
+            rows={3}
+            className="w-full border border-neutral-200 rounded-md px-3 py-2 text-sm resize-none"
+          />
+        )}
+        {def.kind === 'number' && (
+          <input
+            type="number"
+            min={def.min}
+            max={def.max}
+            value={Number(value ?? def.default ?? 0)}
+            onChange={(e) => onChange(Number(e.target.value))}
+            className="w-full border border-neutral-200 rounded-md px-3 py-2 text-sm"
+          />
+        )}
+        {def.kind === 'boolean' && (
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={Boolean(value ?? def.default)}
+              onChange={(e) => onChange(e.target.checked)}
+              className="rounded"
+            />
+            <span className="text-sm text-neutral-600">{Boolean(value ?? def.default) ? 'Yes' : 'No'}</span>
+          </label>
+        )}
+        {def.kind === 'select' && (
+          <select
+            value={String(value ?? def.default ?? '')}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full border border-neutral-200 rounded-md px-3 py-2 text-sm bg-white"
+          >
+            {def.options.map((o) => (
+              <option key={o} value={o}>{o}</option>
+            ))}
+          </select>
+        )}
+        {def.kind === 'array' && (
+          <ArrayEditor
+            value={Array.isArray(value) ? (value as string[]) : (def.default ?? [])}
+            onChange={onChange}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ArrayEditor({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+  return (
+    <div className="space-y-1.5">
+      {value.map((item, i) => (
+        <div key={i} className="flex gap-1">
+          <input
+            value={item}
+            onChange={(e) => {
+              const next = [...value];
+              next[i] = e.target.value;
+              onChange(next);
+            }}
+            className="flex-1 border border-neutral-200 rounded-md px-2 py-1.5 text-sm"
+          />
+          <button
+            type="button"
+            onClick={() => onChange(value.filter((_, j) => j !== i))}
+            className="text-neutral-400 hover:text-danger px-1 text-sm"
+          >
+            ✕
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => onChange([...value, ''])}
+        className="text-[11px] text-accent hover:underline"
+      >
+        + Add item
+      </button>
     </div>
   );
 }
