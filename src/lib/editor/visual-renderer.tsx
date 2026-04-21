@@ -112,7 +112,7 @@ function VNode({
     <div
       className={cn(
         'relative group my-1',
-        isSelected && 'ring-2 ring-sky-500 ring-offset-1 rounded-md'
+        isSelected && 'rounded-md outline outline-[1.5px] outline-dashed outline-sky-400/60 outline-offset-2'
       )}
       onClick={(e) => {
         e.stopPropagation();
@@ -472,7 +472,7 @@ function AccordionRenderer({
         return (
           <div
             key={item.id}
-            className={cn('relative', isItemSelected && 'ring-2 ring-sky-500 ring-inset rounded')}
+            className={cn('relative', isItemSelected && 'rounded outline outline-[1.5px] outline-dashed outline-sky-400/60 outline-offset-1')}
             onClick={(e) => e.stopPropagation()}
           >
             {isItemSelected && <ComponentLabel name="AccordionItem" />}

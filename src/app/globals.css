@@ -181,4 +181,5 @@
   .tp-muted { color: hsl(var(--muted-fg)); }
   .tp-divider { border-top: 1px solid hsl(var(--border)); }
   .swatch { width: 22px; height: 22px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.08); }
+  .outline-node-selected { outline: 1.5px dashed hsl(var(--accent) / 0.55); outline-offset: 3px; border-radius: 2px; }
 }
