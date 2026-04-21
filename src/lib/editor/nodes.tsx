@@ -406,7 +406,7 @@ function jsxToHtml(src: string): string {
 }
 
 export type SerializedPresetBlockNode = Spread<
-  { type: 'fdl-preset-block'; version: 1; presetId: string; source: string; slots: Record<string, string> },
+  { type: 'fdl-preset-block'; version: 1; presetId: string; source: string; slots: Record<string, string>; label?: string },
   SerializedLexicalNode
 >;
 
@@ -414,28 +414,32 @@ export class PresetBlockNode extends DecoratorNode<React.JSX.Element> {
   __presetId: string;
   __source: string;
   __slots: Record<string, string>;
+  __label: string;
 
   static getType() { return 'fdl-preset-block'; }
-  static clone(n: PresetBlockNode) { return new PresetBlockNode(n.__presetId, n.__source, n.__slots, n.__key); }
+  static clone(n: PresetBlockNode) { return new PresetBlockNode(n.__presetId, n.__source, n.__slots, n.__label, n.__key); }
 
-  constructor(presetId: string, source: string, slots: Record<string, string> = {}, key?: NodeKey) {
+  constructor(presetId: string, source: string, slots: Record<string, string> = {}, label = '', key?: NodeKey) {
     super(key);
     this.__presetId = presetId;
     this.__source = source;
     this.__slots = slots;
+    this.__label = label;
   }
   createDOM() { return document.createElement('div'); }
   updateDOM() { return false; }
   getPresetId() { return this.__presetId; }
   getSource() { return this.__source; }
   getSlots() { return this.__slots; }
+  getLabel() { return this.__label; }
   setSlots(v: Record<string, string>) { this.getWritable().__slots = v; }
+  setLabel(v: string) { this.getWritable().__label = v; }
 
   static importJSON(j: SerializedPresetBlockNode) {
-    return new PresetBlockNode(j.presetId, j.source, j.slots ?? {});
+    return new PresetBlockNode(j.presetId, j.source, j.slots ?? {}, j.label ?? '');
   }
   exportJSON(): SerializedPresetBlockNode {
-    return { type: 'fdl-preset-block', version: 1, presetId: this.__presetId, source: this.__source, slots: this.__slots };
+    return { type: 'fdl-preset-block', version: 1, presetId: this.__presetId, source: this.__source, slots: this.__slots, label: this.__label };
   }
   decorate(editor: LexicalEditor) {
     return <PresetBlock nodeKey={this.__key} presetId={this.__presetId} source={this.__source} slots={this.__slots} editor={editor} />;

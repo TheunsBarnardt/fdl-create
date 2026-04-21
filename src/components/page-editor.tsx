@@ -18,7 +18,9 @@ import {
   $createParagraphNode,
   $createTextNode,
   $getRoot,
+  $getNodeByKey,
   type LexicalEditor,
+  type LexicalNode,
   type NodeKey
 } from 'lexical';
 import { SELECT_DECORATOR_COMMAND } from '@/lib/editor/nodes';
@@ -41,7 +43,7 @@ import {
 import { cn } from '@/lib/utils';
 import { signOutAction } from '@/actions/auth';
 import { editorTheme } from '@/lib/editor/theme';
-import { BLOCK_PRESETS, CATEGORY_META, CATEGORY_ORDER } from '@/lib/block-presets';
+import { CATEGORY_META } from '@/lib/block-presets';
 import {
   DECORATOR_NODES,
   CollectionsProvider,
@@ -97,17 +99,22 @@ const PALETTE: PaletteGroup[] = [
   }
 ];
 
+type LibraryBlock = { id: string; name: string; title: string; description: string; category: string; source: string };
+type SideTab = 'blocks' | 'pages' | 'library';
+
 export function PageEditor({
   initial,
   collections,
   collectionFieldsByName,
   pages,
+  libraryBlocks = [],
   mode
 }: {
   initial: { id?: string; slug: string; title: string; tree: any; published: boolean };
   collections: Array<{ name: string; label: string }>;
   collectionFieldsByName: Record<string, string[]>;
   pages: Array<{ id: string; title: string; slug: string }>;
+  libraryBlocks?: LibraryBlock[];
   mode: 'create' | 'edit';
 }) {
   const router = useRouter();
@@ -119,6 +126,7 @@ export function PageEditor({
   const [error, setError] = useState<string | null>(null);
   const [selectedKey, setSelectedKey] = useState<NodeKey | null>(null);
   const [search, setSearch] = useState('');
+  const [sideTab, setSideTab] = useState<SideTab>('library');
   const editorRef = useRef<LexicalEditor | null>(null);
   const draggedPresetRef = useRef<{ id: string; source: string } | null>(null);
 
@@ -275,65 +283,56 @@ export function PageEditor({
             <LinkPlugin />
 
             <div className="flex-1 flex overflow-hidden">
-              {/* Left — Block palette + Pages */}
-              <aside className="w-64 border-r border-neutral-200 bg-white/60 overflow-auto scrollbar p-3 text-sm shrink-0">
-                <div className="text-[10px] uppercase tracking-wider text-neutral-400 px-1 mb-2">
-                  Blocks
-                </div>
-                <div className="relative mb-3">
-                  <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-400" />
-                  <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search blocks"
-                    className="w-full pl-8 pr-2 py-1.5 text-[12px] border border-neutral-200 rounded-md bg-white focus:outline-none focus:border-accent"
-                  />
-                </div>
-
-                <BlockPalette search={search} collections={collections} />
-
-                <div className="text-[10px] uppercase tracking-wider text-neutral-400 px-1 mt-5 mb-2">
-                  Pages
-                </div>
-                <ul className="space-y-0.5 text-[13px]">
-                  {pages.map((p) => {
-                    const active = p.id === initial.id;
+              {/* Left — tabbed sidebar */}
+              <aside className="w-64 border-r border-neutral-200 bg-white/60 flex flex-col shrink-0 overflow-hidden">
+                {/* Tab bar */}
+                <div className="flex border-b border-neutral-200 shrink-0">
+                  {(['blocks', 'pages', 'library'] as SideTab[]).map((tab) => {
+                    const label = tab === 'blocks' ? 'Blocks' : tab === 'pages' ? 'Outline' : 'Library';
                     return (
-                      <li key={p.id}>
-                        <Link
-                          href={`/pages/edit/${p.id}`}
-                          className={cn(
-                            'block px-2 py-1 rounded truncate',
-                            active ? 'bg-accent-soft text-accent font-medium' : 'hover:bg-neutral-100'
-                          )}
-                        >
-                          {p.title || <span className="text-neutral-400 italic">untitled</span>}
-                        </Link>
-                      </li>
+                      <button
+                        key={tab}
+                        type="button"
+                        onClick={() => setSideTab(tab)}
+                        className={cn(
+                          'flex-1 py-2 text-[11px] font-medium border-b-2 -mb-px transition-colors',
+                          sideTab === tab
+                            ? 'border-ink-950 text-ink-950'
+                            : 'border-transparent text-neutral-400 hover:text-neutral-700'
+                        )}
+                      >
+                        {label}
+                      </button>
                     );
                   })}
-                  {mode === 'create' && (
-                    <li className="px-2 py-1 rounded bg-accent-soft text-accent font-medium truncate">
-                      {title || 'New page'}
-                    </li>
-                  )}
-                  <li>
-                    <Link
-                      href="/pages/new"
-                      className="block px-2 py-1 rounded text-neutral-500 hover:bg-neutral-100 border border-dashed border-transparent hover:border-neutral-200"
-                    >
-                      + new page
-                    </Link>
-                  </li>
-                </ul>
-
-                <div className="flex items-center justify-between px-1 mt-5 mb-2">
-                  <span className="text-[10px] uppercase tracking-wider text-neutral-400">Block library</span>
-                  <Link href="/blocks" className="text-[10px] text-accent font-medium">
-                    Studio →
-                  </Link>
                 </div>
-                <PresetBrowser search={search} draggedPresetRef={draggedPresetRef} />
+
+                {/* Search — hidden on Outline tab */}
+                {sideTab !== 'pages' && (
+                  <div className="relative px-3 pt-3 pb-2 shrink-0">
+                    <Search className="h-3.5 w-3.5 absolute left-5.5 top-1/2 translate-y-[-25%] text-neutral-400" />
+                    <input
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Search blocks…"
+                      className="w-full pl-8 pr-2 py-1.5 text-[12px] border border-neutral-200 rounded-md bg-white focus:outline-none focus:border-accent"
+                    />
+                  </div>
+                )}
+
+                <div className={cn('flex-1 overflow-auto scrollbar p-3 text-sm', sideTab !== 'pages' && 'pt-0')}>
+                  {sideTab === 'blocks' && (
+                    <BlockPalette search={search} collections={collections} />
+                  )}
+
+                  {sideTab === 'pages' && (
+                    <PageTree selectedKey={selectedKey} onSelect={setSelectedKey} />
+                  )}
+
+                  {sideTab === 'library' && (
+                    <LibraryBrowser search={search} blocks={libraryBlocks} draggedPresetRef={draggedPresetRef} />
+                  )}
+                </div>
               </aside>
 
               {/* Canvas */}
@@ -577,43 +576,57 @@ function BlockPalette({
     }
   };
 
+  const [open, setOpen] = useState<string | null>(null);
+  const toggle = (h: string) => setOpen((p) => (p === h ? null : h));
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-1">
       {PALETTE.map((group) => {
         const items = q
           ? group.items.filter((i) => i.label.toLowerCase().includes(q))
           : group.items;
         if (items.length === 0) return null;
+        const isOpen = open === group.heading || !!q;
         return (
-          <div key={group.heading}>
-            <div className="text-[10px] uppercase tracking-wider text-neutral-400 px-1 mb-1.5">
-              {group.heading}
-            </div>
-            <div className="grid grid-cols-2 gap-1.5">
-              {items.map((item) => {
-                const Icon = item.icon;
-                const isData = group.heading === 'Data';
-                return (
-                  <button
-                    key={item.t}
-                    type="button"
-                    onClick={() => run(item.t)}
-                    className={cn(
-                      'border rounded-md p-3 text-[11px] flex flex-col items-center gap-1.5 cursor-pointer transition-colors',
-                      isData
-                        ? 'border-accent/40 bg-accent-soft/40 text-neutral-700 hover:border-accent'
-                        : 'border-neutral-200 hover:border-accent hover:bg-neutral-50'
-                    )}
-                  >
-                    <Icon className="h-4 w-4 text-neutral-500" />
-                    <span className="text-center">{item.label}</span>
-                    {item.sub && (
-                      <span className="text-[9px] text-accent">{item.sub}</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+          <div key={group.heading} className="border border-neutral-100 rounded-md overflow-hidden">
+            <button
+              type="button"
+              onClick={() => toggle(group.heading)}
+              className="w-full flex items-center justify-between px-2 py-1.5 bg-neutral-50 hover:bg-neutral-100 text-left"
+            >
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">{group.heading}</span>
+              <span className="flex items-center gap-1.5 text-[10px] text-neutral-400">
+                {items.length}
+                <svg className={cn('h-3 w-3 transition-transform', isOpen && 'rotate-180')} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
+              </span>
+            </button>
+            {isOpen && (
+              <div className="p-1.5">
+                <div className="grid grid-cols-2 gap-1.5">
+                  {items.map((item) => {
+                    const Icon = item.icon;
+                    const isData = group.heading === 'Data';
+                    return (
+                      <button
+                        key={item.t}
+                        type="button"
+                        onClick={() => run(item.t)}
+                        className={cn(
+                          'border rounded-md p-2.5 text-[11px] flex flex-col items-center gap-1 cursor-pointer transition-colors',
+                          isData
+                            ? 'border-accent/40 bg-accent-soft/40 text-neutral-700 hover:border-accent'
+                            : 'border-neutral-200 hover:border-accent hover:bg-neutral-50'
+                        )}
+                      >
+                        <Icon className="h-4 w-4 text-neutral-500" />
+                        <span className="text-center">{item.label}</span>
+                        {item.sub && <span className="text-[9px] text-accent">{item.sub}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         );
       })}
@@ -984,44 +997,253 @@ function DataBindingPanel({
   );
 }
 
-function PresetBrowser({ search, draggedPresetRef }: { search: string; draggedPresetRef: React.MutableRefObject<{ id: string; source: string } | null> }) {
+function LibraryBrowser({ search, blocks, draggedPresetRef }: { search: string; blocks: LibraryBlock[]; draggedPresetRef: React.MutableRefObject<{ id: string; source: string } | null> }) {
   const q = search.trim().toLowerCase();
   const insert = useInsertNode();
+
+  const filtered = q
+    ? blocks.filter((b) => b.title.toLowerCase().includes(q) || b.name.toLowerCase().includes(q) || (b.description ?? '').toLowerCase().includes(q))
+    : blocks;
+
+  const grouped: Record<string, LibraryBlock[]> = {};
+  for (const b of filtered) {
+    const key = b.category || 'other';
+    (grouped[key] ??= []).push(b);
+  }
+  const cats = Object.keys(grouped).sort();
+
+  const [openCat, setOpenCat] = useState<string | null>(null);
+  const toggle = (cat: string) => setOpenCat((p) => (p === cat ? null : cat));
+
+  if (filtered.length === 0) {
+    return <p className="text-[12px] text-neutral-400 px-1 py-2">No blocks match &quot;{search}&quot;.</p>;
+  }
+
   return (
-    <div className="space-y-3">
-      {CATEGORY_ORDER.map((cat) => {
-        const items = BLOCK_PRESETS.filter((p) => p.category === cat && (!q || p.title.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)));
-        if (items.length === 0) return null;
+    <div className="space-y-1">
+      {cats.map((cat) => {
+        const open = openCat === cat || !!q;
         return (
-          <div key={cat}>
-            <div className="text-[10px] uppercase tracking-wider text-neutral-400 px-1 mb-1">
-              {CATEGORY_META[cat].label}
-              <span className="ml-1 text-neutral-300 normal-case">({items.length})</span>
-            </div>
-            <div className="space-y-2">
-              {items.map((p) => (
-                <div
-                  key={p.id}
-                  draggable
-                  onDragStart={() => { draggedPresetRef.current = { id: p.id, source: p.source }; }}
-                  onDragEnd={() => { draggedPresetRef.current = null; }}
-                  onClick={() => insert(() => new PresetBlockNode(p.id, p.source))}
-                  className="bg-white border border-neutral-200 rounded-md p-2 cursor-pointer hover:border-accent transition-colors select-none"
-                  title={p.description}
-                >
-                  <div className="font-medium text-[11px] truncate">{p.title}</div>
-                  <div className="text-[10px] text-neutral-400 truncate mb-1.5">{p.description}</div>
-                  <div className="h-16 overflow-hidden rounded border border-neutral-100 relative bg-white">
-                    <div
-                      className="absolute inset-0 origin-top-left pointer-events-none"
-                      style={{ transform: 'scale(0.32)', width: '312%', height: '312%' }}
-                      dangerouslySetInnerHTML={{ __html: p.source.replace(/className=/g, 'class=') }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white/70" />
+          <div key={cat} className="border border-neutral-100 rounded-md overflow-hidden">
+            <button
+              type="button"
+              onClick={() => toggle(cat)}
+
+              className="w-full flex items-center justify-between px-2 py-1.5 bg-neutral-50 hover:bg-neutral-100 text-left"
+            >
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
+                {CATEGORY_META[cat as keyof typeof CATEGORY_META]?.label ?? cat}
+              </span>
+              <span className="flex items-center gap-1.5 text-[10px] text-neutral-400">
+                {grouped[cat].length}
+                <svg className={cn('h-3 w-3 transition-transform', open && 'rotate-180')} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
+              </span>
+            </button>
+            {open && (
+              <div className="p-1.5 space-y-1.5">
+                {grouped[cat].map((b) => (
+                  <div
+                    key={b.id}
+                    draggable
+                    onDragStart={() => { draggedPresetRef.current = { id: b.id, source: b.source }; }}
+                    onDragEnd={() => { draggedPresetRef.current = null; }}
+                    onClick={() => insert(() => new PresetBlockNode(b.id, b.source))}
+                    className="bg-white border border-neutral-200 rounded p-1.5 cursor-pointer hover:border-accent transition-colors select-none"
+                    title={b.description}
+                  >
+                    <div className="font-medium text-[11px] truncate">{b.title || b.name}</div>
+                    <div className="text-[10px] text-neutral-400 truncate mb-1">{b.description}</div>
+                    <div className="h-14 overflow-hidden rounded border border-neutral-100 relative bg-white">
+                      <div
+                        className="absolute inset-0 origin-top-left pointer-events-none"
+                        style={{ transform: 'scale(0.28)', width: '357%', height: '357%' }}
+                        dangerouslySetInnerHTML={{ __html: b.source.replace(/className=/g, 'class=') }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white/70" />
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Node type helpers ──────────────────────────────────────────────────────────
+function nodeTypeLabel(node: LexicalNode): string {
+  const t = node.getType();
+  if (t === 'heading') return `H${(node as any).getTag?.()?.slice(1) ?? ''}`;
+  if (t === 'paragraph') return 'P';
+  if (t === 'list') return (node as any).getListType?.() === 'number' ? 'OL' : 'UL';
+  if (t === 'quote') return '"';
+  if (t === 'fdl-image') return 'IMG';
+  if (t === 'fdl-button') return 'BTN';
+  if (t === 'fdl-collection-list') return 'DATA';
+  if (t === 'fdl-preset-block') return 'BLK';
+  return t.slice(0, 4).toUpperCase();
+}
+
+const TRUNC = 10;
+function trunc(s: string) { return s.length > TRUNC ? s.slice(0, TRUNC) + '…' : s; }
+
+function nodeDisplayName(node: LexicalNode): string {
+  const t = node.getType();
+  if (t === 'fdl-preset-block') {
+    const label = (node as any).__label;
+    return trunc(label || (node as any).__presetId || 'Block');
+  }
+  if (t === 'heading') return trunc(node.getTextContent?.() || 'Heading');
+  if (t === 'paragraph') return trunc(node.getTextContent?.() || 'Paragraph');
+  if (t === 'list') return (node as any).getListType?.() === 'number' ? 'Numbered' : 'Bullets';
+  if (t === 'quote') return trunc(node.getTextContent?.() || 'Quote');
+  if (t === 'fdl-image') return trunc((node as any).__alt || 'Image');
+  if (t === 'fdl-button') return trunc((node as any).__label2 || (node as any).__data?.label || 'Button');
+  if (t === 'fdl-collection-list') return trunc((node as any).__collection || 'Card list');
+  return trunc(t);
+}
+
+function nodeBadgeClass(node: LexicalNode): string {
+  const t = node.getType();
+  if (t.startsWith('heading')) return 'bg-purple-100 text-purple-700';
+  if (t === 'fdl-preset-block') return 'bg-accent-soft text-accent';
+  if (t === 'fdl-collection-list') return 'bg-ok/10 text-ok';
+  if (t === 'fdl-button') return 'bg-warn/10 text-warn';
+  return 'bg-neutral-100 text-neutral-500';
+}
+
+// ── Page tree (outline of current page, draggable to reorder) ─────────────────
+function PageTree({ selectedKey, onSelect }: { selectedKey: NodeKey | null; onSelect: (k: NodeKey) => void }) {
+  const [editor] = useLexicalComposerContext();
+  const [items, setItems] = useState<Array<{ key: string; typeLabel: string; displayName: string; badgeClass: string }>>([]);
+  const dragKey = useRef<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ key: string; pos: 'before' | 'after' } | null>(null);
+  const [renamingKey, setRenamingKey] = useState<string | null>(null);
+  const [renameVal, setRenameVal] = useState('');
+  const [localLabels, setLocalLabels] = useState<Record<string, string>>({});
+  const renameRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const read = () => {
+      editor.getEditorState().read(() => {
+        const children = $getRoot().getChildren();
+        setItems(children.map((n) => ({
+          key: n.getKey(),
+          typeLabel: nodeTypeLabel(n),
+          displayName: nodeDisplayName(n),
+          badgeClass: nodeBadgeClass(n),
+        })));
+      });
+    };
+    read();
+    return editor.registerUpdateListener(read);
+  }, [editor]);
+
+  useEffect(() => { if (renamingKey) renameRef.current?.focus(); }, [renamingKey]);
+
+  const startRename = (key: string, currentName: string) => {
+    setRenamingKey(key);
+    setRenameVal(localLabels[key] ?? (currentName === 'Block' ? '' : currentName));
+  };
+
+  const commitRename = () => {
+    if (!renamingKey) return;
+    const key = renamingKey;
+    const val = renameVal.trim();
+    setRenamingKey(null);
+    // Persist on block nodes via Lexical; all others use local label map
+    editor.getEditorState().read(() => {
+      const node = $getNodeByKey(key) as any;
+      if (node?.setLabel) {
+        editor.update(() => { ($getNodeByKey(key) as any).setLabel(val); });
+      }
+    });
+    setLocalLabels((prev) => ({ ...prev, [key]: val }));
+  };
+
+  const handleDragStart = (key: string) => { dragKey.current = key; };
+  const handleDragEnd = () => { dragKey.current = null; setDropTarget(null); };
+
+  const handleDragOver = (e: React.DragEvent, key: string) => {
+    if (!dragKey.current || dragKey.current === key) return;
+    e.preventDefault();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setDropTarget({ key, pos: e.clientY < rect.top + rect.height / 2 ? 'before' : 'after' });
+  };
+
+  const handleDrop = (e: React.DragEvent, targetKey: string) => {
+    e.preventDefault();
+    const fromKey = dragKey.current;
+    const dt = dropTarget;
+    dragKey.current = null;
+    setDropTarget(null);
+    if (!fromKey || fromKey === targetKey || !dt) return;
+    editor.update(() => {
+      const from = $getNodeByKey(fromKey);
+      const to = $getNodeByKey(targetKey);
+      if (!from || !to) return;
+      dt.pos === 'before' ? to.insertBefore(from) : to.insertAfter(from);
+    });
+  };
+
+  if (items.length === 0) {
+    return (
+      <p className="text-[12px] text-neutral-400 px-1 py-4 text-center">
+        Canvas is empty.<br />
+        <span className="text-neutral-300">Drag a block from Library or type / on the canvas.</span>
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-0.5">
+      {items.map((item) => {
+        const isSelected = item.key === selectedKey;
+        const isDT = dropTarget?.key === item.key;
+        const isRenaming = renamingKey === item.key;
+        return (
+          <div
+            key={item.key}
+            draggable={!isRenaming}
+            onDragStart={() => handleDragStart(item.key)}
+            onDragEnd={handleDragEnd}
+            onDragOver={(e) => handleDragOver(e, item.key)}
+            onDragLeave={() => setDropTarget(null)}
+            onDrop={(e) => handleDrop(e, item.key)}
+            onClick={() => !isRenaming && onSelect(item.key as NodeKey)}
+            onDoubleClick={() => startRename(item.key, item.displayName)}
+            className={cn(
+              'flex items-center gap-2 px-2 py-1.5 rounded select-none transition-colors text-[12px]',
+              isRenaming ? 'bg-neutral-50 ring-1 ring-accent' : isSelected ? 'bg-accent-soft text-accent' : 'hover:bg-neutral-100 cursor-pointer',
+              isDT && dropTarget?.pos === 'before' && 'border-t-2 border-accent',
+              isDT && dropTarget?.pos === 'after' && 'border-b-2 border-accent',
+            )}
+          >
+            <svg className="h-3 w-3 text-neutral-300 shrink-0 cursor-grab" viewBox="0 0 10 14" fill="currentColor">
+              <circle cx="2" cy="2" r="1.2"/><circle cx="8" cy="2" r="1.2"/>
+              <circle cx="2" cy="7" r="1.2"/><circle cx="8" cy="7" r="1.2"/>
+              <circle cx="2" cy="12" r="1.2"/><circle cx="8" cy="12" r="1.2"/>
+            </svg>
+            <span className={cn('text-[9px] font-bold px-1 py-0.5 rounded shrink-0', item.badgeClass)}>
+              {item.typeLabel}
+            </span>
+            {isRenaming ? (
+              <input
+                ref={renameRef}
+                value={renameVal}
+                onChange={(e) => setRenameVal(e.target.value)}
+                onBlur={commitRename}
+                onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setRenamingKey(null); }}
+                placeholder="Block name…"
+                className="flex-1 min-w-0 bg-transparent outline-none text-[12px] text-neutral-800"
+              />
+            ) : (
+              <span className="truncate text-neutral-700" title="Double-click to rename">
+                {localLabels[item.key] || item.displayName}
+              </span>
+            )}
           </div>
         );
       })}

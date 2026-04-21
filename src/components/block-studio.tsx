@@ -234,6 +234,15 @@ export function BlockStudio({
           >
             Preview with real data
           </button>
+          {mode === 'edit' && (
+            <button
+              type="button"
+              onClick={destroy}
+              className="px-2.5 py-1 text-[11px] rounded-md bg-red-600 text-white hover:bg-red-700"
+            >
+              Delete
+            </button>
+          )}
           <button
             type="button"
             onClick={save}
@@ -242,16 +251,9 @@ export function BlockStudio({
           >
             {saving ? 'Saving…' : mode === 'create' ? 'Save to library' : 'Save changes'}
           </button>
-          {mode === 'edit' && (
-            <button
-              type="button"
-              onClick={destroy}
-              className="px-2 py-1 text-neutral-400 hover:text-danger"
-              title="Delete"
-            >
-              ✕
-            </button>
-          )}
+          <Link href="/blocks" className="px-2 py-1 text-neutral-400 hover:text-neutral-700" title="Close">
+            ✕
+          </Link>
         </div>
       </header>
 

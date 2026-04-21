@@ -31,7 +31,8 @@
       "Bash(cp C:/private/fdl-create/src/app/pages/\\\\[slug\\\\]/page.tsx C:/private/fdl-create/src/app/\\\\\\(public\\\\\\)/pages/\\\\[slug\\\\]/page.tsx)",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(grep -c \"^  {$\\\\|^  id:\" src/lib/block-presets.ts)"
     ]
   }
 }
