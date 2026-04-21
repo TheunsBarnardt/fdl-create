@@ -294,7 +294,7 @@ export const BLOCK_PRESETS: BlockPreset[] = [
   <div className="max-w-3xl mx-auto px-6 text-center">
     <div className="text-accent display text-6xl leading-none">"</div>
     <blockquote className="display text-2xl leading-relaxed mt-4">
-      Lattice cut our page-build cycles from two weeks to a Tuesday afternoon.
+      FDL-Create cut our page-build cycles from two weeks to a Tuesday afternoon.
     </blockquote>
     <div className="mt-6 flex items-center justify-center gap-3">
       <div className="w-10 h-10 rounded-full bg-neutral-200" />
@@ -314,7 +314,7 @@ export const BLOCK_PRESETS: BlockPreset[] = [
     description: 'Three customer cards with avatar, quote, company.',
     source: `<section className="py-20 bg-paper">
   <div className="max-w-6xl mx-auto px-6">
-    <h2 className="display text-3xl text-center">Teams ship faster on Lattice.</h2>
+    <h2 className="display text-3xl text-center">Teams ship faster on FDL-Create.</h2>
     <div className="grid grid-cols-3 gap-6 mt-10">
       <div className="p-6 bg-white border border-neutral-200 rounded-xl">
         <p className="text-sm">“The block studio feels like pasting from Figma, except it actually works.”</p>
@@ -426,7 +426,7 @@ export const BLOCK_PRESETS: BlockPreset[] = [
     source: `<footer className="bg-ink-950 text-paper/80 py-16">
   <div className="max-w-6xl mx-auto px-6 grid grid-cols-4 gap-8">
     <div>
-      <div className="display text-lg text-paper">Lattice</div>
+      <div className="display text-lg text-paper">FDL-Create</div>
       <p className="text-xs text-paper/50 mt-2 leading-relaxed">
         The composable CMS for teams that ship.
       </p>
@@ -451,7 +451,7 @@ export const BLOCK_PRESETS: BlockPreset[] = [
     </div>
   </div>
   <div className="max-w-6xl mx-auto px-6 mt-12 pt-6 border-t border-paper/10 flex justify-between text-[11px] text-paper/40">
-    <div>© 2026 Lattice Labs</div>
+    <div>© 2026 FDL-Create Labs</div>
     <div>Made in Cape Town</div>
   </div>
 </footer>`

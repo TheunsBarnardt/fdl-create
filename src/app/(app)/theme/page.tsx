@@ -17,7 +17,7 @@ export default async function ThemePage() {
         tokens: (() => { try { return JSON.parse(active.tokens); } catch { return {}; } })(),
         isDefault: active.isDefault
       }
-    : { id: undefined, name: 'Lattice default', tokens: {}, isDefault: true };
+    : { id: undefined, name: 'FDL-Create default', tokens: {}, isDefault: true };
 
   return <ThemeStudio themes={parsed} initial={initial} />;
 }

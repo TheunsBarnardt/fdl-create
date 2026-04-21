@@ -384,7 +384,7 @@ export const API_ENDPOINTS: Endpoint[] = [
     scope: 'read:themes',
     responseStatus: 200,
     responseExample: `[
-  { "id": "cmo...", "name": "Lattice default", "tokens": { "colors": { ... } } }
+  { "id": "cmo...", "name": "FDL-Create default", "tokens": { "colors": { ... } } }
 ]`
   },
   {
@@ -416,7 +416,7 @@ export const API_ENDPOINTS: Endpoint[] = [
     scope: 'read:themes',
     pathParams: [{ name: 'id', type: 'string', required: true, description: 'Theme id.' }],
     responseStatus: 200,
-    responseExample: `{ "id": "cmo...", "name": "Lattice default", "tokens": { ... } }`
+    responseExample: `{ "id": "cmo...", "name": "FDL-Create default", "tokens": { ... } }`
   },
   {
     id: 'themes-update',

@@ -41,7 +41,7 @@ export default function SignInPage() {
           <div className="h-8 w-8 rounded-md bg-gradient-to-br from-sky-400 to-violet-500 flex items-center justify-center mb-2">
             <Sparkles className="h-4 w-4 text-white" />
           </div>
-          <CardTitle className="text-base">Sign in to Lattice</CardTitle>
+          <CardTitle className="text-base">Sign in to FDL-Create</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-3">

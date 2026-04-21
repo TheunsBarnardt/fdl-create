@@ -52,7 +52,7 @@ export function Sidebar({ role = 'viewer' }: { role?: Role }) {
           </svg>
         </div>
         <div>
-          <div className="display text-[15px] font-semibold leading-none">Lattice</div>
+          <div className="display text-[15px] font-semibold leading-none">FDL-Create</div>
           <div className="text-[10px] text-white/50 mt-0.5">Acme Studio · SaaS</div>
         </div>
       </div>

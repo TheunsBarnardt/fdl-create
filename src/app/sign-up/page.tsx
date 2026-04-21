@@ -52,7 +52,7 @@ export default function SignUpPage() {
           <div className="h-8 w-8 rounded-md bg-gradient-to-br from-sky-400 to-violet-500 flex items-center justify-center mb-2">
             <Sparkles className="h-4 w-4 text-white" />
           </div>
-          <CardTitle className="text-base">Create your Lattice account</CardTitle>
+          <CardTitle className="text-base">Create your FDL-Create account</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-3">
