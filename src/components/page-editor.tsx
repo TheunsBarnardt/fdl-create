@@ -59,7 +59,7 @@ import {
   CollectionListNode,
   PresetBlockNode
 } from '@/lib/editor/nodes';
-import { SelectionSyncPlugin, SlashMenuPlugin, DecoratorDeletePlugin } from '@/lib/editor/plugins';
+import { SelectionSyncPlugin, SlashMenuPlugin, DecoratorDeletePlugin, ToolbarPlugin } from '@/lib/editor/plugins';
 import { treeToEditorState } from '@/lib/editor/migrate';
 
 type Viewport = 'desktop' | 'tablet' | 'mobile';
@@ -515,6 +515,8 @@ function CanvasArea({ viewport, draggedPresetRef }: { viewport: Viewport; dragge
   };
 
   return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+    <ToolbarPlugin />
     <div
       className="flex-1 overflow-auto scrollbar bg-neutral-100 p-10"
       onDragOver={handleDragOver}
@@ -584,6 +586,7 @@ function CanvasArea({ viewport, draggedPresetRef }: { viewport: Viewport; dragge
           />
         )}
       </div>
+    </div>
     </div>
   );
 }
