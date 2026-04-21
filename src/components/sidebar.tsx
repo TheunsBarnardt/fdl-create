@@ -5,9 +5,9 @@ import { cn } from '@/lib/utils';
 
 const buildNav = [
   { href: '/', label: 'Workspace', icon: HomeIcon },
-  { href: '/pages', label: 'Page editor', icon: PageIcon },
+  { href: '/theme', label: 'Theme', icon: ThemeIcon },
   { href: '/blocks', label: 'Block studio', icon: BlocksIcon },
-  { href: '/theme', label: 'Theme', icon: ThemeIcon }
+  { href: '/pages', label: 'Page editor', icon: PageIcon }
 ];
 
 const dataNav = [

@@ -11,6 +11,7 @@ type Mode = 'light' | 'dark';
 type Tokens = {
   scope: Scope;
   mode: Mode;
+  // Light mode colors
   background: string;
   foreground: string;
   primary: string;
@@ -20,10 +21,29 @@ type Tokens = {
   destructive: string;
   border: string;
   ring: string;
+  // Dark mode color overrides
+  darkBackground: string;
+  darkForeground: string;
+  darkPrimary: string;
+  darkSecondary: string;
+  darkAccent: string;
+  darkMuted: string;
+  darkDestructive: string;
+  darkBorder: string;
+  darkRing: string;
   radius: number;
   fontBody: string;
   fontDisplay: string;
   fontMono: string;
+  // Typography scale
+  h1Size: string; h1Weight: number; h1Tracking: string; h1Leading: string;
+  h2Size: string; h2Weight: number; h2Tracking: string; h2Leading: string;
+  h3Size: string; h3Weight: number; h3Tracking: string; h3Leading: string;
+  h4Size: string; h4Weight: number; h4Tracking: string; h4Leading: string;
+  h5Size: string; h5Weight: number; h5Tracking: string; h5Leading: string;
+  h6Size: string; h6Weight: number; h6Tracking: string; h6Leading: string;
+  bodySize: string; bodyWeight: number; bodyLeading: string;
+  underlineOffset: string; underlineThickness: string;
 };
 
 type Theme = { id?: string; name: string; tokens: any; isDefault: boolean };
@@ -53,11 +73,73 @@ const DEFAULT_TOKENS: Tokens = {
   destructive: '0 84% 60%',
   border: '214 32% 91%',
   ring: '222 47% 11%',
+  darkBackground: '222 47% 11%',
+  darkForeground: '210 40% 98%',
+  darkPrimary: '210 40% 98%',
+  darkSecondary: '217 33% 17%',
+  darkAccent: '217 33% 17%',
+  darkMuted: '217 33% 17%',
+  darkDestructive: '0 84% 60%',
+  darkBorder: '217 33% 17%',
+  darkRing: '212 27% 84%',
   radius: 0.5,
   fontBody: 'Inter',
   fontDisplay: 'Fraunces',
-  fontMono: 'JetBrains Mono'
+  fontMono: 'JetBrains Mono',
+  h1Size: '2.5rem',  h1Weight: 700, h1Tracking: '-0.025em', h1Leading: '1.15',
+  h2Size: '2rem',    h2Weight: 700, h2Tracking: '-0.02em',  h2Leading: '1.2',
+  h3Size: '1.5rem',  h3Weight: 600, h3Tracking: '-0.015em', h3Leading: '1.25',
+  h4Size: '1.25rem', h4Weight: 600, h4Tracking: '-0.01em',  h4Leading: '1.3',
+  h5Size: '1.125rem',h5Weight: 600, h5Tracking: '-0.005em', h5Leading: '1.35',
+  h6Size: '1rem',    h6Weight: 600, h6Tracking: '0em',      h6Leading: '1.4',
+  bodySize: '0.875rem', bodyWeight: 400, bodyLeading: '1.6',
+  underlineOffset: '3px', underlineThickness: '1px',
 };
+
+function hslToHex(hsl: string): string {
+  try {
+    const parts = hsl.trim().split(/\s+/);
+    const h = parseFloat(parts[0] || '0');
+    const s = parseFloat(parts[1] || '0');
+    const l = parseFloat(parts[2] || '0');
+    if (isNaN(h) || isNaN(s) || isNaN(l)) return '#000000';
+    const c = (1 - Math.abs(2 * l / 100 - 1)) * s / 100;
+    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    const m = l / 100 - c / 2;
+    let r = 0, g = 0, b = 0;
+    if (h >= 0 && h < 60) [r, g, b] = [c, x, 0];
+    else if (h >= 60 && h < 120) [r, g, b] = [x, c, 0];
+    else if (h >= 120 && h < 180) [r, g, b] = [0, c, x];
+    else if (h >= 180 && h < 240) [r, g, b] = [0, x, c];
+    else if (h >= 240 && h < 300) [r, g, b] = [x, 0, c];
+    else [r, g, b] = [c, 0, x];
+    const toHex = (v: number) => Math.max(0, Math.min(255, Math.round((v + m) * 255))).toString(16).padStart(2, '0');
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  } catch {
+    return '#000000';
+  }
+}
+
+function hexToHsl(hex: string): string {
+  try {
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h = 0, s = 0;
+    const l = (max + min) / 2;
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+      else if (max === g) h = ((b - r) / d + 2) / 6;
+      else h = ((r - g) / d + 4) / 6;
+    }
+    return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+  } catch {
+    return '0 0% 0%';
+  }
+}
 
 const PRESETS: Record<string, Partial<Tokens>> = {
   slate:    { primary: '222 47% 11%',   secondary: '210 40% 96%',  accent: '210 40% 96%',  muted: '210 40% 96%',  border: '214 32% 91%',  ring: '222 47% 11%' },
@@ -69,6 +151,18 @@ const PRESETS: Record<string, Partial<Tokens>> = {
   green:    { primary: '142 72% 29%',   secondary: '138 76% 96%',  accent: '138 76% 96%',  muted: '138 76% 97%',  border: '142 43% 88%',  ring: '142 72% 29%' },
   violet:   { primary: '262 83% 58%',   secondary: '270 100% 97%', accent: '270 100% 97%', muted: '270 100% 98%', border: '270 50% 92%',  ring: '262 83% 58%' },
   otto1890: { primary: '12 84% 40%',    secondary: '40 50% 92%',   accent: '43 74% 52%',   muted: '40 30% 94%',   border: '36 28% 82%',   ring: '12 84% 40%' }
+};
+
+const DARK_PRESETS: Record<string, Partial<Tokens>> = {
+  slate:    { darkBackground: '222 47% 11%', darkForeground: '210 40% 98%', darkPrimary: '210 40% 98%', darkSecondary: '217 33% 17%', darkAccent: '217 33% 17%', darkMuted: '217 33% 17%', darkBorder: '217 33% 17%', darkRing: '212 27% 84%' },
+  stone:    { darkBackground: '20 14% 9%',   darkForeground: '60 9% 98%',   darkPrimary: '60 9% 98%',   darkSecondary: '12 6% 15%',   darkAccent: '12 6% 15%',   darkMuted: '12 6% 15%',   darkBorder: '12 6% 15%',   darkRing: '24 6% 83%' },
+  zinc:     { darkBackground: '240 10% 4%',  darkForeground: '0 0% 98%',    darkPrimary: '0 0% 98%',    darkSecondary: '240 4% 16%',  darkAccent: '240 4% 16%',  darkMuted: '240 4% 16%',  darkBorder: '240 4% 16%',  darkRing: '240 5% 84%' },
+  neutral:  { darkBackground: '0 0% 9%',     darkForeground: '0 0% 98%',    darkPrimary: '0 0% 98%',    darkSecondary: '0 0% 15%',    darkAccent: '0 0% 15%',    darkMuted: '0 0% 15%',    darkBorder: '0 0% 15%',    darkRing: '0 0% 84%' },
+  rose:     { darkBackground: '20 14% 5%',   darkForeground: '0 0% 98%',    darkPrimary: '346 77% 65%', darkSecondary: '346 10% 15%', darkAccent: '346 10% 15%', darkMuted: '346 10% 15%', darkBorder: '346 10% 18%', darkRing: '346 77% 65%' },
+  blue:     { darkBackground: '222 47% 7%',  darkForeground: '210 40% 98%', darkPrimary: '217 91% 60%', darkSecondary: '217 25% 15%', darkAccent: '217 25% 15%', darkMuted: '217 25% 15%', darkBorder: '217 25% 18%', darkRing: '217 91% 60%' },
+  green:    { darkBackground: '150 60% 5%',  darkForeground: '150 80% 98%', darkPrimary: '142 71% 45%', darkSecondary: '142 20% 14%', darkAccent: '142 20% 14%', darkMuted: '142 20% 14%', darkBorder: '142 20% 17%', darkRing: '142 71% 45%' },
+  violet:   { darkBackground: '260 47% 7%',  darkForeground: '270 100% 98%',darkPrimary: '262 83% 68%', darkSecondary: '262 25% 15%', darkAccent: '262 25% 15%', darkMuted: '262 25% 15%', darkBorder: '262 25% 18%', darkRing: '262 83% 68%' },
+  otto1890: { darkBackground: '20 15% 8%',   darkForeground: '40 30% 92%',  darkPrimary: '12 84% 55%',  darkSecondary: '30 20% 15%',  darkAccent: '43 70% 45%',  darkMuted: '30 20% 15%',  darkBorder: '30 20% 18%',  darkRing: '12 84% 55%' },
 };
 
 const PRESET_SWATCHES: Record<string, { label: string; fg: string; bg: string; bgBorder?: string }> = {
@@ -84,16 +178,7 @@ const PRESET_SWATCHES: Record<string, { label: string; fg: string; bg: string; b
 };
 
 function normalizeTokens(raw: any): Tokens {
-  if (raw && typeof raw === 'object' && typeof raw.background === 'string' && typeof raw.primary === 'string') {
-    return { ...DEFAULT_TOKENS, ...raw };
-  }
-  // Migrate legacy { mode, radius, font, accent, surface, ink }
-  const out: Tokens = { ...DEFAULT_TOKENS };
-  if (raw?.mode === 'dark') out.mode = 'dark';
-  if (typeof raw?.radius === 'number') out.radius = raw.radius;
-  if (raw?.font === 'jetbrains') out.fontBody = 'JetBrains Mono';
-  else if (raw?.font === 'geist') out.fontBody = 'Geist';
-  return out;
+  return { ...DEFAULT_TOKENS, ...(raw && typeof raw === 'object' ? raw : {}) };
 }
 
 export function ThemeStudio({
@@ -112,6 +197,10 @@ export function ThemeStudio({
   const [activePreset, setActivePreset] = useState<string>('slate');
   const [copyState, setCopyState] = useState<'idle' | 'copied'>('idle');
   const [claudeOn, setClaudeOn] = useState(false);
+  const [open, setOpen] = useState<Record<string, boolean>>({
+    presets: true, colors: true, radius: false, fonts: false, typeScale: false, claude: false,
+  });
+  const toggle = (k: string) => setOpen((o) => ({ ...o, [k]: !o[k] }));
 
   const loadTheme = (t: typeof themes[number]) => {
     setSelectedId(t.id);
@@ -121,50 +210,58 @@ export function ThemeStudio({
   };
 
   const applyPreset = (key: string) => {
-    const p = PRESETS[key];
+    const p = tokens.mode === 'dark' ? DARK_PRESETS[key] : PRESETS[key];
     if (!p) return;
     setTokens({ ...tokens, ...p });
     setActivePreset(key);
   };
 
+  const darkKey = (key: ColorKey) =>
+    `dark${key.charAt(0).toUpperCase()}${key.slice(1)}` as keyof Tokens;
+
+  const activeColorKey = (key: ColorKey): keyof Tokens =>
+    tokens.mode === 'dark' ? darkKey(key) : key;
+
+  const getColor = (key: ColorKey): string =>
+    tokens[activeColorKey(key)] as string;
+
   const setColor = (key: ColorKey, value: string) => {
-    setTokens({ ...tokens, [key]: value });
+    setTokens({ ...tokens, [activeColorKey(key)]: value });
   };
 
   const setMode = (mode: Mode) => setTokens({ ...tokens, mode });
   const setScope = (scope: Scope) => setTokens({ ...tokens, scope });
 
   const cssVars = useMemo(() => {
-    const darkOverrides = tokens.mode === 'dark'
-      ? {
-          background: '222 47% 11%',
-          foreground: '210 40% 98%',
-          secondary: '217 33% 17%',
-          muted: '217 33% 17%',
-          accent: '217 33% 17%',
-          border: '217 33% 17%'
-        }
-      : {};
+    const d = tokens.mode === 'dark';
     return {
-      '--bg': (darkOverrides as any).background ?? tokens.background,
-      '--fg': (darkOverrides as any).foreground ?? tokens.foreground,
-      '--card': (darkOverrides as any).background ?? tokens.background,
-      '--card-fg': (darkOverrides as any).foreground ?? tokens.foreground,
-      '--primary': tokens.primary,
-      '--primary-fg': tokens.mode === 'dark' ? tokens.foreground : '210 40% 98%',
-      '--secondary': (darkOverrides as any).secondary ?? tokens.secondary,
-      '--secondary-fg': tokens.foreground,
-      '--muted': (darkOverrides as any).muted ?? tokens.muted,
-      '--muted-fg': tokens.mode === 'dark' ? '215 20% 65%' : '215 16% 47%',
-      '--accent': (darkOverrides as any).accent ?? tokens.accent,
-      '--accent-fg': tokens.foreground,
-      '--destructive': tokens.destructive,
+      '--bg': d ? tokens.darkBackground : tokens.background,
+      '--fg': d ? tokens.darkForeground : tokens.foreground,
+      '--card': d ? tokens.darkBackground : tokens.background,
+      '--card-fg': d ? tokens.darkForeground : tokens.foreground,
+      '--primary': d ? tokens.darkPrimary : tokens.primary,
+      '--primary-fg': d ? tokens.darkBackground : '210 40% 98%',
+      '--secondary': d ? tokens.darkSecondary : tokens.secondary,
+      '--secondary-fg': d ? tokens.darkForeground : tokens.foreground,
+      '--muted': d ? tokens.darkMuted : tokens.muted,
+      '--muted-fg': d ? '215 20% 65%' : '215 16% 47%',
+      '--accent': d ? tokens.darkAccent : tokens.accent,
+      '--accent-fg': d ? tokens.darkForeground : tokens.foreground,
+      '--destructive': d ? tokens.darkDestructive : tokens.destructive,
       '--destructive-fg': '210 40% 98%',
-      '--border': (darkOverrides as any).border ?? tokens.border,
-      '--input': (darkOverrides as any).border ?? tokens.border,
-      '--ring': tokens.ring,
+      '--border': d ? tokens.darkBorder : tokens.border,
+      '--input': d ? tokens.darkBorder : tokens.border,
+      '--ring': d ? tokens.darkRing : tokens.ring,
       '--radius': `${tokens.radius}rem`,
-      '--theme-font': tokens.fontBody
+      '--theme-font': tokens.fontBody,
+      '--h1-size': tokens.h1Size, '--h1-weight': String(tokens.h1Weight), '--h1-tracking': tokens.h1Tracking, '--h1-leading': tokens.h1Leading,
+      '--h2-size': tokens.h2Size, '--h2-weight': String(tokens.h2Weight), '--h2-tracking': tokens.h2Tracking, '--h2-leading': tokens.h2Leading,
+      '--h3-size': tokens.h3Size, '--h3-weight': String(tokens.h3Weight), '--h3-tracking': tokens.h3Tracking, '--h3-leading': tokens.h3Leading,
+      '--h4-size': tokens.h4Size, '--h4-weight': String(tokens.h4Weight), '--h4-tracking': tokens.h4Tracking, '--h4-leading': tokens.h4Leading,
+      '--h5-size': tokens.h5Size, '--h5-weight': String(tokens.h5Weight), '--h5-tracking': tokens.h5Tracking, '--h5-leading': tokens.h5Leading,
+      '--h6-size': tokens.h6Size, '--h6-weight': String(tokens.h6Weight), '--h6-tracking': tokens.h6Tracking, '--h6-leading': tokens.h6Leading,
+      '--body-size': tokens.bodySize, '--body-weight': String(tokens.bodyWeight), '--body-leading': tokens.bodyLeading,
+      '--underline-offset': tokens.underlineOffset, '--underline-thickness': tokens.underlineThickness,
     } as CSSProperties;
   }, [tokens]);
 
@@ -302,106 +399,217 @@ export function ThemeStudio({
 
       <div className="flex-1 flex overflow-hidden min-h-0">
         <aside className="w-80 border-r border-neutral-200 bg-white overflow-auto scrollbar shrink-0">
-          <div className="p-4 border-b border-neutral-200">
-            <div className="text-[10px] uppercase tracking-wider text-neutral-400 mb-2">Base preset</div>
-            <select
-              value={activePreset}
-              onChange={(e) => applyPreset(e.target.value)}
-              className="w-full text-sm px-3 py-2 border border-neutral-200 rounded-md bg-white"
-            >
-              <option value="slate">Slate (default)</option>
-              <option value="stone">Stone</option>
-              <option value="zinc">Zinc</option>
-              <option value="neutral">Neutral</option>
-              <option value="rose">Rose</option>
-              <option value="blue">Blue</option>
-              <option value="green">Green</option>
-              <option value="violet">Violet</option>
-              <option value="otto1890">Otto 1890 (paper · vermilion · gold)</option>
-            </select>
+          {/* Presets — accordion */}
+          <div className="border-b border-neutral-200">
+            <button onClick={() => toggle('presets')} className="w-full px-4 py-3 flex items-center justify-between hover:bg-neutral-50">
+              <span className="text-[10px] uppercase tracking-wider text-neutral-400">Presets</span>
+              <Chevron open={open.presets} />
+            </button>
+            {open.presets && (
+              <div className="px-4 pb-4">
+                <div className="grid grid-cols-3 gap-2">
+                  {Object.entries(PRESET_SWATCHES).map(([key, s]) => (
+                    <button
+                      key={key}
+                      onClick={() => applyPreset(key)}
+                      className={cn(
+                        'rounded-md p-2 text-[11px] flex flex-col items-center gap-1 border transition-colors',
+                        activePreset === key
+                          ? 'border-accent ring-2 ring-accent/30'
+                          : 'border-neutral-200 hover:border-accent'
+                      )}
+                    >
+                      <div className="flex gap-0.5">
+                        <span className="w-3 h-3 rounded-sm" style={{ background: s.fg }} />
+                        <span className="w-3 h-3 rounded-sm" style={{ background: s.bg, border: `1px solid ${s.bgBorder ?? '#e4e4e7'}` }} />
+                      </div>
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="p-4 border-b border-neutral-200">
-            <div className="text-[10px] uppercase tracking-wider text-neutral-400 mb-3">
-              Colors · {tokens.mode} mode
-            </div>
-            <div className="space-y-2.5 text-[12px]">
-              {COLOR_KEYS.map((key) => (
-                <div key={key} className="flex items-center justify-between gap-2">
-                  <label className="mono text-[11px] text-neutral-600">--{key}</label>
-                  <div className="flex items-center gap-2">
-                    <div className="swatch" style={{ background: `hsl(${tokens[key]})` }} />
-                    <input
-                      className="mono text-[11px] w-24 px-1.5 py-0.5 border border-neutral-200 rounded focus:outline-none focus:border-accent"
-                      value={tokens[key]}
-                      onChange={(e) => setColor(key, e.target.value)}
-                    />
+          {/* Colors — always visible, mode-aware */}
+          <div className="border-b border-neutral-200">
+            <button onClick={() => toggle('colors')} className="w-full px-4 py-3 flex items-center justify-between hover:bg-neutral-50">
+              <span className="text-[10px] uppercase tracking-wider text-neutral-400">
+                Colors · <span className={tokens.mode === 'dark' ? 'text-neutral-500' : 'text-neutral-400'}>{tokens.mode}</span>
+              </span>
+              <Chevron open={open.colors} />
+            </button>
+            {open.colors && (
+              <div className="px-4 pb-4 space-y-2.5 text-[12px]">
+                {COLOR_KEYS.map((key) => (
+                  <div key={key} className="flex items-center justify-between gap-2">
+                    <label className="mono text-[11px] text-neutral-600">--{key}</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={hslToHex(getColor(key))}
+                        onChange={(e) => setColor(key, hexToHsl(e.target.value))}
+                        className="w-7 h-7 rounded cursor-pointer p-0.5"
+                        style={{ border: '1px solid #e5e5e5' }}
+                      />
+                      <input
+                        className="mono text-[11px] w-20 px-1.5 py-0.5 border border-neutral-200 rounded focus:outline-none focus:border-accent"
+                        value={getColor(key)}
+                        onChange={(e) => setColor(key, e.target.value)}
+                      />
+                    </div>
                   </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Radius — accordion */}
+          <div className="border-b border-neutral-200">
+            <button onClick={() => toggle('radius')} className="w-full px-4 py-3 flex items-center justify-between hover:bg-neutral-50">
+              <span className="text-[10px] uppercase tracking-wider text-neutral-400">
+                Radius <span className="text-neutral-500 normal-case tracking-normal ml-1">{tokens.radius.toFixed(2)}rem</span>
+              </span>
+              <Chevron open={open.radius} />
+            </button>
+            {open.radius && (
+              <div className="px-4 pb-4">
+                <input
+                  type="range" min={0} max={16} step={1}
+                  value={Math.round(tokens.radius * 16)}
+                  onChange={(e) => setTokens({ ...tokens, radius: Number(e.target.value) / 16 })}
+                  className="w-full accent-accent"
+                />
+                <div className="flex items-center justify-between text-[11px] text-neutral-500 mt-1">
+                  <span>0</span><span>{tokens.radius.toFixed(2)}rem</span><span>1rem</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Fonts — accordion */}
+          <div className="border-b border-neutral-200">
+            <button onClick={() => toggle('fonts')} className="w-full px-4 py-3 flex items-center justify-between hover:bg-neutral-50">
+              <span className="text-[10px] uppercase tracking-wider text-neutral-400">
+                Fonts <span className="text-neutral-500 normal-case tracking-normal ml-1">{tokens.fontBody}</span>
+              </span>
+              <Chevron open={open.fonts} />
+            </button>
+            {open.fonts && (
+              <div className="px-4 pb-4 space-y-2 text-[12px]">
+                {([
+                  ['Body', 'fontBody', ['Inter', 'Geist', 'system-ui', 'IBM Plex Sans']],
+                  ['Display', 'fontDisplay', ['Fraunces', 'Inter', 'Playfair Display', 'Instrument Serif']],
+                  ['Mono', 'fontMono', ['JetBrains Mono', 'Geist Mono', 'IBM Plex Mono']],
+                ] as [string, keyof Tokens, string[]][]).map(([label, key, opts]) => (
+                  <div key={key} className="flex items-center justify-between gap-2">
+                    <label className="text-[11px] text-neutral-500 w-12 shrink-0">{label}</label>
+                    <select
+                      value={tokens[key] as string}
+                      onChange={(e) => setTokens({ ...tokens, [key]: e.target.value } as Tokens)}
+                      className="flex-1 text-[11px] px-1.5 py-0.5 border border-neutral-200 rounded bg-white"
+                    >
+                      {opts.map((o) => <option key={o}>{o}</option>)}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="border-b border-neutral-200">
+            <button onClick={() => toggle('typeScale')} className="w-full px-4 py-3 flex items-center justify-between hover:bg-neutral-50">
+              <span className="text-[10px] uppercase tracking-wider text-neutral-400">Type scale</span>
+              <Chevron open={open.typeScale} />
+            </button>
+          {open.typeScale && <div className="px-4 pb-4">
+            <div className="grid grid-cols-[28px_52px_44px_54px_44px] gap-1 px-0 mb-1">
+              <span />
+              <span className="text-[10px] text-neutral-400">Size</span>
+              <span className="text-[10px] text-neutral-400">Wt</span>
+              <span className="text-[10px] text-neutral-400">Tracking</span>
+              <span className="text-[10px] text-neutral-400">Leading</span>
+            </div>
+            <div className="mb-3 space-y-1.5">
+              {(['h1','h2','h3','h4','h5','h6'] as const).map((tag) => (
+                <div key={tag} className="grid grid-cols-[28px_52px_44px_54px_44px] gap-1 items-center">
+                  <span className="mono text-[11px] text-neutral-500 uppercase">{tag}</span>
+                  <input
+                    title="Size"
+                    className="mono text-[11px] px-1 py-0.5 border border-neutral-200 rounded focus:outline-none focus:border-accent"
+                    value={tokens[`${tag}Size`]}
+                    onChange={(e) => setTokens({ ...tokens, [`${tag}Size`]: e.target.value })}
+                    placeholder="2rem"
+                  />
+                  <input
+                    title="Weight"
+                    type="number"
+                    min={100} max={900} step={100}
+                    className="mono text-[11px] px-1 py-0.5 border border-neutral-200 rounded focus:outline-none focus:border-accent"
+                    value={tokens[`${tag}Weight`]}
+                    onChange={(e) => setTokens({ ...tokens, [`${tag}Weight`]: Number(e.target.value) })}
+                  />
+                  <input
+                    title="Letter spacing"
+                    className="mono text-[11px] px-1 py-0.5 border border-neutral-200 rounded focus:outline-none focus:border-accent"
+                    value={tokens[`${tag}Tracking`]}
+                    onChange={(e) => setTokens({ ...tokens, [`${tag}Tracking`]: e.target.value })}
+                    placeholder="-0.02em"
+                  />
+                  <input
+                    title="Line height"
+                    className="mono text-[11px] px-1 py-0.5 border border-neutral-200 rounded focus:outline-none focus:border-accent"
+                    value={tokens[`${tag}Leading`]}
+                    onChange={(e) => setTokens({ ...tokens, [`${tag}Leading`]: e.target.value })}
+                    placeholder="1.2"
+                  />
                 </div>
               ))}
-            </div>
-          </div>
-
-          <div className="p-4 border-b border-neutral-200">
-            <div className="text-[10px] uppercase tracking-wider text-neutral-400 mb-3">Radius</div>
-            <input
-              type="range"
-              min={0}
-              max={16}
-              step={1}
-              value={Math.round(tokens.radius * 16)}
-              onChange={(e) => setTokens({ ...tokens, radius: Number(e.target.value) / 16 })}
-              className="w-full accent-accent"
-            />
-            <div className="flex items-center justify-between text-[11px] text-neutral-500 mt-1">
-              <span>0</span>
-              <span>{tokens.radius.toFixed(2)}rem</span>
-              <span>1rem</span>
-            </div>
-          </div>
-
-          <div className="p-4 border-b border-neutral-200">
-            <div className="text-[10px] uppercase tracking-wider text-neutral-400 mb-2">Typography</div>
-            <div className="space-y-2 text-[12px]">
-              <div>
-                <label className="text-[11px] text-neutral-500">Body</label>
-                <select
-                  value={tokens.fontBody}
-                  onChange={(e) => setTokens({ ...tokens, fontBody: e.target.value })}
-                  className="w-full mt-0.5 text-[12px] px-2 py-1 border border-neutral-200 rounded bg-white"
-                >
-                  <option>Inter</option>
-                  <option>Geist</option>
-                  <option>system-ui</option>
-                  <option>IBM Plex Sans</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-[11px] text-neutral-500">Display</label>
-                <select
-                  value={tokens.fontDisplay}
-                  onChange={(e) => setTokens({ ...tokens, fontDisplay: e.target.value })}
-                  className="w-full mt-0.5 text-[12px] px-2 py-1 border border-neutral-200 rounded bg-white"
-                >
-                  <option>Fraunces</option>
-                  <option>Inter</option>
-                  <option>Playfair Display</option>
-                  <option>Instrument Serif</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-[11px] text-neutral-500">Mono</label>
-                <select
-                  value={tokens.fontMono}
-                  onChange={(e) => setTokens({ ...tokens, fontMono: e.target.value })}
-                  className="w-full mt-0.5 text-[12px] px-2 py-1 border border-neutral-200 rounded bg-white"
-                >
-                  <option>JetBrains Mono</option>
-                  <option>Geist Mono</option>
-                  <option>IBM Plex Mono</option>
-                </select>
+              <div className="grid grid-cols-[28px_52px_44px_1fr] gap-1 items-center pt-1 border-t border-neutral-100 mt-1">
+                <span className="mono text-[11px] text-neutral-500">p</span>
+                <input
+                  title="Body size"
+                  className="mono text-[11px] px-1 py-0.5 border border-neutral-200 rounded focus:outline-none focus:border-accent"
+                  value={tokens.bodySize}
+                  onChange={(e) => setTokens({ ...tokens, bodySize: e.target.value })}
+                />
+                <input
+                  title="Body weight"
+                  type="number" min={100} max={900} step={100}
+                  className="mono text-[11px] px-1 py-0.5 border border-neutral-200 rounded focus:outline-none focus:border-accent"
+                  value={tokens.bodyWeight}
+                  onChange={(e) => setTokens({ ...tokens, bodyWeight: Number(e.target.value) })}
+                />
+                <input
+                  title="Body line height"
+                  className="mono text-[11px] px-1 py-0.5 border border-neutral-200 rounded focus:outline-none focus:border-accent"
+                  value={tokens.bodyLeading}
+                  onChange={(e) => setTokens({ ...tokens, bodyLeading: e.target.value })}
+                />
               </div>
             </div>
+            <div className="mt-3 space-y-1.5">
+              <div className="text-[10px] uppercase tracking-wider text-neutral-400 mb-1.5">Underline</div>
+              <div className="flex items-center gap-2">
+                <label className="text-[11px] text-neutral-500 w-14 shrink-0">Offset</label>
+                <input
+                  className="mono text-[11px] w-20 px-1.5 py-0.5 border border-neutral-200 rounded focus:outline-none focus:border-accent"
+                  value={tokens.underlineOffset}
+                  onChange={(e) => setTokens({ ...tokens, underlineOffset: e.target.value })}
+                  placeholder="3px"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-[11px] text-neutral-500 w-14 shrink-0">Thickness</label>
+                <input
+                  className="mono text-[11px] w-20 px-1.5 py-0.5 border border-neutral-200 rounded focus:outline-none focus:border-accent"
+                  value={tokens.underlineThickness}
+                  onChange={(e) => setTokens({ ...tokens, underlineThickness: e.target.value })}
+                  placeholder="1px"
+                />
+              </div>
+            </div>
+          </div>}
           </div>
 
           <div className="p-4">
@@ -436,9 +644,38 @@ export function ThemeStudio({
               className={cn('theme-preview p-10 rounded-xl shadow-sm border', tokens.mode === 'dark' && 'dark')}
               style={cssVars}
             >
+              <div className="mb-6">
+                <div className="text-xs tp-muted uppercase tracking-wider mb-3">Type scale</div>
+                {(['h1','h2','h3','h4','h5','h6'] as const).map((tag) => (
+                  <div key={tag} style={{
+                    fontSize: `var(--${tag}-size)`,
+                    fontWeight: `var(--${tag}-weight)`,
+                    letterSpacing: `var(--${tag}-tracking)`,
+                    lineHeight: `var(--${tag}-leading)`,
+                    fontFamily: tokens.fontDisplay,
+                    marginBottom: '0.15em',
+                  }}>
+                    {tag.toUpperCase()} — The quick brown fox
+                  </div>
+                ))}
+                <p style={{
+                  fontSize: 'var(--body-size)',
+                  fontWeight: 'var(--body-weight)',
+                  lineHeight: 'var(--body-leading)',
+                  marginTop: '0.75rem',
+                }} className="tp-muted">
+                  Body — The quick brown fox jumps over the lazy dog. 0123456789
+                </p>
+                <p style={{ fontSize: 'var(--body-size)', textDecoration: 'underline', textUnderlineOffset: 'var(--underline-offset)', textDecorationThickness: 'var(--underline-thickness)', marginTop: '0.25rem' }}>
+                  Underline style — click here to learn more
+                </p>
+              </div>
+
+              <div className="tp-divider mb-8" />
+
               <div className="flex items-start justify-between mb-8">
                 <div>
-                  <div className="text-xs tp-muted uppercase tracking-wider">Preview</div>
+                  <div className="text-xs tp-muted uppercase tracking-wider">Components</div>
                   <h1 className="text-3xl font-semibold mt-1" style={{ letterSpacing: '-0.02em' }}>
                     Component preview
                   </h1>
@@ -577,66 +814,43 @@ export function ThemeStudio({
 
         <aside className="w-72 border-l border-neutral-200 bg-white overflow-auto scrollbar shrink-0">
           <div className="p-4 border-b border-neutral-200">
-            <div className="text-[10px] uppercase tracking-wider text-neutral-400 mb-2">Quick presets</div>
-            <div className="grid grid-cols-3 gap-2">
-              {Object.entries(PRESET_SWATCHES).map(([key, s]) => (
-                <button
-                  key={key}
-                  onClick={() => applyPreset(key)}
-                  className={cn(
-                    'rounded-md p-2 text-[11px] flex flex-col items-center gap-1 border transition-colors',
-                    activePreset === key
-                      ? 'border-accent ring-2 ring-accent/30'
-                      : 'border-neutral-200 hover:border-accent'
-                  )}
-                >
-                  <div className="flex gap-0.5">
-                    <span className="w-3 h-3 rounded-sm" style={{ background: s.fg }} />
-                    <span
-                      className="w-3 h-3 rounded-sm"
-                      style={{ background: s.bg, border: `1px solid ${s.bgBorder ?? '#e4e4e7'}` }}
-                    />
-                  </div>
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="p-4 border-b border-neutral-200">
-            <div className="text-[10px] uppercase tracking-wider text-neutral-400 mb-2">Export</div>
-            <div className="space-y-1.5">
-              <button
-                onClick={copyCss}
-                className="w-full text-left border border-neutral-200 rounded-md px-3 py-2 hover:border-accent text-[12px] flex items-center justify-between"
-              >
-                <span>CSS variables</span>
-                <span className="mono text-[10px] text-neutral-400">:root</span>
-              </button>
-              <button className="w-full text-left border border-neutral-200 rounded-md px-3 py-2 hover:border-accent text-[12px] flex items-center justify-between">
-                <span>Tailwind config</span>
-                <span className="mono text-[10px] text-neutral-400">.js</span>
-              </button>
-              <button className="w-full text-left border border-neutral-200 rounded-md px-3 py-2 hover:border-accent text-[12px] flex items-center justify-between">
-                <span>FDL theme blueprint</span>
-                <span className="mono text-[10px] text-neutral-400">.yaml</span>
-              </button>
-              <button className="w-full text-left border border-neutral-200 rounded-md px-3 py-2 hover:border-accent text-[12px] flex items-center justify-between">
-                <span>Figma tokens</span>
-                <span className="mono text-[10px] text-neutral-400">.json</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="p-4 border-b border-neutral-200">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-[10px] uppercase tracking-wider text-neutral-400">Saved themes</div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-[10px] uppercase tracking-wider text-neutral-400">Custom presets</div>
               <button onClick={newTheme} className="text-[10px] text-accent hover:underline">+ new</button>
             </div>
+            {themes.length === 0 ? (
+              <div className="text-[11px] text-neutral-400 py-2">
+                Save a theme to create a custom preset.
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
+                {themes.map((t) => {
+                  const tk = normalizeTokens(t.tokens);
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => loadTheme(t)}
+                      className={cn(
+                        'rounded-md p-2 text-[11px] flex flex-col items-center gap-1 border transition-colors',
+                        selectedId === t.id
+                          ? 'border-accent ring-2 ring-accent/30'
+                          : 'border-neutral-200 hover:border-accent'
+                      )}
+                    >
+                      <div className="flex gap-0.5">
+                        <span className="w-3 h-3 rounded-sm" style={{ background: hslToHex(tk.primary) }} />
+                        <span className="w-3 h-3 rounded-sm border border-neutral-200" style={{ background: hslToHex(tk.background) }} />
+                      </div>
+                      <span className="truncate w-full text-center">{t.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="p-4 border-b border-neutral-200">
             <div className="space-y-1 text-[12px]">
-              {themes.length === 0 && (
-                <div className="text-[11px] text-neutral-400 px-2 py-1.5">No saved themes yet.</div>
-              )}
               {themes.map((t) => (
                 <button
                   key={t.id}
@@ -677,5 +891,17 @@ export function ThemeStudio({
         </aside>
       </div>
     </div>
+  );
+}
+
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="12" height="12" viewBox="0 0 12 12" fill="none"
+      stroke="currentColor" strokeWidth="1.5"
+      className={cn('text-neutral-400 transition-transform', open && 'rotate-180')}
+    >
+      <path d="M2 4l4 4 4-4" />
+    </svg>
   );
 }
