@@ -502,8 +502,9 @@ function CanvasArea({ viewport, draggedPresetRef, draggedShadcnRef }: { viewport
     draggedPresetRef.current = null;
     draggedShadcnRef.current = null;
 
-    const insertNode = (node: any) => {
+    const insertNode = (factory: () => any) => {
       editor.update(() => {
+        const node = factory();
         const root = $getRoot();
         const children = root.getChildren();
 
@@ -527,12 +528,12 @@ function CanvasArea({ viewport, draggedPresetRef, draggedShadcnRef }: { viewport
     if (shadcnName) {
       const def = REGISTRY_MAP[shadcnName];
       if (!def) return;
-      insertNode(new ShadcnBlockNode(def.defaultNode()));
+      insertNode(() => new ShadcnBlockNode(def.defaultNode()));
       return;
     }
 
     if (preset) {
-      insertNode(new PresetBlockNode(preset.id, preset.source));
+      insertNode(() => new PresetBlockNode(preset.id, preset.source));
     }
   };
 
