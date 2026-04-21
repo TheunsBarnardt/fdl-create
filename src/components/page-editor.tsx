@@ -326,7 +326,7 @@ export function PageEditor({
               <aside className="w-64 border-r border-neutral-200 bg-white/60 flex flex-col shrink-0 overflow-hidden">
                 {/* Tab bar */}
                 <div className="flex border-b border-neutral-200 shrink-0">
-                  {(['blocks', 'pages', 'library'] as SideTab[]).map((tab) => {
+                  {(['blocks', 'library', 'pages'] as SideTab[]).map((tab) => {
                     const label = tab === 'blocks' ? 'Blocks' : tab === 'pages' ? 'Outline' : 'Library';
                     return (
                       <button
@@ -593,7 +593,7 @@ function CanvasArea({ viewport, draggedPresetRef, draggedShadcnRef }: { viewport
       <div
         ref={(el) => { setAnchorElem(el); }}
         className={cn(
-          'vp-frame bg-white rounded-xl shadow-sm border border-neutral-200 p-10 relative',
+          'vp-frame bg-white rounded-xl shadow-sm border border-neutral-200 relative',
           viewport === 'desktop' && 'vp-desktop',
           viewport === 'tablet' && 'vp-tablet',
           viewport === 'mobile' && 'vp-mobile'
