@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
@@ -125,6 +126,7 @@ export function PageEditor({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedKey, setSelectedKey] = useState<NodeKey | null>(null);
+  const [nativeKey, setNativeKey] = useState<NodeKey | null>(null);
   const [search, setSearch] = useState('');
   const [sideTab, setSideTab] = useState<SideTab>('library');
   const editorRef = useRef<LexicalEditor | null>(null);
@@ -277,6 +279,7 @@ export function PageEditor({
             <EditorRefPlugin editorRef={editorRef} />
             <SelectionSyncPlugin onSelect={setSelectedKey} selectedKey={selectedKey} />
             <DecoratorDeletePlugin selectedKey={selectedKey} onCleared={() => setSelectedKey(null)} />
+            <NativeOverlayPlugin nativeKey={nativeKey} onClear={() => setNativeKey(null)} />
             <SlashMenuPlugin collections={collections} />
             <HistoryPlugin />
             <ListPlugin />
@@ -326,7 +329,7 @@ export function PageEditor({
                   )}
 
                   {sideTab === 'pages' && (
-                    <PageTree selectedKey={selectedKey} onSelect={setSelectedKey} />
+                    <PageTree selectedKey={selectedKey} onSelect={setSelectedKey} onNativeSelect={setNativeKey} />
                   )}
 
                   {sideTab === 'library' && (
@@ -1115,9 +1118,9 @@ function nodeBadgeClass(node: LexicalNode): string {
 }
 
 // ── Page tree (outline of current page, draggable to reorder) ─────────────────
-function PageTree({ selectedKey, onSelect }: { selectedKey: NodeKey | null; onSelect: (k: NodeKey) => void }) {
+function PageTree({ selectedKey, onSelect, onNativeSelect }: { selectedKey: NodeKey | null; onSelect: (k: NodeKey) => void; onNativeSelect: (k: NodeKey | null) => void }) {
   const [editor] = useLexicalComposerContext();
-  const [items, setItems] = useState<Array<{ key: string; typeLabel: string; displayName: string; badgeClass: string }>>([]);
+  const [items, setItems] = useState<Array<{ key: string; nodeType: string; typeLabel: string; displayName: string; badgeClass: string }>>([]);
   const dragKey = useRef<string | null>(null);
   const [dropTarget, setDropTarget] = useState<{ key: string; pos: 'before' | 'after' } | null>(null);
   const [renamingKey, setRenamingKey] = useState<string | null>(null);
@@ -1131,6 +1134,7 @@ function PageTree({ selectedKey, onSelect }: { selectedKey: NodeKey | null; onSe
         const children = $getRoot().getChildren();
         setItems(children.map((n) => ({
           key: n.getKey(),
+          nodeType: n.getType(),
           typeLabel: nodeTypeLabel(n),
           displayName: nodeDisplayName(n),
           badgeClass: nodeBadgeClass(n),
@@ -1162,6 +1166,38 @@ function PageTree({ selectedKey, onSelect }: { selectedKey: NodeKey | null; onSe
     });
     setLocalLabels((prev) => ({ ...prev, [key]: val }));
   };
+
+  const clearOutlineHighlight = () => {
+    document.querySelectorAll('.outline-node-selected').forEach((el) => el.classList.remove('outline-node-selected'));
+  };
+
+  const handleNodeClick = (key: string, type: string) => {
+    clearOutlineHighlight();
+    onSelect(key as NodeKey);
+    const isDecorator = ['fdl-preset-block', 'fdl-image', 'fdl-button', 'fdl-collection-list'].includes(type);
+    if (isDecorator) {
+      onNativeSelect(null);
+      editor.dispatchCommand(SELECT_DECORATOR_COMMAND, key);
+    } else {
+      onNativeSelect(key as NodeKey);
+      const el = editor.getElementByKey(key);
+      if (el) {
+        el.classList.add('outline-node-selected');
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  };
+
+  // Clear highlight when user clicks directly in canvas
+  useEffect(() => {
+    const remove = editor.registerUpdateListener(({ tags }) => {
+      if (tags.has('selection-change')) {
+        clearOutlineHighlight();
+        onNativeSelect(null);
+      }
+    });
+    return remove;
+  }, [editor, onNativeSelect]);
 
   const handleDragStart = (key: string) => { dragKey.current = key; };
   const handleDragEnd = () => { dragKey.current = null; setDropTarget(null); };
@@ -1212,7 +1248,7 @@ function PageTree({ selectedKey, onSelect }: { selectedKey: NodeKey | null; onSe
             onDragOver={(e) => handleDragOver(e, item.key)}
             onDragLeave={() => setDropTarget(null)}
             onDrop={(e) => handleDrop(e, item.key)}
-            onClick={() => !isRenaming && onSelect(item.key as NodeKey)}
+            onClick={() => !isRenaming && handleNodeClick(item.key, item.nodeType)}
             onDoubleClick={() => startRename(item.key, item.displayName)}
             className={cn(
               'flex items-center gap-2 px-2 py-1.5 rounded select-none transition-colors text-[12px]',
@@ -1248,6 +1284,71 @@ function PageTree({ selectedKey, onSelect }: { selectedKey: NodeKey | null; onSe
         );
       })}
     </div>
+  );
+}
+
+function NativeOverlayPlugin({ nativeKey, onClear }: { nativeKey: NodeKey | null; onClear: () => void }) {
+  const [editor] = useLexicalComposerContext();
+  const [rect, setRect] = useState<DOMRect | null>(null);
+  const [info, setInfo] = useState<{ typeLabel: string; displayName: string } | null>(null);
+
+  useEffect(() => {
+    if (!nativeKey) { setRect(null); setInfo(null); return; }
+    const update = () => {
+      const el = editor.getElementByKey(nativeKey);
+      setRect(el ? el.getBoundingClientRect() : null);
+    };
+    editor.getEditorState().read(() => {
+      const n = $getNodeByKey(nativeKey);
+      if (n) setInfo({ typeLabel: nodeTypeLabel(n), displayName: nodeDisplayName(n) });
+    });
+    update();
+    window.addEventListener('scroll', update, true);
+    window.addEventListener('resize', update);
+    const unsub = editor.registerUpdateListener(update);
+    return () => {
+      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', update);
+      unsub();
+    };
+  }, [editor, nativeKey]);
+
+  // Clear when canvas selection changes
+  useEffect(() => {
+    return editor.registerUpdateListener(({ tags }) => {
+      if (tags.has('selection-change')) onClear();
+    });
+  }, [editor, onClear]);
+
+  if (!nativeKey || !rect || !info) return null;
+
+  const handleDelete = () => {
+    editor.update(() => {
+      const n = $getNodeByKey(nativeKey);
+      if (n) n.remove();
+    });
+    onClear();
+  };
+
+  return createPortal(
+    <>
+      <span
+        style={{ position: 'fixed', top: rect.top - 10, left: rect.left + 8, zIndex: 9999 }}
+        className="bg-accent text-white text-[10px] px-1.5 py-0.5 rounded pointer-events-none select-none"
+      >
+        {info.typeLabel} · {info.displayName}
+      </span>
+      <button
+        type="button"
+        style={{ position: 'fixed', top: rect.top - 10, left: rect.right - 28, zIndex: 9999 }}
+        onClick={handleDelete}
+        className="bg-white border border-neutral-200 text-danger text-[10px] w-5 h-5 rounded flex items-center justify-center hover:bg-danger hover:text-white"
+        title="Delete node"
+      >
+        ✕
+      </button>
+    </>,
+    document.body
   );
 }
 
