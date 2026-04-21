@@ -1,5 +1,5 @@
 'use client';
-import { useContext, useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -121,7 +121,7 @@ export function PageEditor({
   collectionFieldsByName: Record<string, string[]>;
   pages: Array<{ id: string; title: string; slug: string }>;
   libraryBlocks?: LibraryBlock[];
-  themes?: Array<{ id: string; name: string }>;
+  themes?: Array<{ id: string; name: string; tokens: string }>;
   mode: 'create' | 'edit';
 }) {
   const router = useRouter();
@@ -130,6 +130,40 @@ export function PageEditor({
   const [published, setPublished] = useState(initial.published);
   const [pageTheme, setPageTheme] = useState<string>(initial.themeId ?? '');
   const [pageParams, setPageParams] = useState<string>(initial.params ?? '');
+
+  const activeThemeTokens = useMemo(() => {
+    if (!pageTheme) return null;
+    const t = themes.find((th) => th.id === pageTheme);
+    if (!t) return null;
+    try { return JSON.parse(t.tokens) as Record<string, string>; } catch { return null; }
+  }, [pageTheme, themes]);
+
+  const canvasThemeStyle = useMemo((): React.CSSProperties => {
+    if (!activeThemeTokens) return {};
+    const tk = activeThemeTokens;
+    return {
+      '--bg': tk.background,
+      '--fg': tk.foreground,
+      '--primary': tk.primary,
+      '--primary-fg': '0 0% 98%',
+      '--secondary': tk.secondary,
+      '--secondary-fg': tk.foreground,
+      '--muted': tk.muted,
+      '--muted-fg': tk.foreground,
+      '--accent': tk.accent,
+      '--accent-fg': tk.foreground,
+      '--destructive': tk.destructive,
+      '--destructive-fg': '0 0% 98%',
+      '--border': tk.border,
+      '--input': tk.border,
+      '--ring': tk.ring,
+      '--radius': `${tk.radius ?? 0.5}rem`,
+      '--theme-font': tk.fontBody || 'Inter',
+      background: `hsl(${tk.background})`,
+      color: `hsl(${tk.foreground})`,
+      fontFamily: tk.fontBody || 'Inter',
+    } as React.CSSProperties;
+  }, [activeThemeTokens]);
   const [viewport, setViewport] = useState<Viewport>('desktop');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -375,7 +409,7 @@ export function PageEditor({
               </aside>
 
               {/* Canvas */}
-              <CanvasArea viewport={viewport} draggedPresetRef={draggedPresetRef} draggedShadcnRef={draggedShadcnRef} />
+              <CanvasArea viewport={viewport} draggedPresetRef={draggedPresetRef} draggedShadcnRef={draggedShadcnRef} themeStyle={canvasThemeStyle} />
 
               {/* Right — Data binding panel */}
               <aside className="w-80 border-l border-neutral-200 bg-white flex flex-col overflow-hidden shrink-0">
@@ -484,7 +518,7 @@ function EditorRefPlugin({ editorRef }: { editorRef: React.MutableRefObject<Lexi
   return null;
 }
 
-function CanvasArea({ viewport, draggedPresetRef, draggedShadcnRef }: { viewport: Viewport; draggedPresetRef: React.MutableRefObject<{ id: string; source: string } | null>; draggedShadcnRef: React.MutableRefObject<string | null> }) {
+function CanvasArea({ viewport, draggedPresetRef, draggedShadcnRef, themeStyle }: { viewport: Viewport; draggedPresetRef: React.MutableRefObject<{ id: string; source: string } | null>; draggedShadcnRef: React.MutableRefObject<string | null>; themeStyle?: React.CSSProperties }) {
   const [anchorElem, setAnchorElem] = useState<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const targetLineRef = useRef<HTMLDivElement>(null);
@@ -593,11 +627,13 @@ function CanvasArea({ viewport, draggedPresetRef, draggedShadcnRef }: { viewport
       <div
         ref={(el) => { setAnchorElem(el); }}
         className={cn(
-          'vp-frame bg-white rounded-xl shadow-sm border border-neutral-200 relative',
+          'vp-frame rounded-xl shadow-sm border border-neutral-200 relative',
+          themeStyle ? 'theme-preview' : 'bg-white',
           viewport === 'desktop' && 'vp-desktop',
           viewport === 'tablet' && 'vp-tablet',
           viewport === 'mobile' && 'vp-mobile'
         )}
+        style={themeStyle}
       >
         <div className="relative" ref={contentWrapperRef}>
           <RichTextPlugin

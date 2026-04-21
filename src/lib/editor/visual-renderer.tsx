@@ -137,26 +137,20 @@ function renderComponent(node: VisualNode, nodeKey: NodeKey, onUpdate: TreeUpdat
       const text = String(p.text ?? 'Click me');
       const variant = String(p.variant ?? 'default');
       const size = String(p.size ?? 'default');
-      const variantClasses: Record<string, string> = {
-        default: 'bg-neutral-900 text-white hover:bg-neutral-800',
-        outline: 'border border-neutral-200 hover:bg-neutral-50',
-        ghost: 'hover:bg-neutral-100',
-        destructive: 'bg-red-600 text-white hover:bg-red-700',
+      const variantClass: Record<string, string> = {
+        default: 'tp-btn-primary',
+        outline: 'tp-btn-outline',
+        ghost: 'tp-btn-ghost',
+        destructive: 'tp-btn-destructive',
+        secondary: 'tp-btn-secondary',
       };
-      const sizeClasses: Record<string, string> = {
-        default: 'px-4 py-2 text-sm',
-        sm: 'px-3 py-1 text-xs',
-        lg: 'px-6 py-3 text-base',
+      const sizeClass: Record<string, string> = {
+        default: '',
+        sm: '!px-3 !py-1 !text-xs',
+        lg: '!px-6 !py-3 !text-base',
       };
       return (
-        <button
-          type="button"
-          className={cn(
-            'inline-flex items-center justify-center rounded-md font-medium transition-colors',
-            variantClasses[variant] ?? variantClasses.default,
-            sizeClasses[size] ?? sizeClasses.default
-          )}
-        >
+        <button type="button" className={cn('inline-flex items-center justify-center font-medium transition-colors', variantClass[variant] ?? variantClass.default, sizeClass[size])}>
           {text}
         </button>
       );
@@ -168,13 +162,8 @@ function renderComponent(node: VisualNode, nodeKey: NodeKey, onUpdate: TreeUpdat
       const type = String(p.type ?? 'text');
       return (
         <div className="space-y-1">
-          <label className="text-sm font-medium text-neutral-700">{label}</label>
-          <input
-            type={type}
-            placeholder={placeholder}
-            readOnly
-            className="w-full border border-neutral-200 rounded-md px-3 py-2 text-sm bg-white"
-          />
+          <label className="text-sm font-medium tp-muted">{label}</label>
+          <input type={type} placeholder={placeholder} readOnly className="tp-input" />
         </div>
       );
     }
@@ -185,13 +174,8 @@ function renderComponent(node: VisualNode, nodeKey: NodeKey, onUpdate: TreeUpdat
       const rows = Number(p.rows ?? 4);
       return (
         <div className="space-y-1">
-          <label className="text-sm font-medium text-neutral-700">{label}</label>
-          <textarea
-            rows={rows}
-            placeholder={placeholder}
-            readOnly
-            className="w-full border border-neutral-200 rounded-md px-3 py-2 text-sm resize-none bg-white"
-          />
+          <label className="text-sm font-medium tp-muted">{label}</label>
+          <textarea rows={rows} placeholder={placeholder} readOnly className="tp-input resize-none" />
         </div>
       );
     }
@@ -202,8 +186,8 @@ function renderComponent(node: VisualNode, nodeKey: NodeKey, onUpdate: TreeUpdat
       const options = Array.isArray(p.options) ? (p.options as string[]) : ['Option 1'];
       return (
         <div className="space-y-1">
-          <label className="text-sm font-medium text-neutral-700">{label}</label>
-          <select className="w-full border border-neutral-200 rounded-md px-3 py-2 text-sm bg-white" defaultValue="">
+          <label className="text-sm font-medium tp-muted">{label}</label>
+          <select className="tp-input" defaultValue="">
             <option value="" disabled>{placeholder}</option>
             {options.map((o) => <option key={o}>{String(o)}</option>)}
           </select>
@@ -216,10 +200,10 @@ function renderComponent(node: VisualNode, nodeKey: NodeKey, onUpdate: TreeUpdat
       const checked = Boolean(p.checked);
       return (
         <label className="flex items-center gap-3 cursor-pointer">
-          <div className={cn('w-10 h-6 rounded-full transition-colors relative', checked ? 'bg-neutral-900' : 'bg-neutral-200')}>
+          <div className={cn('w-10 h-6 rounded-full transition-colors relative')} style={{ background: checked ? 'hsl(var(--primary))' : 'hsl(var(--border))' }}>
             <div className={cn('absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform', checked && 'translate-x-4')} />
           </div>
-          <span className="text-sm text-neutral-700">{label}</span>
+          <span className="text-sm">{label}</span>
         </label>
       );
     }
@@ -345,17 +329,13 @@ function renderComponent(node: VisualNode, nodeKey: NodeKey, onUpdate: TreeUpdat
     case 'Badge': {
       const text = String(p.text ?? 'Badge');
       const variant = String(p.variant ?? 'default');
-      const badgeVariants: Record<string, string> = {
-        default: 'bg-neutral-900 text-white',
-        secondary: 'bg-neutral-100 text-neutral-700',
-        outline: 'border border-neutral-200 text-neutral-700',
-        destructive: 'bg-red-100 text-red-700',
+      const badgeClass: Record<string, string> = {
+        default: 'tp-badge',
+        secondary: 'tp-badge tp-badge-secondary',
+        destructive: 'tp-badge tp-badge-destructive',
+        outline: 'border tp-divider text-sm px-2 py-0.5 rounded-full text-xs font-medium',
       };
-      return (
-        <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium', badgeVariants[variant] ?? badgeVariants.default)}>
-          {text}
-        </span>
-      );
+      return <span className={badgeClass[variant] ?? 'tp-badge'}>{text}</span>;
     }
 
     case 'Alert': {
@@ -622,10 +602,10 @@ function renderComponent(node: VisualNode, nodeKey: NodeKey, onUpdate: TreeUpdat
             <span>{label}</span>
             <span>{value}%</span>
           </div>
-          <div className="h-2 bg-neutral-200 rounded-full">
+          <div className="h-2 rounded-full" style={{ background: 'hsl(var(--border))' }}>
             <div
-              className="h-2 bg-neutral-900 rounded-full transition-all"
-              style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
+              className="h-2 rounded-full transition-all"
+              style={{ width: `${Math.min(100, Math.max(0, value))}%`, background: 'hsl(var(--primary))' }}
             />
           </div>
         </div>
@@ -640,19 +620,17 @@ function renderComponent(node: VisualNode, nodeKey: NodeKey, onUpdate: TreeUpdat
       const content = node.slots.content ?? [];
       const footer = node.slots.footer ?? [];
       return (
-        <div className="border border-neutral-200 rounded-lg overflow-hidden">
-          <div className="p-4 border-b border-neutral-200">
+        <div className="tp-card overflow-hidden">
+          <div className="p-4 tp-divider border-b">
             <div className="font-semibold text-sm">{title}</div>
-            {description && <div className="text-xs text-neutral-500 mt-0.5">{description}</div>}
+            {description && <div className="text-xs tp-muted mt-0.5">{description}</div>}
           </div>
           <div className="p-4">
             <SlotContainer nodes={content} slotName="content" parentId={node.id} nodeKey={nodeKey} slotLabel="Content" onUpdate={onUpdate} />
           </div>
-          {footer.length > 0 && (
-            <div className="p-4 border-t border-neutral-100 bg-neutral-50">
-              <SlotContainer nodes={footer} slotName="footer" parentId={node.id} nodeKey={nodeKey} slotLabel="Footer" onUpdate={onUpdate} />
-            </div>
-          )}
+          <div className="p-4 tp-divider border-t" style={{ background: 'hsl(var(--muted)/0.4)' }}>
+            <SlotContainer nodes={footer} slotName="footer" parentId={node.id} nodeKey={nodeKey} slotLabel="Footer" onUpdate={onUpdate} />
+          </div>
         </div>
       );
     }
@@ -662,10 +640,10 @@ function renderComponent(node: VisualNode, nodeKey: NodeKey, onUpdate: TreeUpdat
       const fields = node.slots.fields ?? [];
       const actions = node.slots.actions ?? [];
       return (
-        <form onSubmit={(e) => e.preventDefault()} className="border border-neutral-200 rounded-lg p-4 space-y-4">
+        <form onSubmit={(e) => e.preventDefault()} className="tp-card p-4 space-y-4">
           <SlotContainer nodes={fields} slotName="fields" parentId={node.id} nodeKey={nodeKey} slotLabel="Fields" onUpdate={onUpdate} />
-          <div className="flex items-center gap-2 pt-2 border-t border-neutral-100">
-            <button type="button" className="px-4 py-2 bg-neutral-900 text-white text-sm rounded-md">
+          <div className="flex items-center gap-2 pt-2 tp-divider border-t">
+            <button type="button" className="tp-btn-primary">
               {submitLabel}
             </button>
             <SlotContainer nodes={actions} slotName="actions" parentId={node.id} nodeKey={nodeKey} slotLabel="Actions" onUpdate={onUpdate} />
@@ -680,10 +658,10 @@ function renderComponent(node: VisualNode, nodeKey: NodeKey, onUpdate: TreeUpdat
       const content = node.slots.content ?? [];
       const footer = node.slots.footer ?? [];
       return (
-        <div className="border border-neutral-200 rounded-lg shadow-md overflow-hidden bg-white">
-          <div className="px-6 py-4 border-b border-neutral-200">
+        <div className="tp-card shadow-md overflow-hidden">
+          <div className="px-6 py-4 border-b tp-divider">
             <div className="font-semibold text-base">{title}</div>
-            {description && <div className="text-sm text-neutral-500 mt-0.5">{description}</div>}
+            {description && <div className="text-sm tp-muted mt-0.5">{description}</div>}
           </div>
           <div className="px-6 py-4">
             <SlotContainer nodes={content} slotName="content" parentId={node.id} nodeKey={nodeKey} slotLabel="Content" onUpdate={onUpdate} />

@@ -24,7 +24,7 @@ export default async function EditPagePage({ params }: { params: { id: string } 
       collectionFieldsByName={fieldMap}
       pages={pages.map((p) => ({ id: p.id, title: p.title, slug: p.slug }))}
       libraryBlocks={blocks}
-      themes={themes.map((t) => ({ id: t.id, name: t.name }))}
+      themes={themes.map((t) => ({ id: t.id, name: t.name, tokens: t.tokens }))}
       initial={{
         id: page.id,
         slug: page.slug,

@@ -19,7 +19,7 @@ export default async function NewPagePage() {
       collectionFieldsByName={fieldMap}
       pages={pages.map((p) => ({ id: p.id, title: p.title, slug: p.slug }))}
       libraryBlocks={blocks}
-      themes={themes.map((t) => ({ id: t.id, name: t.name }))}
+      themes={themes.map((t) => ({ id: t.id, name: t.name, tokens: t.tokens }))}
       initial={{ slug: '', title: '', tree: { blocks: [] }, published: false }}
     />
   );
