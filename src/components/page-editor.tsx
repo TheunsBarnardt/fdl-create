@@ -26,7 +26,7 @@ import {
 } from 'lexical';
 import { SELECT_DECORATOR_COMMAND } from '@/lib/editor/nodes';
 import { VisualSelCtx, DragCtx, type VisualSel } from '@/lib/editor/visual-renderer';
-import { COMPONENT_REGISTRY, REGISTRY_MAP, COMPONENT_CATEGORIES, updatePropsInTree, findNodeInTree, removeFromTree, type PropDef } from '@/lib/editor/visual-registry';
+import { COMPONENT_REGISTRY, REGISTRY_MAP, COMPONENT_CATEGORIES, updatePropsInTree, findNodeInTree, removeFromTree, addToSlot, type PropDef } from '@/lib/editor/visual-registry';
 import { ShadcnBlockNode, getShadcnNodeInfo } from '@/lib/editor/nodes';
 import {
   Heading1,
@@ -492,6 +492,13 @@ function CanvasArea({ viewport, draggedPresetRef, draggedShadcnRef }: { viewport
   const handleDragLeave = (e: React.DragEvent) => {
     if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropLine(null);
   };
+
+  // Clear drop line whenever ANY drag ends (incl. drops into nested slots that stopPropagation)
+  useEffect(() => {
+    const clear = () => setDropLine(null);
+    window.addEventListener('dragend', clear);
+    return () => window.removeEventListener('dragend', clear);
+  }, []);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -1243,6 +1250,7 @@ function nodeTypeLabel(node: LexicalNode): string {
   if (t === 'fdl-button') return 'BTN';
   if (t === 'fdl-collection-list') return 'DATA';
   if (t === 'fdl-preset-block') return 'BLK';
+  if (t === 'fdl-shadcn-block') return (node as any).__tree?.component?.slice(0, 4).toUpperCase() ?? 'UI';
   return t.slice(0, 4).toUpperCase();
 }
 
@@ -1255,6 +1263,7 @@ function nodeDisplayName(node: LexicalNode): string {
     const label = (node as any).__label;
     return trunc(label || (node as any).__presetId || 'Block');
   }
+  if (t === 'fdl-shadcn-block') return (node as any).__tree?.component ?? 'Component';
   if (t === 'heading') return trunc(node.getTextContent?.() || 'Heading');
   if (t === 'paragraph') return trunc(node.getTextContent?.() || 'Paragraph');
   if (t === 'list') return (node as any).getListType?.() === 'number' ? 'Numbered' : 'Bullets';
@@ -1269,6 +1278,7 @@ function nodeBadgeClass(node: LexicalNode): string {
   const t = node.getType();
   if (t.startsWith('heading')) return 'bg-purple-100 text-purple-700';
   if (t === 'fdl-preset-block') return 'bg-accent-soft text-accent';
+  if (t === 'fdl-shadcn-block') return 'bg-violet-100 text-violet-700';
   if (t === 'fdl-collection-list') return 'bg-ok/10 text-ok';
   if (t === 'fdl-button') return 'bg-warn/10 text-warn';
   return 'bg-neutral-100 text-neutral-500';
@@ -1277,7 +1287,8 @@ function nodeBadgeClass(node: LexicalNode): string {
 // ── Page tree (outline of current page, draggable to reorder) ─────────────────
 function PageTree({ selectedKey, onSelect, onNativeSelect }: { selectedKey: NodeKey | null; onSelect: (k: NodeKey) => void; onNativeSelect: (k: NodeKey | null) => void }) {
   const [editor] = useLexicalComposerContext();
-  const [items, setItems] = useState<Array<{ key: string; nodeType: string; typeLabel: string; displayName: string; badgeClass: string }>>([]);
+  const { sel, setSel } = useContext(VisualSelCtx);
+  const [items, setItems] = useState<Array<{ key: string; nodeType: string; typeLabel: string; displayName: string; badgeClass: string; visualTree?: import('@/lib/editor/visual-registry').VisualNode }>>([]);
   const dragKey = useRef<string | null>(null);
   const [dropTarget, setDropTarget] = useState<{ key: string; pos: 'before' | 'after' } | null>(null);
   const [renamingKey, setRenamingKey] = useState<string | null>(null);
@@ -1295,6 +1306,7 @@ function PageTree({ selectedKey, onSelect, onNativeSelect }: { selectedKey: Node
           typeLabel: nodeTypeLabel(n),
           displayName: nodeDisplayName(n),
           badgeClass: nodeBadgeClass(n),
+          visualTree: n.getType() === 'fdl-shadcn-block' ? (n as any).__tree : undefined,
         })));
       });
     };
@@ -1331,7 +1343,7 @@ function PageTree({ selectedKey, onSelect, onNativeSelect }: { selectedKey: Node
   const handleNodeClick = (key: string, type: string) => {
     clearOutlineHighlight();
     onSelect(key as NodeKey);
-    const isDecorator = ['fdl-preset-block', 'fdl-image', 'fdl-button', 'fdl-collection-list'].includes(type);
+    const isDecorator = ['fdl-preset-block', 'fdl-image', 'fdl-button', 'fdl-collection-list', 'fdl-shadcn-block'].includes(type);
     if (isDecorator) {
       onNativeSelect(null);
       editor.dispatchCommand(SELECT_DECORATOR_COMMAND, key);
@@ -1397,49 +1409,141 @@ function PageTree({ selectedKey, onSelect, onNativeSelect }: { selectedKey: Node
         const isDT = dropTarget?.key === item.key;
         const isRenaming = renamingKey === item.key;
         return (
-          <div
-            key={item.key}
-            draggable={!isRenaming}
-            onDragStart={() => handleDragStart(item.key)}
-            onDragEnd={handleDragEnd}
-            onDragOver={(e) => handleDragOver(e, item.key)}
-            onDragLeave={() => setDropTarget(null)}
-            onDrop={(e) => handleDrop(e, item.key)}
-            onClick={() => !isRenaming && handleNodeClick(item.key, item.nodeType)}
-            onDoubleClick={() => startRename(item.key, item.displayName)}
-            className={cn(
-              'flex items-center gap-2 px-2 py-1.5 rounded select-none transition-colors text-[12px]',
-              isRenaming ? 'bg-neutral-50 ring-1 ring-accent' : isSelected ? 'bg-accent-soft text-accent' : 'hover:bg-neutral-100 cursor-pointer',
-              isDT && dropTarget?.pos === 'before' && 'border-t-2 border-accent',
-              isDT && dropTarget?.pos === 'after' && 'border-b-2 border-accent',
-            )}
-          >
-            <svg className="h-3 w-3 text-neutral-300 shrink-0 cursor-grab" viewBox="0 0 10 14" fill="currentColor">
-              <circle cx="2" cy="2" r="1.2"/><circle cx="8" cy="2" r="1.2"/>
-              <circle cx="2" cy="7" r="1.2"/><circle cx="8" cy="7" r="1.2"/>
-              <circle cx="2" cy="12" r="1.2"/><circle cx="8" cy="12" r="1.2"/>
-            </svg>
-            <span className={cn('text-[9px] font-bold px-1 py-0.5 rounded shrink-0', item.badgeClass)}>
-              {item.typeLabel}
-            </span>
-            {isRenaming ? (
-              <input
-                ref={renameRef}
-                value={renameVal}
-                onChange={(e) => setRenameVal(e.target.value)}
-                onBlur={commitRename}
-                onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setRenamingKey(null); }}
-                placeholder="Block name…"
-                className="flex-1 min-w-0 bg-transparent outline-none text-[12px] text-neutral-800"
-              />
-            ) : (
-              <span className="truncate text-neutral-700" title="Double-click to rename">
-                {localLabels[item.key] || item.displayName}
+          <div key={item.key}>
+            <div
+              draggable={!isRenaming}
+              onDragStart={() => handleDragStart(item.key)}
+              onDragEnd={handleDragEnd}
+              onDragOver={(e) => handleDragOver(e, item.key)}
+              onDragLeave={() => setDropTarget(null)}
+              onDrop={(e) => handleDrop(e, item.key)}
+              onClick={() => !isRenaming && handleNodeClick(item.key, item.nodeType)}
+              onDoubleClick={() => startRename(item.key, item.displayName)}
+              className={cn(
+                'flex items-center gap-2 px-2 py-1.5 rounded select-none transition-colors text-[12px]',
+                isRenaming ? 'bg-neutral-50 ring-1 ring-accent' : isSelected ? 'bg-accent-soft text-accent' : 'hover:bg-neutral-100 cursor-pointer',
+                isDT && dropTarget?.pos === 'before' && 'border-t-2 border-accent',
+                isDT && dropTarget?.pos === 'after' && 'border-b-2 border-accent',
+              )}
+            >
+              <svg className="h-3 w-3 text-neutral-300 shrink-0 cursor-grab" viewBox="0 0 10 14" fill="currentColor">
+                <circle cx="2" cy="2" r="1.2"/><circle cx="8" cy="2" r="1.2"/>
+                <circle cx="2" cy="7" r="1.2"/><circle cx="8" cy="7" r="1.2"/>
+                <circle cx="2" cy="12" r="1.2"/><circle cx="8" cy="12" r="1.2"/>
+              </svg>
+              <span className={cn('text-[9px] font-bold px-1 py-0.5 rounded shrink-0', item.badgeClass)}>
+                {item.typeLabel}
               </span>
+              {isRenaming ? (
+                <input
+                  ref={renameRef}
+                  value={renameVal}
+                  onChange={(e) => setRenameVal(e.target.value)}
+                  onBlur={commitRename}
+                  onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setRenamingKey(null); }}
+                  placeholder="Block name…"
+                  className="flex-1 min-w-0 bg-transparent outline-none text-[12px] text-neutral-800"
+                />
+              ) : (
+                <span className="truncate text-neutral-700" title="Double-click to rename">
+                  {localLabels[item.key] || item.displayName}
+                </span>
+              )}
+            </div>
+            {/* Visual component tree for ShadcnBlockNodes */}
+            {item.visualTree && (
+              <VisualOutlineTree
+                node={item.visualTree}
+                lexicalKey={item.key as NodeKey}
+                depth={1}
+                sel={sel}
+                setSel={setSel}
+                editor={editor}
+              />
             )}
           </div>
         );
       })}
+    </div>
+  );
+}
+
+type VisualNode = import('@/lib/editor/visual-registry').VisualNode;
+
+function VisualOutlineTree({
+  node, lexicalKey, depth, sel, setSel, editor
+}: {
+  node: VisualNode; lexicalKey: NodeKey; depth: number;
+  sel: import('@/lib/editor/visual-renderer').VisualSel;
+  setSel: (v: import('@/lib/editor/visual-renderer').VisualSel) => void;
+  editor: LexicalEditor;
+}) {
+  const { dragging } = useContext(DragCtx);
+  const [dropOver, setDropOver] = useState(false);
+  const allChildren = Object.values(node.slots).flat();
+  const hasChildren = allChildren.length > 0;
+  const [expanded, setExpanded] = useState(true);
+  const isSelected = sel?.visualId === node.id;
+
+  const def = REGISTRY_MAP[node.component];
+  const canAcceptDrop = dragging && def && def.slots.length > 0;
+
+  // Display name: first string prop value, or component name
+  const firstStrProp = Object.values(node.props).find((v) => typeof v === 'string' && (v as string).length > 0) as string | undefined;
+  const label = firstStrProp ? (firstStrProp.length > 12 ? firstStrProp.slice(0, 12) + '…' : firstStrProp) : node.component;
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDropOver(false);
+    const compName = e.dataTransfer.getData('text/plain') || dragging;
+    if (!compName || !def || def.slots.length === 0) return;
+    const compDef = REGISTRY_MAP[compName];
+    if (!compDef) return;
+    const slotName = def.slots[0].name;
+    const newChild = compDef.defaultNode();
+    editor.update(() => {
+      const n = $getNodeByKey(lexicalKey) as ShadcnBlockNode | null;
+      if (!n) return;
+      n.setTree(addToSlot(n.getTree(), node.id, slotName, newChild));
+    });
+    setSel({ nodeKey: lexicalKey, visualId: newChild.id });
+    setExpanded(true);
+  };
+
+  return (
+    <div>
+      <div
+        style={{ paddingLeft: `${depth * 14}px` }}
+        onClick={() => setSel({ nodeKey: lexicalKey, visualId: node.id })}
+        onDragOver={(e) => { if (canAcceptDrop) { e.preventDefault(); setDropOver(true); } }}
+        onDragLeave={() => setDropOver(false)}
+        onDrop={handleDrop}
+        className={cn(
+          'flex items-center gap-1.5 py-1 pr-2 rounded text-[11px] cursor-pointer select-none transition-colors',
+          isSelected ? 'bg-accent-soft text-accent' : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700',
+          dropOver && 'bg-sky-50 ring-1 ring-sky-400 ring-inset'
+        )}
+      >
+        {/* expand toggle */}
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setExpanded((p) => !p); }}
+          className={cn('shrink-0 w-3 h-3 flex items-center justify-center', !hasChildren && 'invisible')}
+        >
+          <svg className={cn('h-2.5 w-2.5 transition-transform', expanded && 'rotate-90')} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m9 18 6-6-6-6" /></svg>
+        </button>
+        <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-violet-100 text-violet-700 shrink-0">
+          {node.component.slice(0, 4).toUpperCase()}
+        </span>
+        <span className="truncate">{label}</span>
+        {dropOver && canAcceptDrop && (
+          <span className="ml-auto text-[9px] text-sky-500 font-medium shrink-0">+ {def.slots[0].label}</span>
+        )}
+      </div>
+      {hasChildren && expanded && allChildren.map((child) => (
+        <VisualOutlineTree key={child.id} node={child} lexicalKey={lexicalKey} depth={depth + 1} sel={sel} setSel={setSel} editor={editor} />
+      ))}
     </div>
   );
 }
