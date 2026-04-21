@@ -94,6 +94,8 @@ model Page {
   title     String
   tree      String   // JSON block tree
   published Boolean  @default(false)
+  themeId   String?  // links to Theme.id
+  params    String?  // JSON: string[] — e.g. ["id"] for /customers/[id]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

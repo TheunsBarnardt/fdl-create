@@ -16,7 +16,15 @@ export type PropDef =
   | { kind: 'number'; label: string; default?: number; min?: number; max?: number }
   | { kind: 'boolean'; label: string; default?: boolean }
   | { kind: 'select'; label: string; options: string[]; default?: string }
-  | { kind: 'array'; label: string; default?: string[] };
+  | { kind: 'array'; label: string; default?: string[] }
+  | { kind: 'action'; label: string }
+  | { kind: 'binding'; label: string };
+
+export type ActionDef =
+  | { type: 'navigate'; pageId: string; pageSlug?: string; pageTitle?: string }
+  | { type: 'url'; href: string; newTab?: boolean }
+  | { type: 'submit' }
+  | { type: 'delete'; collection: string; confirmMsg?: string };
 
 export type SlotDef = { name: string; label: string; multi: boolean };
 
@@ -34,6 +42,7 @@ export type VisualNode = {
   id: string;
   component: string;
   props: Record<string, JsonVal>;
+  bindings: Record<string, { collection: string; field: string }>;
   slots: Record<string, VisualNode[]>;
 };
 
@@ -68,7 +77,7 @@ export function updatePropsInTree(
   for (const [slotName, slotNodes] of Object.entries(root.slots)) {
     newSlots[slotName] = slotNodes.map((child) => updatePropsInTree(child, id, patch));
   }
-  return { ...root, slots: newSlots };
+  return { ...root, bindings: root.bindings, slots: newSlots };
 }
 
 export function addToSlot(
@@ -85,7 +94,7 @@ export function addToSlot(
   for (const [sn, slotNodes] of Object.entries(root.slots)) {
     newSlots[sn] = slotNodes.map((c) => addToSlot(c, targetId, slotName, child));
   }
-  return { ...root, slots: newSlots };
+  return { ...root, bindings: root.bindings, slots: newSlots };
 }
 
 export function removeFromTree(root: VisualNode, id: string): VisualNode | null {
@@ -96,7 +105,7 @@ export function removeFromTree(root: VisualNode, id: string): VisualNode | null 
       .map((child) => removeFromTree(child, id))
       .filter((c): c is VisualNode => c !== null);
   }
-  return { ...root, slots: newSlots };
+  return { ...root, bindings: root.bindings, slots: newSlots };
 }
 
 // ── Component Registry ────────────────────────────────────────────────────────
@@ -112,12 +121,14 @@ export const COMPONENT_REGISTRY: ComponentDef[] = [
       text: { kind: 'string', label: 'Text', default: 'Click me' },
       variant: { kind: 'select', label: 'Variant', options: ['default', 'outline', 'ghost', 'destructive'], default: 'default' },
       size: { kind: 'select', label: 'Size', options: ['default', 'sm', 'lg'], default: 'default' },
+      action: { kind: 'action', label: 'On Click Action' },
     },
     slots: [],
     defaultNode: () => ({
       id: uid(),
       component: 'Button',
       props: { text: 'Click me', variant: 'default', size: 'default' },
+      bindings: {},
       slots: {},
     }),
   },
@@ -136,6 +147,7 @@ export const COMPONENT_REGISTRY: ComponentDef[] = [
       id: uid(),
       component: 'Input',
       props: { label: 'Label', placeholder: 'Enter text…', type: 'text' },
+      bindings: {},
       slots: {},
     }),
   },
@@ -154,6 +166,7 @@ export const COMPONENT_REGISTRY: ComponentDef[] = [
       id: uid(),
       component: 'Textarea',
       props: { label: 'Label', placeholder: 'Enter text…', rows: 4 },
+      bindings: {},
       slots: {},
     }),
   },
@@ -172,6 +185,7 @@ export const COMPONENT_REGISTRY: ComponentDef[] = [
       id: uid(),
       component: 'Select',
       props: { label: 'Choose…', placeholder: 'Pick an option', options: ['Option 1', 'Option 2', 'Option 3'] },
+      bindings: {},
       slots: {},
     }),
   },
@@ -189,6 +203,7 @@ export const COMPONENT_REGISTRY: ComponentDef[] = [
       id: uid(),
       component: 'Switch',
       props: { label: 'Toggle', checked: false },
+      bindings: {},
       slots: {},
     }),
   },
@@ -206,6 +221,121 @@ export const COMPONENT_REGISTRY: ComponentDef[] = [
       id: uid(),
       component: 'Checkbox',
       props: { label: 'Check me', checked: false },
+      bindings: {},
+      slots: {},
+    }),
+  },
+  {
+    name: 'RadioGroup',
+    label: 'Radio Group',
+    category: 'form',
+    description: 'Radio button group',
+    props: {
+      label: { kind: 'string', label: 'Label', default: 'Choose one' },
+      options: { kind: 'array', label: 'Options', default: ['Option 1', 'Option 2'] },
+      value: { kind: 'string', label: 'Selected value', default: '' },
+    },
+    slots: [],
+    defaultNode: () => ({
+      id: uid(),
+      component: 'RadioGroup',
+      props: { label: 'Choose one', options: ['Option 1', 'Option 2'], value: '' },
+      bindings: {},
+      slots: {},
+    }),
+  },
+  {
+    name: 'Slider',
+    label: 'Slider',
+    category: 'form',
+    description: 'Range slider input',
+    props: {
+      label: { kind: 'string', label: 'Label', default: 'Value' },
+      min: { kind: 'number', label: 'Min', default: 0 },
+      max: { kind: 'number', label: 'Max', default: 100 },
+      value: { kind: 'number', label: 'Value', default: 50 },
+      step: { kind: 'number', label: 'Step', default: 1 },
+    },
+    slots: [],
+    defaultNode: () => ({
+      id: uid(),
+      component: 'Slider',
+      props: { label: 'Value', min: 0, max: 100, value: 50, step: 1 },
+      bindings: {},
+      slots: {},
+    }),
+  },
+  {
+    name: 'DatePicker',
+    label: 'Date Picker',
+    category: 'form',
+    description: 'Date input field',
+    props: {
+      label: { kind: 'string', label: 'Label', default: 'Date' },
+      placeholder: { kind: 'string', label: 'Placeholder', default: 'Pick a date' },
+    },
+    slots: [],
+    defaultNode: () => ({
+      id: uid(),
+      component: 'DatePicker',
+      props: { label: 'Date', placeholder: 'Pick a date' },
+      bindings: {},
+      slots: {},
+    }),
+  },
+  {
+    name: 'FileUpload',
+    label: 'File Upload',
+    category: 'form',
+    description: 'File upload drop zone',
+    props: {
+      label: { kind: 'string', label: 'Label', default: 'Upload file' },
+      accept: { kind: 'string', label: 'Accept', default: '*' },
+      multiple: { kind: 'boolean', label: 'Multiple files', default: false },
+    },
+    slots: [],
+    defaultNode: () => ({
+      id: uid(),
+      component: 'FileUpload',
+      props: { label: 'Upload file', accept: '*', multiple: false },
+      bindings: {},
+      slots: {},
+    }),
+  },
+  {
+    name: 'Toggle',
+    label: 'Toggle',
+    category: 'form',
+    description: 'Pressable toggle button',
+    props: {
+      text: { kind: 'string', label: 'Text', default: 'Toggle' },
+      pressed: { kind: 'boolean', label: 'Pressed', default: false },
+    },
+    slots: [],
+    defaultNode: () => ({
+      id: uid(),
+      component: 'Toggle',
+      props: { text: 'Toggle', pressed: false },
+      bindings: {},
+      slots: {},
+    }),
+  },
+  {
+    name: 'Combobox',
+    label: 'Combobox',
+    category: 'form',
+    description: 'Searchable select dropdown',
+    props: {
+      label: { kind: 'string', label: 'Label', default: 'Pick one' },
+      placeholder: { kind: 'string', label: 'Placeholder', default: 'Search…' },
+      options: { kind: 'array', label: 'Options', default: ['Apple', 'Banana', 'Cherry'] },
+    },
+    slots: [],
+    defaultNode: () => ({
+      id: uid(),
+      component: 'Combobox',
+      props: { label: 'Pick one', placeholder: 'Search…', options: ['Apple', 'Banana', 'Cherry'] },
+      bindings: {},
       slots: {},
     }),
   },
@@ -225,6 +355,7 @@ export const COMPONENT_REGISTRY: ComponentDef[] = [
       id: uid(),
       component: 'Badge',
       props: { text: 'Badge', variant: 'default' },
+      bindings: {},
       slots: {},
     }),
   },
@@ -243,6 +374,7 @@ export const COMPONENT_REGISTRY: ComponentDef[] = [
       id: uid(),
       component: 'Alert',
       props: { variant: 'default', title: 'Heads up', description: 'Something you should know.' },
+      bindings: {},
       slots: {},
     }),
   },
@@ -259,6 +391,7 @@ export const COMPONENT_REGISTRY: ComponentDef[] = [
       id: uid(),
       component: 'Separator',
       props: { orientation: 'horizontal' },
+      bindings: {},
       slots: {},
     }),
   },
@@ -277,6 +410,7 @@ export const COMPONENT_REGISTRY: ComponentDef[] = [
       id: uid(),
       component: 'Avatar',
       props: { src: '', fallback: 'AB', size: 'md' },
+      bindings: {},
       slots: {},
     }),
   },
@@ -296,6 +430,7 @@ export const COMPONENT_REGISTRY: ComponentDef[] = [
       id: uid(),
       component: 'Stat',
       props: { label: 'Revenue', value: 'R 24,500', delta: '+12%', positive: true },
+      bindings: {},
       slots: {},
     }),
   },
@@ -313,6 +448,154 @@ export const COMPONENT_REGISTRY: ComponentDef[] = [
       id: uid(),
       component: 'Code',
       props: { code: 'console.log("Hello")', language: 'ts' },
+      bindings: {},
+      slots: {},
+    }),
+  },
+  {
+    name: 'Image',
+    label: 'Image',
+    category: 'display',
+    description: 'Image with optional placeholder',
+    props: {
+      src: { kind: 'string', label: 'Source URL', default: '' },
+      alt: { kind: 'string', label: 'Alt text', default: '' },
+      objectFit: { kind: 'select', label: 'Object fit', options: ['cover', 'contain', 'fill'], default: 'cover' },
+      rounded: { kind: 'boolean', label: 'Rounded', default: false },
+    },
+    slots: [],
+    defaultNode: () => ({
+      id: uid(),
+      component: 'Image',
+      props: { src: '', alt: '', objectFit: 'cover', rounded: false },
+      bindings: {},
+      slots: {},
+    }),
+  },
+  {
+    name: 'Skeleton',
+    label: 'Skeleton',
+    category: 'display',
+    description: 'Loading placeholder animation',
+    props: {
+      lines: { kind: 'number', label: 'Lines', default: 3, min: 1, max: 10 },
+      showAvatar: { kind: 'boolean', label: 'Show avatar circle', default: false },
+    },
+    slots: [],
+    defaultNode: () => ({
+      id: uid(),
+      component: 'Skeleton',
+      props: { lines: 3, showAvatar: false },
+      bindings: {},
+      slots: {},
+    }),
+  },
+  {
+    name: 'Callout',
+    label: 'Callout',
+    category: 'display',
+    description: 'Highlighted info callout box',
+    props: {
+      variant: { kind: 'select', label: 'Variant', options: ['info', 'success', 'warning', 'danger'], default: 'info' },
+      title: { kind: 'string', label: 'Title', default: 'Note' },
+      body: { kind: 'text', label: 'Body', default: 'Important information here.' },
+    },
+    slots: [],
+    defaultNode: () => ({
+      id: uid(),
+      component: 'Callout',
+      props: { variant: 'info', title: 'Note', body: 'Important information here.' },
+      bindings: {},
+      slots: {},
+    }),
+  },
+  {
+    name: 'Timeline',
+    label: 'Timeline',
+    category: 'display',
+    description: 'Vertical event timeline',
+    props: {
+      items: { kind: 'array', label: 'Events', default: ['Event 1', 'Event 2', 'Event 3'] },
+    },
+    slots: [],
+    defaultNode: () => ({
+      id: uid(),
+      component: 'Timeline',
+      props: { items: ['Event 1', 'Event 2', 'Event 3'] },
+      bindings: {},
+      slots: {},
+    }),
+  },
+  {
+    name: 'Breadcrumb',
+    label: 'Breadcrumb',
+    category: 'display',
+    description: 'Navigation breadcrumb trail',
+    props: {
+      items: { kind: 'array', label: 'Items', default: ['Home', 'Section', 'Page'] },
+    },
+    slots: [],
+    defaultNode: () => ({
+      id: uid(),
+      component: 'Breadcrumb',
+      props: { items: ['Home', 'Section', 'Page'] },
+      bindings: {},
+      slots: {},
+    }),
+  },
+  {
+    name: 'Pagination',
+    label: 'Pagination',
+    category: 'display',
+    description: 'Page navigation controls',
+    props: {
+      total: { kind: 'number', label: 'Total items', default: 100 },
+      perPage: { kind: 'number', label: 'Per page', default: 10 },
+      currentPage: { kind: 'number', label: 'Current page', default: 1 },
+    },
+    slots: [],
+    defaultNode: () => ({
+      id: uid(),
+      component: 'Pagination',
+      props: { total: 100, perPage: 10, currentPage: 1 },
+      bindings: {},
+      slots: {},
+    }),
+  },
+  {
+    name: 'List',
+    label: 'List',
+    category: 'display',
+    description: 'Styled bullet, numbered or check list',
+    props: {
+      variant: { kind: 'select', label: 'Variant', options: ['bullet', 'numbered', 'check'], default: 'bullet' },
+      items: { kind: 'array', label: 'Items', default: ['Item 1', 'Item 2', 'Item 3'] },
+    },
+    slots: [],
+    defaultNode: () => ({
+      id: uid(),
+      component: 'List',
+      props: { variant: 'bullet', items: ['Item 1', 'Item 2', 'Item 3'] },
+      bindings: {},
+      slots: {},
+    }),
+  },
+  {
+    name: 'Tag',
+    label: 'Tag',
+    category: 'display',
+    description: 'Pill-style tag or chip',
+    props: {
+      text: { kind: 'string', label: 'Text', default: 'Tag' },
+      color: { kind: 'select', label: 'Color', options: ['gray', 'blue', 'green', 'red', 'yellow', 'purple'], default: 'gray' },
+      removable: { kind: 'boolean', label: 'Removable', default: false },
+    },
+    slots: [],
+    defaultNode: () => ({
+      id: uid(),
+      component: 'Tag',
+      props: { text: 'Tag', color: 'gray', removable: false },
+      bindings: {},
       slots: {},
     }),
   },
@@ -335,6 +618,7 @@ export const COMPONENT_REGISTRY: ComponentDef[] = [
       id: uid(),
       component: 'Card',
       props: { title: 'Card title', description: 'Card description' },
+      bindings: {},
       slots: { content: [], footer: [] },
     }),
   },
@@ -351,10 +635,11 @@ export const COMPONENT_REGISTRY: ComponentDef[] = [
       id: uid(),
       component: 'Accordion',
       props: { type: 'single' },
+      bindings: {},
       slots: {
         items: [
-          { id: uid(), component: 'AccordionItem', props: { trigger: 'Section title' }, slots: { content: [] } },
-          { id: uid(), component: 'AccordionItem', props: { trigger: 'Another section' }, slots: { content: [] } },
+          { id: uid(), component: 'AccordionItem', props: { trigger: 'Section title' }, bindings: {}, slots: { content: [] } },
+          { id: uid(), component: 'AccordionItem', props: { trigger: 'Another section' }, bindings: {}, slots: { content: [] } },
         ],
       },
     }),
@@ -372,6 +657,7 @@ export const COMPONENT_REGISTRY: ComponentDef[] = [
       id: uid(),
       component: 'AccordionItem',
       props: { trigger: 'Section title' },
+      bindings: {},
       slots: { content: [] },
     }),
   },
@@ -386,10 +672,11 @@ export const COMPONENT_REGISTRY: ComponentDef[] = [
       id: uid(),
       component: 'Tabs',
       props: {},
+      bindings: {},
       slots: {
         panels: [
-          { id: uid(), component: 'TabPanel', props: { label: 'Tab 1' }, slots: { content: [] } },
-          { id: uid(), component: 'TabPanel', props: { label: 'Tab 2' }, slots: { content: [] } },
+          { id: uid(), component: 'TabPanel', props: { label: 'Tab 1' }, bindings: {}, slots: { content: [] } },
+          { id: uid(), component: 'TabPanel', props: { label: 'Tab 2' }, bindings: {}, slots: { content: [] } },
         ],
       },
     }),
@@ -407,6 +694,7 @@ export const COMPONENT_REGISTRY: ComponentDef[] = [
       id: uid(),
       component: 'TabPanel',
       props: { label: 'Tab' },
+      bindings: {},
       slots: { content: [] },
     }),
   },
@@ -424,6 +712,7 @@ export const COMPONENT_REGISTRY: ComponentDef[] = [
       id: uid(),
       component: 'Grid',
       props: { cols: '2', gap: '4' },
+      bindings: {},
       slots: { items: [] },
     }),
   },
@@ -442,7 +731,85 @@ export const COMPONENT_REGISTRY: ComponentDef[] = [
       id: uid(),
       component: 'Stack',
       props: { direction: 'col', gap: '4', align: 'start' },
+      bindings: {},
       slots: { items: [] },
+    }),
+  },
+  {
+    name: 'Form',
+    label: 'Form',
+    category: 'layout',
+    description: 'Form container with fields and actions slots',
+    props: {
+      submitLabel: { kind: 'string', label: 'Submit label', default: 'Submit' },
+    },
+    slots: [
+      { name: 'fields', label: 'Fields', multi: true },
+      { name: 'actions', label: 'Actions', multi: true },
+    ],
+    defaultNode: () => ({
+      id: uid(),
+      component: 'Form',
+      props: { submitLabel: 'Submit' },
+      bindings: {},
+      slots: { fields: [], actions: [] },
+    }),
+  },
+  {
+    name: 'Dialog',
+    label: 'Dialog',
+    category: 'layout',
+    description: 'Modal dialog shown inline in editor',
+    props: {
+      title: { kind: 'string', label: 'Title', default: 'Dialog title' },
+      description: { kind: 'string', label: 'Description', default: 'Dialog description' },
+    },
+    slots: [
+      { name: 'content', label: 'Content', multi: true },
+      { name: 'footer', label: 'Footer', multi: true },
+    ],
+    defaultNode: () => ({
+      id: uid(),
+      component: 'Dialog',
+      props: { title: 'Dialog title', description: 'Dialog description' },
+      bindings: {},
+      slots: { content: [], footer: [] },
+    }),
+  },
+  {
+    name: 'Sheet',
+    label: 'Sheet',
+    category: 'layout',
+    description: 'Side panel overlay',
+    props: {
+      title: { kind: 'string', label: 'Title', default: 'Sheet title' },
+      side: { kind: 'select', label: 'Side', options: ['left', 'right', 'top', 'bottom'], default: 'right' },
+    },
+    slots: [{ name: 'content', label: 'Content', multi: true }],
+    defaultNode: () => ({
+      id: uid(),
+      component: 'Sheet',
+      props: { title: 'Sheet title', side: 'right' },
+      bindings: {},
+      slots: { content: [] },
+    }),
+  },
+  {
+    name: 'Collapsible',
+    label: 'Collapsible',
+    category: 'layout',
+    description: 'Single collapsible section with trigger',
+    props: {
+      trigger: { kind: 'string', label: 'Trigger label', default: 'Show more' },
+      open: { kind: 'boolean', label: 'Open by default', default: false },
+    },
+    slots: [{ name: 'content', label: 'Content', multi: true }],
+    defaultNode: () => ({
+      id: uid(),
+      component: 'Collapsible',
+      props: { trigger: 'Show more', open: false },
+      bindings: {},
+      slots: { content: [] },
     }),
   },
 
@@ -464,6 +831,7 @@ export const COMPONENT_REGISTRY: ComponentDef[] = [
         headers: ['Name', 'Status', 'Date'],
         rowsCsv: 'Alice,Active,2024-01-01\nBob,Inactive,2024-01-02',
       },
+      bindings: {},
       slots: {},
     }),
   },
@@ -481,6 +849,44 @@ export const COMPONENT_REGISTRY: ComponentDef[] = [
       id: uid(),
       component: 'Progress',
       props: { label: 'Progress', value: 60 },
+      bindings: {},
+      slots: {},
+    }),
+  },
+  {
+    name: 'Chart',
+    label: 'Chart',
+    category: 'data',
+    description: 'Bar, line or pie chart placeholder',
+    props: {
+      title: { kind: 'string', label: 'Title', default: 'Revenue' },
+      type: { kind: 'select', label: 'Type', options: ['bar', 'line', 'pie'], default: 'bar' },
+      labels: { kind: 'array', label: 'Labels', default: ['Jan', 'Feb', 'Mar'] },
+      values: { kind: 'array', label: 'Values', default: ['40', '65', '50'] },
+    },
+    slots: [],
+    defaultNode: () => ({
+      id: uid(),
+      component: 'Chart',
+      props: { title: 'Revenue', type: 'bar', labels: ['Jan', 'Feb', 'Mar'], values: ['40', '65', '50'] },
+      bindings: {},
+      slots: {},
+    }),
+  },
+  {
+    name: 'KanbanBoard',
+    label: 'Kanban Board',
+    category: 'data',
+    description: 'Kanban columns layout',
+    props: {
+      columns: { kind: 'array', label: 'Columns', default: ['Todo', 'In Progress', 'Done'] },
+    },
+    slots: [],
+    defaultNode: () => ({
+      id: uid(),
+      component: 'KanbanBoard',
+      props: { columns: ['Todo', 'In Progress', 'Done'] },
+      bindings: {},
       slots: {},
     }),
   },

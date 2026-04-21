@@ -26,7 +26,7 @@ import {
 } from 'lexical';
 import { SELECT_DECORATOR_COMMAND } from '@/lib/editor/nodes';
 import { VisualSelCtx, DragCtx, type VisualSel } from '@/lib/editor/visual-renderer';
-import { COMPONENT_REGISTRY, REGISTRY_MAP, COMPONENT_CATEGORIES, updatePropsInTree, findNodeInTree, removeFromTree, addToSlot, type PropDef } from '@/lib/editor/visual-registry';
+import { COMPONENT_REGISTRY, REGISTRY_MAP, COMPONENT_CATEGORIES, updatePropsInTree, findNodeInTree, removeFromTree, addToSlot, type PropDef, type ActionDef } from '@/lib/editor/visual-registry';
 import { ShadcnBlockNode, getShadcnNodeInfo } from '@/lib/editor/nodes';
 import {
   Heading1,
@@ -113,19 +113,23 @@ export function PageEditor({
   collectionFieldsByName,
   pages,
   libraryBlocks = [],
+  themes = [],
   mode
 }: {
-  initial: { id?: string; slug: string; title: string; tree: any; published: boolean };
+  initial: { id?: string; slug: string; title: string; tree: any; published: boolean; themeId?: string | null; params?: string | null };
   collections: Array<{ name: string; label: string }>;
   collectionFieldsByName: Record<string, string[]>;
   pages: Array<{ id: string; title: string; slug: string }>;
   libraryBlocks?: LibraryBlock[];
+  themes?: Array<{ id: string; name: string }>;
   mode: 'create' | 'edit';
 }) {
   const router = useRouter();
   const [title, setTitle] = useState(initial.title);
   const [slug, setSlug] = useState(initial.slug);
   const [published, setPublished] = useState(initial.published);
+  const [pageTheme, setPageTheme] = useState<string>(initial.themeId ?? '');
+  const [pageParams, setPageParams] = useState<string>(initial.params ?? '');
   const [viewport, setViewport] = useState<Viewport>('desktop');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -158,7 +162,14 @@ export function PageEditor({
     setError(null);
     try {
       const treeJson = editor.getEditorState().toJSON();
-      const payload = { title, slug, tree: treeJson, published: pub };
+      const payload = {
+        title,
+        slug,
+        tree: treeJson,
+        published: pub,
+        themeId: pageTheme || null,
+        params: pageParams || null,
+      };
       const res = await fetch(
         mode === 'create' ? '/api/pages' : `/api/pages/${initial.id}`,
         { method: mode === 'create' ? 'POST' : 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) }
@@ -210,6 +221,31 @@ export function PageEditor({
               onChange={(e) => setSlug(e.target.value)}
               placeholder="slug"
               className="mono bg-transparent focus:outline-none text-neutral-500 w-28"
+            />
+          </div>
+          {themes.length > 0 && (
+            <div className="flex items-center gap-1 text-xs text-neutral-500">
+              <span className="text-neutral-400">Theme:</span>
+              <select
+                value={pageTheme}
+                onChange={(e) => setPageTheme(e.target.value)}
+                className="bg-transparent focus:outline-none text-neutral-600 text-xs border-none py-0"
+              >
+                <option value="">Default</option>
+                {themes.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div className="flex items-center gap-1 text-xs text-neutral-500">
+            <span className="text-neutral-400">Params:</span>
+            <input
+              value={pageParams}
+              onChange={(e) => setPageParams(e.target.value)}
+              placeholder="id,type"
+              className="mono bg-transparent focus:outline-none text-neutral-500 w-20"
+              title="Comma-separated URL params (e.g. id,type)"
             />
           </div>
         </div>
@@ -347,6 +383,7 @@ export function PageEditor({
                   selectedKey={selectedKey}
                   collections={collections}
                   collectionFieldsByName={collectionFieldsByName}
+                  pages={pages}
                 />
               </aside>
             </div>
@@ -850,11 +887,13 @@ function ViewportSwitch({
 function BlockPropsPanel({
   selectedKey,
   collections,
-  collectionFieldsByName
+  collectionFieldsByName,
+  pages,
 }: {
   selectedKey: NodeKey | null;
   collections: Array<{ name: string; label: string }>;
   collectionFieldsByName: Record<string, string[]>;
+  pages: Array<{ id: string; title: string; slug: string }>;
 }) {
   const [editor] = useLexicalComposerContext();
   const update = useUpdateSelectedNode();
@@ -868,7 +907,17 @@ function BlockPropsPanel({
   // Check for ShadcnBlockNode first
   const shadcnInfo = getShadcnNodeInfo(editor, selectedKey);
   if (shadcnInfo) {
-    return <ShadcnPropsPanel sel={sel} setSel={setSel} editor={editor} selectedKey={selectedKey!} />;
+    return (
+      <ShadcnPropsPanel
+        sel={sel}
+        setSel={setSel}
+        editor={editor}
+        selectedKey={selectedKey!}
+        pages={pages}
+        collections={Object.keys(collectionFieldsByName)}
+        collectionFieldsByName={collectionFieldsByName}
+      />
+    );
   }
 
   const selected = getSelectedDecorator(editor, selectedKey);
@@ -1629,11 +1678,17 @@ function ShadcnPropsPanel({
   setSel,
   editor,
   selectedKey,
+  pages,
+  collections,
+  collectionFieldsByName,
 }: {
   sel: VisualSel;
   setSel: (v: VisualSel) => void;
   editor: LexicalEditor;
   selectedKey: NodeKey;
+  pages: Array<{ id: string; title: string; slug: string }>;
+  collections: string[];
+  collectionFieldsByName: Record<string, string[]>;
 }) {
   const [, tick] = useState(0);
   useEffect(() => editor.registerUpdateListener(() => tick((n) => n + 1)), [editor]);
@@ -1662,6 +1717,35 @@ function ShadcnPropsPanel({
     });
   };
 
+  const updateBinding = (key: string, binding: { collection: string; field: string } | null) => {
+    editor.update(() => {
+      const n = $getNodeByKey(selectedKey) as ShadcnBlockNode | null;
+      if (!n) return;
+      const tree = n.getTree();
+      const target = findNodeInTree(tree, sel.visualId);
+      if (!target) return;
+      const newBindings = { ...(target.bindings ?? {}) };
+      if (binding) {
+        newBindings[key] = binding;
+      } else {
+        delete newBindings[key];
+      }
+      // We patch bindings by rebuilding the node — use a small helper
+      const patchBindingsInTree = (root: import('@/lib/editor/visual-registry').VisualNode): import('@/lib/editor/visual-registry').VisualNode => {
+        if (root.id === sel.visualId) return { ...root, bindings: newBindings };
+        return {
+          ...root,
+          slots: Object.fromEntries(
+            Object.entries(root.slots).map(([sn, sNodes]) => [sn, sNodes.map(patchBindingsInTree)])
+          ),
+        };
+      };
+      n.setTree(patchBindingsInTree(tree));
+    });
+  };
+
+  const isLeaf = def.slots.length === 0;
+
   return (
     <>
       <div className="p-4 border-b border-neutral-200">
@@ -1677,11 +1761,39 @@ function ShadcnPropsPanel({
             def={pd}
             value={node.props[key]}
             onChange={(v) => updateProp(key, v)}
+            pages={pages}
+            collections={collections}
+            collectionFieldsByName={collectionFieldsByName}
           />
         ))}
         {Object.keys(def.props).length === 0 && (
           <p className="text-[12px] text-neutral-400">No configurable properties.</p>
         )}
+
+        {/* Data binding section — leaf nodes only */}
+        {isLeaf && Object.keys(def.props).length > 0 && (
+          <div className="pt-2 border-t border-neutral-100">
+            <div className="text-[10px] uppercase tracking-wider text-neutral-400 mb-2">Data Binding</div>
+            <div className="space-y-2">
+              {Object.entries(def.props).map(([key, pd]) => {
+                if (pd.kind === 'action' || pd.kind === 'binding') return null;
+                const binding = (node.bindings ?? {})[key];
+                return (
+                  <div key={key} className="text-[11px]">
+                    <div className="text-neutral-500 mb-0.5">{pd.label}</div>
+                    <BindingEditor
+                      value={binding ?? null}
+                      onChange={(b) => updateBinding(key, b)}
+                      collections={collections}
+                      collectionFieldsByName={collectionFieldsByName}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {def.slots.length > 0 && (
           <div className="pt-2 border-t border-neutral-100">
             <div className="text-[10px] uppercase tracking-wider text-neutral-400 mb-2">Slots</div>
@@ -1724,11 +1836,17 @@ function PropEditor({
   def,
   value,
   onChange,
+  pages = [],
+  collections = [],
+  collectionFieldsByName = {},
 }: {
   propKey: string;
   def: PropDef;
   value: any;
   onChange: (v: any) => void;
+  pages?: Array<{ id: string; title: string; slug: string }>;
+  collections?: string[];
+  collectionFieldsByName?: Record<string, string[]>;
 }) {
   return (
     <div>
@@ -1787,6 +1905,21 @@ function PropEditor({
             onChange={onChange}
           />
         )}
+        {def.kind === 'action' && (
+          <ActionEditor
+            value={value as ActionDef | null}
+            onChange={onChange}
+            pages={pages}
+          />
+        )}
+        {def.kind === 'binding' && (
+          <BindingEditor
+            value={value as { collection: string; field: string } | null}
+            onChange={onChange}
+            collections={collections}
+            collectionFieldsByName={collectionFieldsByName}
+          />
+        )}
       </div>
     </div>
   );
@@ -1822,6 +1955,141 @@ function ArrayEditor({ value, onChange }: { value: string[]; onChange: (v: strin
       >
         + Add item
       </button>
+    </div>
+  );
+}
+
+function ActionEditor({
+  value,
+  onChange,
+  pages,
+}: {
+  value: ActionDef | null;
+  onChange: (v: ActionDef | null) => void;
+  pages: Array<{ id: string; title: string; slug: string }>;
+}) {
+  const type = value?.type ?? 'none';
+
+  const setType = (t: string) => {
+    if (t === 'none') { onChange(null); return; }
+    if (t === 'navigate') onChange({ type: 'navigate', pageId: '' });
+    else if (t === 'url') onChange({ type: 'url', href: '' });
+    else if (t === 'submit') onChange({ type: 'submit' });
+    else if (t === 'delete') onChange({ type: 'delete', collection: '' });
+  };
+
+  return (
+    <div className="space-y-2">
+      <select
+        value={type}
+        onChange={(e) => setType(e.target.value)}
+        className="w-full border border-neutral-200 rounded-md px-2 py-1.5 text-sm bg-white"
+      >
+        <option value="none">None</option>
+        <option value="navigate">Navigate to page</option>
+        <option value="url">Open URL</option>
+        <option value="submit">Submit form</option>
+        <option value="delete">Delete record</option>
+      </select>
+
+      {type === 'navigate' && (
+        <select
+          value={(value as any)?.pageId ?? ''}
+          onChange={(e) => {
+            const pg = pages.find((p) => p.id === e.target.value);
+            onChange({ type: 'navigate', pageId: e.target.value, pageSlug: pg?.slug, pageTitle: pg?.title });
+          }}
+          className="w-full border border-neutral-200 rounded-md px-2 py-1.5 text-sm bg-white"
+        >
+          <option value="">— select page —</option>
+          {pages.map((pg) => (
+            <option key={pg.id} value={pg.id}>{pg.title || pg.slug}</option>
+          ))}
+        </select>
+      )}
+
+      {type === 'url' && (
+        <div className="space-y-1.5">
+          <input
+            value={(value as any)?.href ?? ''}
+            onChange={(e) => onChange({ type: 'url', href: e.target.value, newTab: (value as any)?.newTab })}
+            placeholder="https://…"
+            className="w-full border border-neutral-200 rounded-md px-2 py-1.5 text-sm"
+          />
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              checked={Boolean((value as any)?.newTab)}
+              onChange={(e) => onChange({ type: 'url', href: (value as any)?.href ?? '', newTab: e.target.checked })}
+            />
+            <span className="text-neutral-600">Open in new tab</span>
+          </label>
+        </div>
+      )}
+
+      {type === 'delete' && (
+        <div className="space-y-1.5">
+          <input
+            value={(value as any)?.collection ?? ''}
+            onChange={(e) => onChange({ type: 'delete', collection: e.target.value, confirmMsg: (value as any)?.confirmMsg })}
+            placeholder="collection name"
+            className="w-full border border-neutral-200 rounded-md px-2 py-1.5 text-sm"
+          />
+          <input
+            value={(value as any)?.confirmMsg ?? ''}
+            onChange={(e) => onChange({ type: 'delete', collection: (value as any)?.collection ?? '', confirmMsg: e.target.value })}
+            placeholder="Confirm message (optional)"
+            className="w-full border border-neutral-200 rounded-md px-2 py-1.5 text-sm"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BindingEditor({
+  value,
+  onChange,
+  collections,
+  collectionFieldsByName,
+}: {
+  value: { collection: string; field: string } | null;
+  onChange: (v: { collection: string; field: string } | null) => void;
+  collections: string[];
+  collectionFieldsByName: Record<string, string[]>;
+}) {
+  const selectedCollection = value?.collection ?? '';
+  const selectedField = value?.field ?? '';
+  const fields = selectedCollection ? (collectionFieldsByName[selectedCollection] ?? []) : [];
+
+  return (
+    <div className="flex gap-1">
+      <select
+        value={selectedCollection}
+        onChange={(e) => {
+          const col = e.target.value;
+          if (!col) { onChange(null); return; }
+          onChange({ collection: col, field: '' });
+        }}
+        className="flex-1 border border-neutral-200 rounded-md px-2 py-1 text-xs bg-white"
+      >
+        <option value="">None</option>
+        {collections.map((c) => (
+          <option key={c} value={c}>{c}</option>
+        ))}
+      </select>
+      {selectedCollection && (
+        <select
+          value={selectedField}
+          onChange={(e) => onChange({ collection: selectedCollection, field: e.target.value })}
+          className="flex-1 border border-neutral-200 rounded-md px-2 py-1 text-xs bg-white"
+        >
+          <option value="">— field —</option>
+          {fields.map((f) => (
+            <option key={f} value={f}>{f}</option>
+          ))}
+        </select>
+      )}
     </div>
   );
 }

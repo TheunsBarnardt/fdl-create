@@ -7,7 +7,9 @@ const UpdatePage = z.object({
   title: z.string().optional(),
   slug: z.string().optional(),
   tree: z.any().optional(),
-  published: z.boolean().optional()
+  published: z.boolean().optional(),
+  themeId: z.string().nullable().optional(),
+  params: z.string().nullable().optional(),
 });
 
 type P = { params: { id: string } };
@@ -27,7 +29,9 @@ export const PATCH = withApi<P>('write:pages', async (req, { params }) => {
       ...(body.data.title !== undefined && { title: body.data.title }),
       ...(body.data.slug !== undefined && { slug: body.data.slug }),
       ...(body.data.tree !== undefined && { tree: JSON.stringify(body.data.tree) }),
-      ...(body.data.published !== undefined && { published: body.data.published })
+      ...(body.data.published !== undefined && { published: body.data.published }),
+      ...('themeId' in body.data && { themeId: body.data.themeId ?? null }),
+      ...('params' in body.data && { params: body.data.params ?? null }),
     }
   });
   return NextResponse.json({ id: params.id });

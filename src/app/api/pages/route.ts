@@ -7,7 +7,9 @@ const CreatePage = z.object({
   slug: z.string().regex(/^[a-z0-9-/]+$/),
   title: z.string().min(1),
   tree: z.any().optional(),
-  published: z.boolean().optional()
+  published: z.boolean().optional(),
+  themeId: z.string().nullable().optional(),
+  params: z.string().nullable().optional(),
 });
 
 export const GET = withApi('read:pages', async () => {
@@ -26,7 +28,9 @@ export const POST = withApi('write:pages', async (req) => {
       slug: body.data.slug,
       title: body.data.title,
       tree: JSON.stringify(body.data.tree ?? { blocks: [] }),
-      published: body.data.published ?? false
+      published: body.data.published ?? false,
+      themeId: body.data.themeId ?? null,
+      params: body.data.params ?? null,
     }
   });
   return NextResponse.json({ id: created.id }, { status: 201 });

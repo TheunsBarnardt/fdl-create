@@ -241,6 +241,105 @@ function renderComponent(node: VisualNode, nodeKey: NodeKey, onUpdate: TreeUpdat
       );
     }
 
+    case 'RadioGroup': {
+      const label = String(p.label ?? 'Choose one');
+      const options = Array.isArray(p.options) ? (p.options as string[]) : ['Option 1', 'Option 2'];
+      const value = String(p.value ?? '');
+      return (
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-neutral-700">{label}</label>
+          <div className="space-y-1.5">
+            {options.map((o) => (
+              <label key={String(o)} className="flex items-center gap-2 cursor-pointer">
+                <div className={cn('w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0', value === String(o) ? 'border-neutral-900' : 'border-neutral-300')}>
+                  {value === String(o) && <div className="w-2 h-2 rounded-full bg-neutral-900" />}
+                </div>
+                <span className="text-sm text-neutral-700">{String(o)}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    case 'Slider': {
+      const label = String(p.label ?? 'Value');
+      const min = Number(p.min ?? 0);
+      const max = Number(p.max ?? 100);
+      const value = Number(p.value ?? 50);
+      const step = Number(p.step ?? 1);
+      return (
+        <div className="space-y-2">
+          <div className="flex justify-between">
+            <label className="text-sm font-medium text-neutral-700">{label}</label>
+            <span className="text-sm text-neutral-500">{value}</span>
+          </div>
+          <input
+            type="range"
+            min={min}
+            max={max}
+            step={step}
+            defaultValue={value}
+            readOnly
+            className="w-full accent-neutral-900"
+          />
+        </div>
+      );
+    }
+
+    case 'DatePicker': {
+      const label = String(p.label ?? 'Date');
+      return (
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-neutral-700">{label}</label>
+          <input
+            type="date"
+            readOnly
+            className="w-full border border-neutral-200 rounded-md px-3 py-2 text-sm bg-white"
+          />
+        </div>
+      );
+    }
+
+    case 'FileUpload': {
+      const label = String(p.label ?? 'Upload file');
+      const multiple = Boolean(p.multiple);
+      return (
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-neutral-700">{label}</label>
+          <div className="border-2 border-dashed border-neutral-200 rounded-lg p-8 text-center bg-neutral-50">
+            <svg className="mx-auto h-8 w-8 text-neutral-300 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            <p className="text-sm text-neutral-500">Drop {multiple ? 'files' : 'a file'} here or <span className="text-neutral-900 underline">browse</span></p>
+          </div>
+        </div>
+      );
+    }
+
+    case 'Toggle': {
+      const text = String(p.text ?? 'Toggle');
+      const pressed = Boolean(p.pressed);
+      return (
+        <button
+          type="button"
+          className={cn(
+            'px-4 py-2 text-sm rounded-md border font-medium transition-colors',
+            pressed
+              ? 'bg-neutral-900 text-white border-neutral-900'
+              : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50'
+          )}
+        >
+          {text}
+        </button>
+      );
+    }
+
+    case 'Combobox':
+      return <ComboboxRenderer node={node} />;
+
     // ── Display ──────────────────────────────────────────────────────────────
 
     case 'Badge': {
@@ -331,6 +430,189 @@ function renderComponent(node: VisualNode, nodeKey: NodeKey, onUpdate: TreeUpdat
       );
     }
 
+    case 'Image': {
+      const src = String(p.src ?? '');
+      const alt = String(p.alt ?? '');
+      const objectFit = String(p.objectFit ?? 'cover');
+      const rounded = Boolean(p.rounded);
+      if (!src) {
+        return (
+          <div className={cn('w-full h-40 bg-neutral-100 border border-dashed border-neutral-300 flex items-center justify-center', rounded && 'rounded-lg')}>
+            <svg className="h-8 w-8 text-neutral-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
+            </svg>
+          </div>
+        );
+      }
+      return (
+        <div className={cn('w-full h-40 overflow-hidden', rounded && 'rounded-lg')}>
+          <img src={src} alt={alt} className="w-full h-full" style={{ objectFit: objectFit as any }} />
+        </div>
+      );
+    }
+
+    case 'Skeleton': {
+      const lines = Math.min(10, Math.max(1, Number(p.lines ?? 3)));
+      const showAvatar = Boolean(p.showAvatar);
+      return (
+        <div className="space-y-3">
+          {showAvatar && (
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-neutral-200 animate-pulse shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="h-3 bg-neutral-200 animate-pulse rounded w-1/2" />
+                <div className="h-2 bg-neutral-200 animate-pulse rounded w-1/3" />
+              </div>
+            </div>
+          )}
+          <div className="space-y-2">
+            {Array.from({ length: lines }).map((_, i) => (
+              <div
+                key={i}
+                className="h-3 bg-neutral-200 animate-pulse rounded"
+                style={{ width: i === lines - 1 ? '60%' : '100%' }}
+              />
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    case 'Callout': {
+      const variant = String(p.variant ?? 'info');
+      const title = String(p.title ?? 'Note');
+      const body = String(p.body ?? '');
+      const variantStyles: Record<string, { border: string; bg: string; title: string; body: string; icon: string }> = {
+        info:    { border: 'border-blue-400',  bg: 'bg-blue-50',   title: 'text-blue-800',  body: 'text-blue-700',  icon: 'ℹ' },
+        success: { border: 'border-green-400', bg: 'bg-green-50',  title: 'text-green-800', body: 'text-green-700', icon: '✓' },
+        warning: { border: 'border-yellow-400',bg: 'bg-yellow-50', title: 'text-yellow-800',body: 'text-yellow-700',icon: '⚠' },
+        danger:  { border: 'border-red-400',   bg: 'bg-red-50',    title: 'text-red-800',   body: 'text-red-700',   icon: '✕' },
+      };
+      const s = variantStyles[variant] ?? variantStyles.info;
+      return (
+        <div className={cn('border-l-4 rounded-r-md p-4', s.border, s.bg)}>
+          <div className={cn('font-semibold text-sm mb-1 flex items-center gap-1.5', s.title)}>
+            <span>{s.icon}</span> {title}
+          </div>
+          <div className={cn('text-sm', s.body)}>{body}</div>
+        </div>
+      );
+    }
+
+    case 'Timeline': {
+      const items = Array.isArray(p.items) ? (p.items as string[]) : [];
+      return (
+        <div className="space-y-0">
+          {items.map((item, i) => (
+            <div key={i} className="flex gap-3">
+              <div className="flex flex-col items-center">
+                <div className="w-3 h-3 rounded-full bg-neutral-900 shrink-0 mt-1" />
+                {i < items.length - 1 && <div className="w-0.5 flex-1 bg-neutral-200 my-1" />}
+              </div>
+              <div className="pb-4">
+                <p className="text-sm text-neutral-700">{String(item)}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    case 'Breadcrumb': {
+      const items = Array.isArray(p.items) ? (p.items as string[]) : [];
+      return (
+        <nav className="flex items-center gap-1 text-sm">
+          {items.map((item, i) => (
+            <span key={i} className="flex items-center gap-1">
+              {i > 0 && <span className="text-neutral-300">/</span>}
+              <span className={cn(i === items.length - 1 ? 'text-neutral-700 font-medium' : 'text-neutral-400 hover:text-neutral-600 cursor-pointer')}>
+                {String(item)}
+              </span>
+            </span>
+          ))}
+        </nav>
+      );
+    }
+
+    case 'Pagination': {
+      const total = Number(p.total ?? 100);
+      const perPage = Number(p.perPage ?? 10);
+      const currentPage = Number(p.currentPage ?? 1);
+      const totalPages = Math.ceil(total / perPage);
+      const pages = Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+        const start = Math.max(1, currentPage - 2);
+        return start + i;
+      }).filter((n) => n <= totalPages);
+      return (
+        <div className="flex items-center gap-1">
+          <button type="button" className="px-2 py-1 text-xs border border-neutral-200 rounded hover:bg-neutral-50 disabled:opacity-40" disabled={currentPage <= 1}>
+            ← Prev
+          </button>
+          {pages.map((pg) => (
+            <button
+              key={pg}
+              type="button"
+              className={cn('w-8 h-8 text-xs rounded border transition-colors', pg === currentPage ? 'bg-neutral-900 text-white border-neutral-900' : 'border-neutral-200 hover:bg-neutral-50')}
+            >
+              {pg}
+            </button>
+          ))}
+          <button type="button" className="px-2 py-1 text-xs border border-neutral-200 rounded hover:bg-neutral-50 disabled:opacity-40" disabled={currentPage >= totalPages}>
+            Next →
+          </button>
+        </div>
+      );
+    }
+
+    case 'List': {
+      const variant = String(p.variant ?? 'bullet');
+      const items = Array.isArray(p.items) ? (p.items as string[]) : [];
+      return (
+        <ul className="space-y-1.5">
+          {items.map((item, i) => (
+            <li key={i} className="flex items-start gap-2 text-sm text-neutral-700">
+              {variant === 'bullet' && <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-neutral-400 shrink-0" />}
+              {variant === 'numbered' && <span className="shrink-0 font-medium text-neutral-400 w-5 text-right">{i + 1}.</span>}
+              {variant === 'check' && (
+                <svg className="mt-0.5 h-4 w-4 text-green-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              )}
+              <span>{String(item)}</span>
+            </li>
+          ))}
+        </ul>
+      );
+    }
+
+    case 'Tag': {
+      const text = String(p.text ?? 'Tag');
+      const color = String(p.color ?? 'gray');
+      const removable = Boolean(p.removable);
+      const colorClasses: Record<string, string> = {
+        gray:   'bg-neutral-100 text-neutral-700',
+        blue:   'bg-blue-100 text-blue-700',
+        green:  'bg-green-100 text-green-700',
+        red:    'bg-red-100 text-red-700',
+        yellow: 'bg-yellow-100 text-yellow-700',
+        purple: 'bg-purple-100 text-purple-700',
+      };
+      return (
+        <span className={cn('inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium', colorClasses[color] ?? colorClasses.gray)}>
+          {text}
+          {removable && (
+            <button type="button" className="ml-0.5 opacity-60 hover:opacity-100">
+              <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M18 6 6 18M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </span>
+      );
+    }
+
     case 'Progress': {
       const label = String(p.label ?? 'Progress');
       const value = Number(p.value ?? 0);
@@ -374,6 +656,68 @@ function renderComponent(node: VisualNode, nodeKey: NodeKey, onUpdate: TreeUpdat
         </div>
       );
     }
+
+    case 'Form': {
+      const submitLabel = String(p.submitLabel ?? 'Submit');
+      const fields = node.slots.fields ?? [];
+      const actions = node.slots.actions ?? [];
+      return (
+        <form onSubmit={(e) => e.preventDefault()} className="border border-neutral-200 rounded-lg p-4 space-y-4">
+          <SlotContainer nodes={fields} slotName="fields" parentId={node.id} nodeKey={nodeKey} slotLabel="Fields" onUpdate={onUpdate} />
+          <div className="flex items-center gap-2 pt-2 border-t border-neutral-100">
+            <button type="button" className="px-4 py-2 bg-neutral-900 text-white text-sm rounded-md">
+              {submitLabel}
+            </button>
+            <SlotContainer nodes={actions} slotName="actions" parentId={node.id} nodeKey={nodeKey} slotLabel="Actions" onUpdate={onUpdate} />
+          </div>
+        </form>
+      );
+    }
+
+    case 'Dialog': {
+      const title = String(p.title ?? 'Dialog title');
+      const description = String(p.description ?? '');
+      const content = node.slots.content ?? [];
+      const footer = node.slots.footer ?? [];
+      return (
+        <div className="border border-neutral-200 rounded-lg shadow-md overflow-hidden bg-white">
+          <div className="px-6 py-4 border-b border-neutral-200">
+            <div className="font-semibold text-base">{title}</div>
+            {description && <div className="text-sm text-neutral-500 mt-0.5">{description}</div>}
+          </div>
+          <div className="px-6 py-4">
+            <SlotContainer nodes={content} slotName="content" parentId={node.id} nodeKey={nodeKey} slotLabel="Content" onUpdate={onUpdate} />
+          </div>
+          {footer.length > 0 && (
+            <div className="px-6 py-3 border-t border-neutral-100 bg-neutral-50 flex justify-end gap-2">
+              <SlotContainer nodes={footer} slotName="footer" parentId={node.id} nodeKey={nodeKey} slotLabel="Footer" onUpdate={onUpdate} />
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    case 'Sheet': {
+      const title = String(p.title ?? 'Sheet title');
+      const side = String(p.side ?? 'right');
+      const content = node.slots.content ?? [];
+      const sideLabel: Record<string, string> = { left: '← Left panel', right: 'Right panel →', top: '↑ Top panel', bottom: '↓ Bottom panel' };
+      return (
+        <div className="border border-neutral-200 rounded-lg overflow-hidden bg-white">
+          <div className="px-4 py-2 bg-neutral-50 border-b border-neutral-200 flex items-center justify-between">
+            <span className="text-xs text-neutral-400">{sideLabel[side] ?? 'Panel'}</span>
+            <span className="text-xs font-medium text-neutral-700">{title}</span>
+            <div className="w-5 h-5 rounded border border-neutral-200 flex items-center justify-center text-neutral-400 text-xs">✕</div>
+          </div>
+          <div className="p-4">
+            <SlotContainer nodes={content} slotName="content" parentId={node.id} nodeKey={nodeKey} slotLabel="Content" onUpdate={onUpdate} />
+          </div>
+        </div>
+      );
+    }
+
+    case 'Collapsible':
+      return <CollapsibleRenderer node={node} nodeKey={nodeKey} onUpdate={onUpdate} />;
 
     case 'AccordionItem': {
       // Standalone — shown when not inside Accordion
@@ -435,6 +779,29 @@ function renderComponent(node: VisualNode, nodeKey: NodeKey, onUpdate: TreeUpdat
       );
     }
 
+    case 'Chart':
+      return <ChartRenderer node={node} />;
+
+    case 'KanbanBoard': {
+      const columns = Array.isArray(p.columns) ? (p.columns as string[]) : ['Todo', 'In Progress', 'Done'];
+      return (
+        <div className="flex gap-3 overflow-x-auto pb-2">
+          {columns.map((col, i) => (
+            <div key={i} className="shrink-0 w-48 bg-neutral-50 border border-neutral-200 rounded-lg">
+              <div className="px-3 py-2 border-b border-neutral-200">
+                <span className="text-xs font-semibold text-neutral-700">{String(col)}</span>
+              </div>
+              <div className="p-2 space-y-2 min-h-[80px]">
+                <div className="h-10 bg-white border border-neutral-200 rounded-md px-2 flex items-center text-xs text-neutral-400 italic">
+                  Drop cards here
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
     default:
       return (
         <div className="border border-dashed border-neutral-200 rounded-md p-3 text-xs text-neutral-400">
@@ -445,6 +812,162 @@ function renderComponent(node: VisualNode, nodeKey: NodeKey, onUpdate: TreeUpdat
 }
 
 // ── Stateful sub-renderers ────────────────────────────────────────────────────
+
+function CollapsibleRenderer({
+  node,
+  nodeKey,
+  onUpdate,
+}: {
+  node: VisualNode;
+  nodeKey: NodeKey;
+  onUpdate: TreeUpdateFn;
+}) {
+  const trigger = String(node.props.trigger ?? 'Show more');
+  const [open, setOpen] = useState(Boolean(node.props.open ?? false));
+  const content = node.slots.content ?? [];
+  return (
+    <div className="border border-neutral-200 rounded-lg overflow-hidden">
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setOpen((p) => !p); }}
+        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium hover:bg-neutral-50"
+      >
+        {trigger}
+        <svg className={cn('h-4 w-4 text-neutral-400 transition-transform shrink-0', open && 'rotate-180')} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+      {open && (
+        <div className="px-4 pb-4">
+          <SlotContainer nodes={content} slotName="content" parentId={node.id} nodeKey={nodeKey} slotLabel="Content" onUpdate={onUpdate} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ComboboxRenderer({ node }: { node: VisualNode }) {
+  const label = String(node.props.label ?? 'Pick one');
+  const placeholder = String(node.props.placeholder ?? 'Search…');
+  const options = Array.isArray(node.props.options) ? (node.props.options as string[]) : [];
+  const [search, setSearch] = useState('');
+  const [open, setOpen] = useState(false);
+  const filtered = search ? options.filter((o) => String(o).toLowerCase().includes(search.toLowerCase())) : options;
+  return (
+    <div className="space-y-1">
+      <label className="text-sm font-medium text-neutral-700">{label}</label>
+      <div className="relative">
+        <input
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          placeholder={placeholder}
+          className="w-full border border-neutral-200 rounded-md px-3 py-2 text-sm bg-white"
+        />
+        {open && filtered.length > 0 && (
+          <div className="absolute z-10 mt-1 w-full bg-white border border-neutral-200 rounded-md shadow-md max-h-40 overflow-auto">
+            {filtered.map((o, i) => (
+              <button
+                key={i}
+                type="button"
+                onMouseDown={() => { setSearch(String(o)); setOpen(false); }}
+                className="w-full text-left px-3 py-1.5 text-sm hover:bg-neutral-50"
+              >
+                {String(o)}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ChartRenderer({ node }: { node: VisualNode }) {
+  const title = String(node.props.title ?? 'Chart');
+  const type = String(node.props.type ?? 'bar');
+  const labels = Array.isArray(node.props.labels) ? (node.props.labels as string[]) : [];
+  const values = Array.isArray(node.props.values) ? node.props.values.map((v) => Number(v)) : [];
+  const maxVal = Math.max(...values, 1);
+  const chartH = 80;
+
+  if (type === 'pie') {
+    return (
+      <div className="p-4 border border-neutral-200 rounded-lg">
+        <div className="text-sm font-medium text-neutral-700 mb-3">{title}</div>
+        <div className="flex items-center gap-4">
+          <svg width="80" height="80" viewBox="0 0 80 80">
+            {values.reduce((acc, val, i) => {
+              const total = values.reduce((a, b) => a + b, 0) || 1;
+              const pct = val / total;
+              const prev = acc.prevAngle;
+              const startX = 40 + 36 * Math.cos(prev);
+              const startY = 40 + 36 * Math.sin(prev);
+              const endAngle = prev + pct * 2 * Math.PI;
+              const endX = 40 + 36 * Math.cos(endAngle);
+              const endY = 40 + 36 * Math.sin(endAngle);
+              const large = pct > 0.5 ? 1 : 0;
+              const colors = ['#0ea5e9', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'];
+              acc.paths.push(
+                <path
+                  key={i}
+                  d={`M40 40 L${startX} ${startY} A36 36 0 ${large} 1 ${endX} ${endY} Z`}
+                  fill={colors[i % colors.length]}
+                />
+              );
+              acc.prevAngle = endAngle;
+              return acc;
+            }, { paths: [] as React.ReactNode[], prevAngle: -Math.PI / 2 }).paths}
+          </svg>
+          <div className="space-y-1">
+            {labels.map((l, i) => (
+              <div key={i} className="flex items-center gap-1.5 text-xs text-neutral-600">
+                <div className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: ['#0ea5e9','#8b5cf6','#10b981','#f59e0b','#ef4444'][i % 5] }} />
+                {String(l)}: {values[i] ?? 0}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 border border-neutral-200 rounded-lg">
+      <div className="text-sm font-medium text-neutral-700 mb-3">{title}</div>
+      <svg width="100%" height={chartH + 20} viewBox={`0 0 ${Math.max(labels.length * 40, 120)} ${chartH + 20}`} preserveAspectRatio="xMidYMid meet">
+        {type === 'line' ? (
+          <polyline
+            fill="none"
+            stroke="#0ea5e9"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            points={labels.map((_, i) => {
+              const x = i * 40 + 20;
+              const y = chartH - (values[i] ?? 0) / maxVal * (chartH - 10);
+              return `${x},${y}`;
+            }).join(' ')}
+          />
+        ) : (
+          labels.map((_, i) => {
+            const barH = ((values[i] ?? 0) / maxVal) * (chartH - 10);
+            const x = i * 40 + 10;
+            return (
+              <rect key={i} x={x} y={chartH - barH} width="24" height={barH} rx="2" fill="#0ea5e9" />
+            );
+          })
+        )}
+        {labels.map((l, i) => (
+          <text key={i} x={i * 40 + 22} y={chartH + 14} textAnchor="middle" fontSize="9" fill="#9ca3af">
+            {String(l)}
+          </text>
+        ))}
+      </svg>
+    </div>
+  );
+}
 
 function AccordionRenderer({
   node,
@@ -712,9 +1235,11 @@ export function ShadcnBlockRenderer({
   nodeKey: NodeKey;
   onUpdate: TreeUpdateFn;
 }) {
+  // Ensure old nodes without bindings field are normalised (handles data saved before bindings was added)
+  const normalised: VisualNode = tree.bindings ? tree : { ...tree, bindings: {} };
   return (
     <div className="py-2">
-      <VNode node={tree} nodeKey={nodeKey} onUpdate={onUpdate} />
+      <VNode node={normalised} nodeKey={nodeKey} onUpdate={onUpdate} />
     </div>
   );
 }
