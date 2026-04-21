@@ -38,11 +38,12 @@ import {
   Search,
   Eye,
   Sparkles,
-  Send
+  Send,
+  ChevronDown,
+  X
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import { signOutAction } from '@/actions/auth';
 import { editorTheme } from '@/lib/editor/theme';
 import { CATEGORY_META } from '@/lib/block-presets';
 import {
@@ -142,24 +143,19 @@ export function PageEditor({
     editorState: initialEditorState
   };
 
-  async function save() {
+  async function save(publishedOverride?: boolean) {
     const editor = editorRef.current;
-    if (!editor) {
-      setError('Editor not ready');
-      return;
-    }
+    if (!editor) { setError('Editor not ready'); return; }
+    const pub = publishedOverride !== undefined ? publishedOverride : published;
+    if (publishedOverride !== undefined) setPublished(publishedOverride);
     setSaving(true);
     setError(null);
     try {
       const treeJson = editor.getEditorState().toJSON();
-      const payload = { title, slug, tree: treeJson, published };
+      const payload = { title, slug, tree: treeJson, published: pub };
       const res = await fetch(
         mode === 'create' ? '/api/pages' : `/api/pages/${initial.id}`,
-        {
-          method: mode === 'create' ? 'POST' : 'PATCH',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(payload)
-        }
+        { method: mode === 'create' ? 'POST' : 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) }
       );
       if (!res.ok) throw new Error(JSON.stringify((await res.json()).error));
       const data = await res.json();
@@ -214,25 +210,26 @@ export function PageEditor({
           <ViewportSwitch viewport={viewport} onChange={setViewport} />
           <span className="text-neutral-400 mono hidden xl:inline">{VP_LABELS[viewport]}</span>
           <span className="w-px h-5 bg-neutral-200" />
-          {slug && mode === 'edit' && (
+
+          {/* Preview */}
+          {slug ? (
             <a
               href={published ? `/pages/${slug}` : `/pages/${slug}?preview=1`}
               target="_blank"
               rel="noreferrer"
-              className="px-2.5 py-1 border border-neutral-200 rounded-md hover:bg-neutral-50 flex items-center gap-1.5"
-              title={published ? 'Open live page' : 'Draft preview — only visible while signed in'}
+              className="px-2.5 py-1 border border-neutral-200 rounded-md hover:bg-neutral-50 flex items-center gap-1.5 text-neutral-600"
             >
               <Eye className="h-3.5 w-3.5" />
-              {published ? 'View live' : 'Preview draft'}
+              Preview
             </a>
+          ) : (
+            <span className="px-2.5 py-1 border border-neutral-200 rounded-md text-neutral-300 flex items-center gap-1.5 cursor-not-allowed">
+              <Eye className="h-3.5 w-3.5" />
+              Preview
+            </span>
           )}
-          <button
-            type="button"
-            onClick={() => setPublished(!published)}
-            className="px-2.5 py-1 border border-neutral-200 rounded-md hover:bg-neutral-50 flex items-center gap-1.5"
-          >
-            {published ? 'Unpublish' : 'Mark published'}
-          </button>
+
+          {/* Ask */}
           <button
             type="button"
             className="px-2.5 py-1 bg-gradient-to-br from-accent to-purple-500 text-white rounded-md flex items-center gap-1.5"
@@ -241,31 +238,26 @@ export function PageEditor({
             <Sparkles className="h-3.5 w-3.5" />
             Ask
           </button>
-          <button
-            type="button"
-            onClick={save}
-            disabled={saving || !title || !slug}
-            className="px-2.5 py-1 bg-ink-950 text-paper rounded-md disabled:opacity-50 flex items-center gap-1.5"
+
+          {/* Save split button */}
+          <SaveButton
+            saving={saving}
+            disabled={!title || !slug}
+            mode={mode}
+            onSave={() => save()}
+            onPublish={() => save(true)}
+            onUnpublish={() => save(false)}
+            onDelete={mode === 'edit' ? destroy : undefined}
+          />
+
+          {/* Close */}
+          <Link
+            href="/pages"
+            className="p-1.5 text-neutral-400 hover:text-neutral-700 rounded hover:bg-neutral-100 transition-colors"
+            title="Close editor"
           >
-            <Send className="h-3.5 w-3.5" />
-            {saving ? 'Saving…' : mode === 'create' ? 'Create' : 'Publish'}
-          </button>
-          {mode === 'edit' && (
-            <button
-              type="button"
-              onClick={destroy}
-              className="px-2 py-1 text-neutral-400 hover:text-danger"
-              title="Delete"
-            >
-              ✕
-            </button>
-          )}
-          <span className="w-px h-5 bg-neutral-200" />
-          <form action={signOutAction}>
-            <button type="submit" className="text-[11px] text-neutral-500 hover:text-neutral-900">
-              Sign out
-            </button>
-          </form>
+            <X className="h-3.5 w-3.5" />
+          </Link>
         </div>
       </header>
 
@@ -354,6 +346,83 @@ export function PageEditor({
         </CollectionsProvider>
       </LexicalComposer>
     </section>
+  );
+}
+
+function SaveButton({
+  saving, disabled, mode, onSave, onPublish, onUnpublish, onDelete
+}: {
+  saving: boolean;
+  disabled: boolean;
+  mode: 'create' | 'edit';
+  onSave: () => void;
+  onPublish: () => void;
+  onUnpublish: () => void;
+  onDelete?: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative flex items-stretch">
+      <button
+        type="button"
+        onClick={onSave}
+        disabled={saving || disabled}
+        className="px-3 py-1 bg-ink-950 text-paper rounded-l-md disabled:opacity-50 flex items-center gap-1.5 border-r border-white/20"
+      >
+        <Send className="h-3.5 w-3.5" />
+        {saving ? 'Saving…' : mode === 'create' ? 'Create' : 'Save'}
+      </button>
+      <button
+        type="button"
+        onClick={() => setOpen((p) => !p)}
+        disabled={saving}
+        className="px-1.5 py-1 bg-ink-950 text-paper rounded-r-md disabled:opacity-50 hover:bg-ink-800 transition-colors"
+        aria-label="More save options"
+      >
+        <ChevronDown className="h-3.5 w-3.5" />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-neutral-200 rounded-lg shadow-lg z-50 py-1 text-[12px]">
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onPublish(); }}
+            className="w-full text-left px-3 py-1.5 hover:bg-neutral-50 text-neutral-700"
+          >
+            Publish
+          </button>
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onUnpublish(); }}
+            className="w-full text-left px-3 py-1.5 hover:bg-neutral-50 text-neutral-700"
+          >
+            Save as draft
+          </button>
+          {onDelete && (
+            <>
+              <div className="my-1 border-t border-neutral-100" />
+              <button
+                type="button"
+                onClick={() => { setOpen(false); onDelete(); }}
+                className="w-full text-left px-3 py-1.5 hover:bg-danger/5 text-danger"
+              >
+                Delete page
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
