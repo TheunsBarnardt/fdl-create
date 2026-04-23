@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { parseCollectionSchema, buildRecordValidator } from '@/lib/schema-types';
 import { withApi } from '@/lib/with-api';
+import { invalidatePagesFor } from '@/lib/publish';
 
 type P = { params: { name: string; id: string } };
 
@@ -27,10 +28,12 @@ export const PATCH = withApi<P>('write:records', async (req, { params }) => {
     where: { id: params.id },
     data: { data: JSON.stringify(parsed.data) }
   });
+  invalidatePagesFor(params.name, params.id).catch(() => {});
   return NextResponse.json({ id: params.id });
 });
 
 export const DELETE = withApi<P>('write:records', async (_req, { params }) => {
   await prisma.record.delete({ where: { id: params.id } });
+  invalidatePagesFor(params.name, params.id).catch(() => {});
   return NextResponse.json({ ok: true });
 });

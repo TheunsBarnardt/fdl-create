@@ -98,10 +98,27 @@ model Page {
   params            String?  // JSON: string[] — e.g. ["id"] for /customers/[id]
   defaultCollection String?  // Collection.name — block placements on this page must bind to this or a related collection
   seo               String?  // JSON: { metaTitle, metaDescription, ogTitle, ogDescription, ogImage, canonicalUrl, noIndex }
+  renderMode        String   @default("dynamic") // 'dynamic' | 'static' — static pages are pre-rendered and invalidated via the dep graph
+  lastBuiltAt       DateTime? // populated by the publish pass for static pages
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  navItems  NavItem[]
+  navItems     NavItem[]
+  dependencies PageDependency[]
+}
+
+// Populated by the publish pass for static pages.
+// recordId = null means "any row in this collection" (covers query-list blocks).
+model PageDependency {
+  id         String   @id @default(cuid())
+  pageId     String
+  collection String
+  recordId   String?
+  createdAt  DateTime @default(now())
+
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  @@index([pageId])
+  @@index([collection, recordId])
 }
 
 model CustomBlock {

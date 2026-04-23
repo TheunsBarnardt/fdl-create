@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { withApi } from '@/lib/with-api';
+import { runPublishPass } from '@/lib/publish';
 
 const UpdatePage = z.object({
   title: z.string().optional(),
@@ -12,6 +13,7 @@ const UpdatePage = z.object({
   params: z.string().nullable().optional(),
   defaultCollection: z.string().nullable().optional(),
   seo: z.any().optional(),
+  renderMode: z.enum(['dynamic', 'static']).optional(),
 });
 
 type P = { params: { id: string } };
@@ -41,6 +43,7 @@ export const PATCH = withApi<P>('write:pages', async (req, { params }) => {
       ...('themeId' in body.data && { themeId: body.data.themeId ?? null }),
       ...('params' in body.data && { params: body.data.params ?? null }),
       ...('seo' in body.data && { seo: body.data.seo ? JSON.stringify(body.data.seo) : null }),
+      ...(body.data.renderMode !== undefined && { renderMode: body.data.renderMode }),
     }
   });
   if ('defaultCollection' in body.data) {
@@ -49,6 +52,12 @@ export const PATCH = withApi<P>('write:pages', async (req, { params }) => {
       body.data.defaultCollection ?? null,
       params.id
     );
+  }
+  // Run publish pass for static + published pages to refresh the dependency set
+  // and stamp lastBuiltAt. Safe to skip otherwise.
+  const after = await prisma.page.findUnique({ where: { id: params.id }, select: { published: true, renderMode: true } });
+  if (after?.published && after.renderMode === 'static') {
+    try { await runPublishPass(params.id); } catch (e) { console.warn('[publish] failed', e); }
   }
   return NextResponse.json({ id: params.id });
 });

@@ -45,6 +45,8 @@ export default async function EditPagePage({ params }: { params: { id: string } 
         params: page.params,
         defaultCollection: page.defaultCollection ?? null,
         seo: page.seo ? JSON.parse(page.seo) : null,
+        renderMode: (page.renderMode as 'dynamic' | 'static') ?? 'dynamic',
+        lastBuiltAt: page.lastBuiltAt ? new Date(page.lastBuiltAt).toISOString() : null,
       }}
     />
   );

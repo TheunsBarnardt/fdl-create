@@ -130,7 +130,7 @@ export function PageEditor({
   themes = [],
   mode
 }: {
-  initial: { id?: string; slug: string; title: string; tree: any; published: boolean; themeId?: string | null; params?: string | null; defaultCollection?: string | null; seo?: SeoData | null };
+  initial: { id?: string; slug: string; title: string; tree: any; published: boolean; themeId?: string | null; params?: string | null; defaultCollection?: string | null; seo?: SeoData | null; renderMode?: 'dynamic' | 'static'; lastBuiltAt?: string | null };
   collections: Array<{ name: string; label: string }>;
   collectionFieldsByName: Record<string, string[]>;
   relationsByCollection?: Record<string, RelationRef[]>;
@@ -147,6 +147,7 @@ export function PageEditor({
   const [pageParams, setPageParams] = useState<string>(initial.params ?? '');
   const [defaultCollection, setDefaultCollection] = useState<string>(initial.defaultCollection ?? '');
   const [seo, setSeo] = useState<SeoData>(initial.seo ?? {});
+  const [renderMode, setRenderMode] = useState<'dynamic' | 'static'>(initial.renderMode ?? 'dynamic');
   const [rightTab, setRightTab] = useState<RightTab>('props');
 
   const activeThemeTokens = useMemo(() => {
@@ -223,6 +224,7 @@ export function PageEditor({
         params: pageParams || null,
         defaultCollection: defaultCollection || null,
         seo: Object.keys(seo).length > 0 ? seo : null,
+        renderMode,
       };
       const res = await fetch(
         mode === 'create' ? '/api/pages' : `/api/pages/${initial.id}`,
@@ -316,6 +318,22 @@ export function PageEditor({
                 <option key={c.name} value={c.name}>{c.label}</option>
               ))}
             </select>
+          </div>
+          <div className="flex items-center gap-1 text-xs text-neutral-500" title="Dynamic pages render per-request. Static pages are pre-rendered at publish time and invalidated via the dependency graph.">
+            <span className="text-neutral-400">Render:</span>
+            <select
+              value={renderMode}
+              onChange={(e) => setRenderMode(e.target.value as 'dynamic' | 'static')}
+              className="bg-transparent focus:outline-none text-neutral-600 text-xs border-none py-0"
+            >
+              <option value="dynamic">Dynamic</option>
+              <option value="static">Static</option>
+            </select>
+            {renderMode === 'static' && initial.lastBuiltAt && (
+              <span className="text-neutral-400 mono ml-1" title={`Last built ${new Date(initial.lastBuiltAt).toLocaleString()}`}>
+                · built {new Date(initial.lastBuiltAt).toLocaleDateString()}
+              </span>
+            )}
           </div>
         </div>
 
