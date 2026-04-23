@@ -24,6 +24,13 @@ const dataNav = [
   { href: '/data/backups', label: 'Backups', icon: BackupsIcon }
 ];
 
+const repoNav = [
+  { href: '/repo/changes', label: 'Changes', icon: RepoChangesIcon },
+  { href: '/repo/history', label: 'History', icon: RepoHistoryIcon },
+  { href: '/repo/branches', label: 'Branches', icon: RepoBranchesIcon },
+  { href: '/repo/pull-requests', label: 'Pull Requests', icon: RepoPRIcon },
+];
+
 const runNav = [
   { href: '/logs', label: 'Logs', icon: LogsIcon },
   { href: '/analytics', label: 'Analytics', icon: AnalyticsIcon },
@@ -106,6 +113,7 @@ export function Sidebar({ role = 'viewer' }: { role?: Role }) {
       <nav className="flex-1 py-3 px-2 overflow-y-auto scrollbar text-sm">
         <NavGroup label="Build" items={buildNav} isActive={isActive} defaultOpen={hasActive(buildNav)} />
         <NavGroup label="Data"  items={dataNav}  isActive={isActive} defaultOpen={hasActive(dataNav)} />
+        <NavGroup label="Repo"  items={repoNav}  isActive={isActive} defaultOpen={hasActive(repoNav)} />
         <NavGroup label="Run"   items={runNav}   isActive={isActive} defaultOpen={hasActive(runNav)} />
         {role === 'admin' && (
           <NavGroup label="Admin" items={adminNav} isActive={isActive} defaultOpen={hasActive(adminNav)} />
@@ -315,6 +323,43 @@ function NavFooterIcon({ className }: { className?: string }) {
   return (
     <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M3 5h18M3 19h18M6 8v8M10 8v8M14 8v8M18 8v8" />
+    </svg>
+  );
+}
+function RepoChangesIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 3v6M12 15v6M3 12h6M15 12h6" />
+    </svg>
+  );
+}
+function RepoHistoryIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.16 2.3L3 8" />
+      <path d="M3 3v5h5" />
+      <path d="M12 7v5l4 2" />
+    </svg>
+  );
+}
+function RepoBranchesIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="6" cy="6" r="2" />
+      <circle cx="6" cy="18" r="2" />
+      <circle cx="18" cy="6" r="2" />
+      <path d="M6 8v8M8 6h4a4 4 0 0 1 4 4v2" />
+    </svg>
+  );
+}
+function RepoPRIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="6" cy="6" r="2" />
+      <circle cx="6" cy="18" r="2" />
+      <circle cx="18" cy="10" r="2" />
+      <path d="M6 8v8M18 12v5a1 1 0 0 1-1 1H9M14 7l4-3 4 3" />
     </svg>
   );
 }
