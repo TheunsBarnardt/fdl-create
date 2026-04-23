@@ -530,7 +530,7 @@ export function ThemeStudio({
             disabled={saving || !name}
             className="px-2.5 py-1 bg-neutral-900 text-white rounded-md flex items-center gap-1.5 disabled:opacity-60 shrink-0"
           >
-            <Save className="w-3 h-3" /> {saving ? 'Saving…' : selectedId ? 'Save theme' : 'Create theme'}
+            <Save className="w-3 h-3" /> {saving ? 'Saving…' : 'Save theme'}
           </button>
         </div>
       </header>
