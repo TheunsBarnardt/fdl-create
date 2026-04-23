@@ -104,7 +104,7 @@ const PALETTE: PaletteGroup[] = [
   }
 ];
 
-type LibraryBlock = { id: string; name: string; title: string; description: string; category: string; source: string };
+type LibraryBlock = { id: string; name: string; title: string; description: string; category: string; source: string; shape?: string | null; slotSchema?: Record<string, { type: string; format?: string; fallback?: string }> | null };
 type SideTab = 'blocks' | 'pages' | 'library';
 type RightTab = 'props' | 'seo';
 
@@ -118,18 +118,22 @@ type SeoData = {
   noIndex?: boolean;
 };
 
+type RelationRef = { name: string; fkField: string; cardinality: 'one-one' | 'one-many' | 'many-many' };
+
 export function PageEditor({
   initial,
   collections,
   collectionFieldsByName,
+  relationsByCollection = {},
   pages,
   libraryBlocks = [],
   themes = [],
   mode
 }: {
-  initial: { id?: string; slug: string; title: string; tree: any; published: boolean; themeId?: string | null; params?: string | null; seo?: SeoData | null };
+  initial: { id?: string; slug: string; title: string; tree: any; published: boolean; themeId?: string | null; params?: string | null; defaultCollection?: string | null; seo?: SeoData | null };
   collections: Array<{ name: string; label: string }>;
   collectionFieldsByName: Record<string, string[]>;
+  relationsByCollection?: Record<string, RelationRef[]>;
   pages: Array<{ id: string; title: string; slug: string }>;
   libraryBlocks?: LibraryBlock[];
   themes?: Array<{ id: string; name: string; tokens: string }>;
@@ -141,6 +145,7 @@ export function PageEditor({
   const [published, setPublished] = useState(initial.published);
   const [pageTheme, setPageTheme] = useState<string>(initial.themeId ?? '');
   const [pageParams, setPageParams] = useState<string>(initial.params ?? '');
+  const [defaultCollection, setDefaultCollection] = useState<string>(initial.defaultCollection ?? '');
   const [seo, setSeo] = useState<SeoData>(initial.seo ?? {});
   const [rightTab, setRightTab] = useState<RightTab>('props');
 
@@ -216,6 +221,7 @@ export function PageEditor({
         published: pub,
         themeId: pageTheme || null,
         params: pageParams || null,
+        defaultCollection: defaultCollection || null,
         seo: Object.keys(seo).length > 0 ? seo : null,
       };
       const res = await fetch(
@@ -295,6 +301,19 @@ export function PageEditor({
               className="mono bg-transparent focus:outline-none text-neutral-500 w-20"
               title="Comma-separated URL params (e.g. id,type)"
             />
+          </div>
+          <div className="flex items-center gap-1 text-xs text-neutral-500" title="Default collection — blocks on this page bind to this collection or one related to it">
+            <span className="text-neutral-400">Collection:</span>
+            <select
+              value={defaultCollection}
+              onChange={(e) => setDefaultCollection(e.target.value)}
+              className="bg-transparent focus:outline-none text-neutral-600 text-xs border-none py-0"
+            >
+              <option value="">— none (static) —</option>
+              {collections.map((c) => (
+                <option key={c.name} value={c.name}>{c.label}</option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -449,7 +468,11 @@ export function PageEditor({
                     selectedKey={selectedKey}
                     collections={collections}
                     collectionFieldsByName={collectionFieldsByName}
+                    relationsByCollection={relationsByCollection}
+                    defaultCollection={defaultCollection}
+                    pageParams={pageParams}
                     pages={pages}
+                    libraryBlocks={libraryBlocks}
                   />
                 ) : (
                   <SeoPanel seo={seo} onChange={setSeo} title={title} slug={slug} />
@@ -1072,12 +1095,20 @@ function BlockPropsPanel({
   selectedKey,
   collections,
   collectionFieldsByName,
+  relationsByCollection,
+  defaultCollection,
+  pageParams,
   pages,
+  libraryBlocks,
 }: {
   selectedKey: NodeKey | null;
   collections: Array<{ name: string; label: string }>;
   collectionFieldsByName: Record<string, string[]>;
+  relationsByCollection: Record<string, RelationRef[]>;
+  defaultCollection: string;
+  pageParams: string;
   pages: Array<{ id: string; title: string; slug: string }>;
+  libraryBlocks: LibraryBlock[];
 }) {
   const [editor] = useLexicalComposerContext();
   const update = useUpdateSelectedNode();
@@ -1133,48 +1164,21 @@ function BlockPropsPanel({
     );
   }
 
-  // Preset block — slot inputs.
+  // Preset block — placement-time binding UI.
   if (selected.type === 'fdl-preset-block') {
-    const source = (selected.props.source as string) ?? '';
-    const slots = (selected.props.slots as Record<string, string>) ?? {};
-    const slotNames = [...new Set([...source.matchAll(/\{\{(\w+)\}\}/g)].map((m) => m[1]))];
     return (
-      <>
-        <div className="p-4 border-b border-neutral-200 flex items-center justify-between">
-          <div>
-            <div className="text-[10px] uppercase tracking-wider text-neutral-400">Preset block</div>
-            <div className="text-sm font-semibold mono">{selected.props.presetId}</div>
-          </div>
-          <button
-            type="button"
-            onClick={() => remove(selected.key)}
-            className="text-[11px] text-neutral-400 hover:text-danger"
-            title="Delete block"
-          >
-            ✕
-          </button>
-        </div>
-        <div className="flex-1 overflow-auto scrollbar p-4 space-y-4 text-sm">
-          {slotNames.length === 0 ? (
-            <p className="text-[12px] text-neutral-400">Static block — no editable slots.</p>
-          ) : (
-            slotNames.map((name) => (
-              <Field key={name} label={name}>
-                <input
-                  value={slots[name] ?? ''}
-                  onChange={(e) =>
-                    update(selected.key, (n) =>
-                      (n as PresetBlockNode).setSlots({ ...slots, [name]: e.target.value })
-                    )
-                  }
-                  placeholder={`[${name}]`}
-                  className="w-full border border-neutral-200 rounded-md px-3 py-2 text-sm"
-                />
-              </Field>
-            ))
-          )}
-        </div>
-      </>
+      <PresetBlockInspector
+        selected={selected}
+        update={update}
+        remove={remove}
+        defaultCollection={defaultCollection}
+        pageParams={pageParams}
+        collections={collections}
+        collectionFieldsByName={collectionFieldsByName}
+        relationsByCollection={relationsByCollection}
+        libraryBlocks={libraryBlocks}
+        pages={pages}
+      />
     );
   }
 
@@ -2274,6 +2278,616 @@ function BindingEditor({
           ))}
         </select>
       )}
+    </div>
+  );
+}
+
+// Inspector for `fdl-preset-block` — bind a collection + slot map at placement time.
+type SlotLinkTarget =
+  | { type: 'page'; pageId: string; query?: string; hash?: string; newTab?: boolean }
+  | { type: 'record'; collection: string; recordId: string; pagePattern?: string; newTab?: boolean }
+  | { type: 'external'; url: string; newTab?: boolean }
+  | { type: 'anchor'; id: string };
+type SlotBinding =
+  | { kind: 'literal'; value: string }
+  | { kind: 'field'; template: string }
+  | { kind: 'link'; target: SlotLinkTarget };
+type PresetBindingMode = 'literal' | 'route' | 'related' | 'related-list' | 'query-list';
+type SlotTypeDef = { type: string; format?: string; fallback?: string };
+
+function PresetBlockInspector({
+  selected,
+  update,
+  remove,
+  defaultCollection,
+  pageParams,
+  collections,
+  collectionFieldsByName,
+  relationsByCollection,
+  libraryBlocks,
+  pages,
+}: {
+  selected: { key: NodeKey; type: string; props: Record<string, any> };
+  update: (key: NodeKey, fn: (n: LexicalNode) => void) => void;
+  remove: (key: NodeKey) => void;
+  defaultCollection: string;
+  pageParams: string;
+  collections: Array<{ name: string; label: string }>;
+  collectionFieldsByName: Record<string, string[]>;
+  relationsByCollection: Record<string, RelationRef[]>;
+  libraryBlocks: LibraryBlock[];
+  pages: Array<{ id: string; title: string; slug: string }>;
+}) {
+  const source: string = selected.props.source ?? '';
+  const presetId: string = selected.props.presetId ?? '';
+  const collection: string | null = selected.props.collection ?? null;
+  const bindingMode: PresetBindingMode = selected.props.bindingMode ?? 'literal';
+  const relatedFk: string | null = selected.props.relatedFk ?? null;
+  const slotMap: Record<string, SlotBinding> = selected.props.slotMap ?? {};
+  const libraryBlock = libraryBlocks.find((b) => b.id === presetId || b.name === presetId);
+  const slotSchema: Record<string, SlotTypeDef> = (libraryBlock?.slotSchema as any) ?? {};
+
+  // Slots detected from the row template (between {{#each rows}} … {{/each}}) or whole source.
+  const eachMatch = source.match(/\{\{#each\s+rows\}\}([\s\S]*?)\{\{\/each\}\}/);
+  const rowTemplate = eachMatch ? eachMatch[1] : source;
+  const isListMode = bindingMode === 'related-list' || bindingMode === 'query-list';
+  const scanText = isListMode ? rowTemplate : source;
+  const slotNames = [...new Set([...scanText.matchAll(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g)].map((m) => m[1]))];
+  const [slotSearch, setSlotSearch] = useState('');
+  const filteredSlotNames = slotSearch
+    ? slotNames.filter((s) => s.toLowerCase().includes(slotSearch.toLowerCase()))
+    : slotNames;
+
+  const params = pageParams.split(',').map((s) => s.trim()).filter(Boolean);
+  const hasIdParam = params.includes('id');
+  const hasDefault = !!defaultCollection;
+  const rels = hasDefault ? (relationsByCollection[defaultCollection] ?? []) : [];
+  const relByName = Object.fromEntries(rels.map((r) => [r.name, r]));
+
+  // Possible modes based on page context.
+  const modes: Array<{ value: PresetBindingMode; label: string; disabled: boolean; hint?: string }> = [
+    { value: 'literal', label: 'Literal', disabled: false, hint: 'Type slot values directly' },
+    { value: 'route', label: 'Route record', disabled: !(hasDefault && hasIdParam), hint: hasDefault && hasIdParam ? `${defaultCollection} where id = params.id` : 'Requires page with default collection + id param' },
+    { value: 'related', label: 'Related · one', disabled: rels.length === 0, hint: 'First matching related record' },
+    { value: 'related-list', label: 'Related · list', disabled: rels.length === 0, hint: 'All matching related records' },
+    { value: 'query-list', label: 'Query · list', disabled: !hasDefault, hint: hasDefault ? `List ${defaultCollection} records` : 'Requires page default collection' },
+  ];
+
+  const setMode = (next: PresetBindingMode) => {
+    update(selected.key, (n) => {
+      const node = n as PresetBlockNode;
+      node.setBindingMode(next);
+      if (next === 'literal') {
+        node.setCollection(null);
+        node.setRelatedFk(null);
+      } else if (next === 'route') {
+        node.setCollection(defaultCollection);
+        node.setRelatedFk(null);
+      } else if (next === 'query-list') {
+        node.setCollection(defaultCollection);
+        node.setRelatedFk(null);
+      } else if (next === 'related' || next === 'related-list') {
+        const first = rels[0];
+        if (first) {
+          node.setCollection(first.name);
+          node.setRelatedFk(first.fkField);
+        }
+      }
+    });
+  };
+
+  const setCollectionFor = (colName: string) => {
+    update(selected.key, (n) => {
+      const node = n as PresetBlockNode;
+      node.setCollection(colName);
+      if (bindingMode === 'related' || bindingMode === 'related-list') {
+        node.setRelatedFk(relByName[colName]?.fkField ?? null);
+      }
+    });
+  };
+
+  const setSlotBinding = (slot: string, b: SlotBinding) => {
+    update(selected.key, (n) => {
+      const node = n as PresetBlockNode;
+      node.setSlotMap({ ...slotMap, [slot]: b });
+    });
+  };
+
+  // Fields available for slot mapping. Prefer the block's explicit collection
+  // (when bound via route/related/query-list) — fall back to the page default
+  // so callers can pull fields even while the block is in literal mode.
+  const effectiveCollection = collection ?? (defaultCollection || null);
+  const fieldsForBound = effectiveCollection
+    ? ['id', ...(collectionFieldsByName[effectiveCollection] ?? []).filter((f) => f !== 'id')]
+    : [];
+
+  // Collection picker options depend on mode.
+  const pickerOptions: Array<{ name: string; label: string }> =
+    bindingMode === 'route' || bindingMode === 'query-list'
+      ? (hasDefault ? [{ name: defaultCollection, label: collections.find((c) => c.name === defaultCollection)?.label ?? defaultCollection }] : [])
+      : bindingMode === 'related' || bindingMode === 'related-list'
+      ? rels.map((r) => ({ name: r.name, label: collections.find((c) => c.name === r.name)?.label ?? r.name }))
+      : [];
+
+  return (
+    <>
+      <div className="p-4 border-b border-neutral-200 flex items-center justify-between">
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-neutral-400">Preset block</div>
+          <div className="text-sm font-semibold mono">{selected.props.presetId}</div>
+        </div>
+        <button
+          type="button"
+          onClick={() => remove(selected.key)}
+          className="text-[11px] text-neutral-400 hover:text-danger"
+          title="Delete block"
+        >
+          ✕
+        </button>
+      </div>
+      <div className="flex-1 overflow-auto scrollbar p-4 space-y-5 text-sm">
+        {/* Binding mode */}
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-neutral-400 mb-1.5">Binding</div>
+          <div className="grid grid-cols-1 gap-1">
+            {modes.map((m) => (
+              <button
+                key={m.value}
+                type="button"
+                onClick={() => !m.disabled && setMode(m.value)}
+                disabled={m.disabled}
+                className={cn(
+                  'text-left px-2.5 py-1.5 rounded border text-[12px] flex items-center justify-between gap-2',
+                  bindingMode === m.value
+                    ? 'bg-accent-soft border-accent text-accent'
+                    : m.disabled
+                    ? 'border-neutral-100 text-neutral-300 cursor-not-allowed'
+                    : 'border-neutral-200 hover:bg-neutral-50'
+                )}
+                title={m.hint}
+              >
+                <span>{m.label}</span>
+                {bindingMode === m.value && <span className="text-[10px]">●</span>}
+              </button>
+            ))}
+          </div>
+          {!hasDefault && (
+            <p className="text-[10px] text-neutral-400 mt-1.5">
+              Tip: set a default collection in the page header to unlock record binding.
+            </p>
+          )}
+        </div>
+
+        {/* Collection picker (only for non-literal modes) */}
+        {bindingMode !== 'literal' && (
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-neutral-400 mb-1.5">Collection</div>
+            <select
+              value={collection ?? ''}
+              onChange={(e) => setCollectionFor(e.target.value)}
+              className="w-full border border-neutral-200 rounded-md px-2.5 py-1.5 text-[12px] bg-white"
+            >
+              <option value="">— pick —</option>
+              {pickerOptions.map((c) => (
+                <option key={c.name} value={c.name}>{c.label}</option>
+              ))}
+            </select>
+            {(bindingMode === 'related' || bindingMode === 'related-list') && collection && (
+              <div className="text-[10px] text-neutral-500 mt-1">
+                Filtered by <code className="mono">{relByName[collection]?.fkField}</code> = current record id
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* List-mode selector */}
+        {bindingMode === 'query-list' && (
+          <ListSelectorEditor
+            selector={selected.props.listSelector ?? {}}
+            onChange={(next) => update(selected.key, (n) => (n as PresetBlockNode).setListSelector(next))}
+          />
+        )}
+
+        {/* Slot map */}
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-neutral-400 mb-1.5 flex items-center justify-between">
+            <span>Slots {isListMode && <span className="text-neutral-400 normal-case">· per row</span>}</span>
+            {slotNames.length > 0 && (
+              <span className="text-neutral-400 normal-case">{slotNames.length}</span>
+            )}
+          </div>
+          {slotNames.length > 3 && (
+            <input
+              value={slotSearch}
+              onChange={(e) => setSlotSearch(e.target.value)}
+              placeholder="Search slots…"
+              className="w-full border border-neutral-200 rounded-md px-2 py-1 text-[11px] mb-2"
+            />
+          )}
+          {slotNames.length === 0 ? (
+            <p className="text-[11px] text-neutral-400">No slots detected in template.</p>
+          ) : (
+            <div className="space-y-1.5">
+              {filteredSlotNames.map((slot) => {
+                const def = slotSchema[slot];
+                // Prefer field binding when a collection is reachable — saves a click.
+                const binding: SlotBinding = slotMap[slot] ?? (def?.type === 'link'
+                  ? { kind: 'link', target: { type: 'external', url: '' } }
+                  : effectiveCollection
+                    ? { kind: 'field', template: '' }
+                    : { kind: 'literal', value: '' });
+                const isConfigured = !!slotMap[slot];
+                return (
+                  <SlotMapRow
+                    key={slot}
+                    slot={slot}
+                    def={def}
+                    binding={binding}
+                    onChange={(b) => setSlotBinding(slot, b)}
+                    bindingMode={bindingMode}
+                    collection={effectiveCollection}
+                    fieldsForBound={fieldsForBound}
+                    pages={pages}
+                    initialExpanded={!isConfigured}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function FieldTemplateEditor({
+  fields,
+  template,
+  onChange,
+}: {
+  fields: string[];
+  template: string;
+  onChange: (next: string) => void;
+}) {
+  const [search, setSearch] = useState('');
+  const [open, setOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const caretRef = useRef<number>(template.length);
+
+  const filtered = search
+    ? fields.filter((f) => f.toLowerCase().includes(search.toLowerCase()))
+    : fields;
+
+  const insertField = (f: string) => {
+    const token = `{${f}}`;
+    const pos = caretRef.current;
+    const next = template.slice(0, pos) + token + template.slice(pos);
+    onChange(next);
+    caretRef.current = pos + token.length;
+    setSearch('');
+    // Restore focus + caret after React updates the input value.
+    requestAnimationFrame(() => {
+      const el = inputRef.current;
+      if (el) { el.focus(); el.setSelectionRange(caretRef.current, caretRef.current); }
+    });
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <input
+        ref={inputRef}
+        value={template}
+        onChange={(e) => { onChange(e.target.value); caretRef.current = e.target.selectionStart ?? e.target.value.length; }}
+        onKeyUp={(e) => { caretRef.current = (e.currentTarget.selectionStart ?? e.currentTarget.value.length); }}
+        onClick={(e) => { caretRef.current = (e.currentTarget.selectionStart ?? e.currentTarget.value.length); }}
+        placeholder="e.g. your full name is {name} {lastname}"
+        className="w-full border border-neutral-200 rounded-md px-2 py-1 text-[12px] mono bg-white"
+      />
+      <div className="relative">
+        <input
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          placeholder="Insert field…"
+          className="w-full border border-neutral-200 rounded-md px-2 py-1 text-[11px] bg-white"
+        />
+        {open && filtered.length > 0 && (
+          <div className="absolute z-10 mt-1 w-full max-h-48 overflow-auto bg-white border border-neutral-200 rounded-md shadow-sm">
+            {filtered.map((f) => (
+              <button
+                key={f}
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); insertField(f); }}
+                className="w-full text-left px-2 py-1 text-[12px] hover:bg-neutral-100 mono"
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SlotMapRow({
+  slot,
+  def,
+  binding,
+  onChange,
+  bindingMode,
+  collection,
+  fieldsForBound,
+  pages,
+  initialExpanded = false,
+}: {
+  slot: string;
+  def: SlotTypeDef | undefined;
+  binding: SlotBinding;
+  onChange: (b: SlotBinding) => void;
+  bindingMode: PresetBindingMode;
+  collection: string | null;
+  fieldsForBound: string[];
+  pages: Array<{ id: string; title: string; slug: string }>;
+  initialExpanded?: boolean;
+}) {
+  const slotType = def?.type ?? 'string';
+  const isLink = slotType === 'link';
+  const typeLabel = `${slotType}${def?.format ? ` · ${def.format}` : ''}`;
+
+  // For link slots: "Link target" mode controls which sub-editor shows.
+  // Users can still flip to `field` if they want to pull a pre-formed URL from a record.
+  const linkKind = binding.kind === 'link' ? binding.target.type : null;
+
+  // Short summary shown in the collapsed header so authors can scan bindings without opening each row.
+  const summary = (() => {
+    if (binding.kind === 'literal') return binding.value ? `"${binding.value}"` : 'empty';
+    if (binding.kind === 'field') {
+      return binding.template ? `field · ${binding.template}` : 'field · —';
+    }
+    if (binding.kind === 'link') {
+      const t = binding.target;
+      if (t.type === 'page')     return `page · ${pages.find((p) => p.id === t.pageId)?.slug ?? '—'}`;
+      if (t.type === 'record')   return `record · ${t.collection || '—'}/${t.recordId || '—'}`;
+      if (t.type === 'external') return `url · ${t.url || '—'}`;
+      if (t.type === 'anchor')   return `#${t.id || '—'}`;
+    }
+    return '—';
+  })();
+
+  const [expanded, setExpanded] = useState(initialExpanded);
+
+  return (
+    <div className="border border-neutral-200 rounded-md bg-neutral-50/40">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="w-full flex items-center justify-between gap-2 px-2 py-1.5 text-left"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <code className="mono text-[11px] px-1.5 py-0.5 rounded bg-accent/10 text-accent shrink-0">
+            {'{' + slot + '}'}
+          </code>
+          <span className="text-[10px] text-neutral-500 truncate">
+            {typeLabel}{' · '}{summary}
+          </span>
+        </div>
+        <span className="text-neutral-400 text-[11px] shrink-0">{expanded ? '▾' : '▸'}</span>
+      </button>
+
+      {expanded && (
+      <div className="px-2 pb-2 border-t border-neutral-200 pt-2">
+
+      {/* Per-slot source switcher: Value | Field (| Link types). Works independent of block-level binding mode. */}
+      <div className="inline-flex items-center bg-white border border-neutral-200 rounded-md p-0.5 text-[11px] mb-2 flex-wrap">
+        <button
+          type="button"
+          onClick={() => onChange({ kind: 'literal', value: binding.kind === 'literal' ? binding.value : '' })}
+          className={cn(
+            'px-2 py-0.5 rounded',
+            binding.kind === 'literal' ? 'bg-accent text-white' : 'text-neutral-500 hover:text-neutral-800'
+          )}
+        >
+          Value
+        </button>
+        <button
+          type="button"
+          onClick={() => onChange({ kind: 'field', template: binding.kind === 'field' ? binding.template : '' })}
+          className={cn(
+            'px-2 py-0.5 rounded',
+            binding.kind === 'field' ? 'bg-accent text-white' : 'text-neutral-500 hover:text-neutral-800'
+          )}
+        >
+          Field
+        </button>
+        {isLink && (
+          <>
+            <button
+              type="button"
+              onClick={() => onChange({ kind: 'link', target: { type: 'page', pageId: pages[0]?.id ?? '' } })}
+              className={cn(
+                'px-2 py-0.5 rounded',
+                linkKind === 'page' ? 'bg-accent text-white' : 'text-neutral-500 hover:text-neutral-800'
+              )}
+            >Page</button>
+            <button
+              type="button"
+              onClick={() => onChange({ kind: 'link', target: { type: 'record', collection: collection ?? '', recordId: '' } })}
+              className={cn(
+                'px-2 py-0.5 rounded',
+                linkKind === 'record' ? 'bg-accent text-white' : 'text-neutral-500 hover:text-neutral-800'
+              )}
+            >Record</button>
+            <button
+              type="button"
+              onClick={() => onChange({ kind: 'link', target: { type: 'external', url: '' } })}
+              className={cn(
+                'px-2 py-0.5 rounded',
+                linkKind === 'external' ? 'bg-accent text-white' : 'text-neutral-500 hover:text-neutral-800'
+              )}
+            >URL</button>
+            <button
+              type="button"
+              onClick={() => onChange({ kind: 'link', target: { type: 'anchor', id: '' } })}
+              className={cn(
+                'px-2 py-0.5 rounded',
+                linkKind === 'anchor' ? 'bg-accent text-white' : 'text-neutral-500 hover:text-neutral-800'
+              )}
+            >Anchor</button>
+          </>
+        )}
+      </div>
+
+      {binding.kind === 'literal' && (
+        <input
+          type={slotType === 'number' ? 'number' : slotType === 'date' ? 'date' : 'text'}
+          value={binding.value}
+          onChange={(e) => onChange({ kind: 'literal', value: e.target.value })}
+          placeholder={`[${slot}]`}
+          className="w-full border border-neutral-200 rounded-md px-2 py-1 text-[12px]"
+        />
+      )}
+
+      {binding.kind === 'field' && (
+        fieldsForBound.length === 0 ? (
+          <div className="text-[11px] text-neutral-500 border border-dashed border-neutral-200 rounded-md px-2 py-1.5">
+            No collection on this page — set a default collection (page header) or change the block's binding mode.
+          </div>
+        ) : (
+          <FieldTemplateEditor
+            fields={fieldsForBound}
+            template={binding.template}
+            onChange={(next) => onChange({ kind: 'field', template: next })}
+          />
+        )
+      )}
+
+      {isLink && binding.kind === 'link' ? (
+        <>
+          {binding.kind === 'link' && binding.target.type === 'page' && (() => {
+            const t = binding.target;
+            return (
+              <div className="space-y-1.5">
+                <select
+                  value={t.pageId}
+                  onChange={(e) => onChange({ kind: 'link', target: { type: 'page', pageId: e.target.value, query: t.query, hash: t.hash, newTab: t.newTab } })}
+                  className="w-full border border-neutral-200 rounded-md px-2 py-1 text-[12px] bg-white"
+                >
+                  <option value="">— pick a page —</option>
+                  {pages.map((p) => (
+                    <option key={p.id} value={p.id}>{p.title} · /{p.slug}</option>
+                  ))}
+                </select>
+                <label className="flex items-center gap-1.5 text-[11px] text-neutral-500">
+                  <input
+                    type="checkbox"
+                    checked={!!t.newTab}
+                    onChange={(e) => onChange({ kind: 'link', target: { type: 'page', pageId: t.pageId, query: t.query, hash: t.hash, newTab: e.target.checked } })}
+                  />
+                  Open in new tab
+                </label>
+              </div>
+            );
+          })()}
+
+          {binding.kind === 'link' && binding.target.type === 'record' && (() => {
+            const t = binding.target;
+            return (
+              <div className="space-y-1.5">
+                <input
+                  value={t.collection}
+                  onChange={(e) => onChange({ kind: 'link', target: { type: 'record', collection: e.target.value, recordId: t.recordId, pagePattern: t.pagePattern, newTab: t.newTab } })}
+                  placeholder="collection name"
+                  className="w-full border border-neutral-200 rounded-md px-2 py-1 text-[12px] mono"
+                />
+                <input
+                  value={t.recordId}
+                  onChange={(e) => onChange({ kind: 'link', target: { type: 'record', collection: t.collection, recordId: e.target.value, pagePattern: t.pagePattern, newTab: t.newTab } })}
+                  placeholder="record id"
+                  className="w-full border border-neutral-200 rounded-md px-2 py-1 text-[12px] mono"
+                />
+                <input
+                  value={t.pagePattern ?? ''}
+                  onChange={(e) => onChange({ kind: 'link', target: { type: 'record', collection: t.collection, recordId: t.recordId, pagePattern: e.target.value || undefined, newTab: t.newTab } })}
+                  placeholder="/{collection}/{id}"
+                  className="w-full border border-neutral-200 rounded-md px-2 py-1 text-[12px] mono"
+                />
+              </div>
+            );
+          })()}
+
+          {binding.kind === 'link' && binding.target.type === 'external' && (() => {
+            const t = binding.target;
+            return (
+              <div className="space-y-1.5">
+                <input
+                  value={t.url}
+                  onChange={(e) => onChange({ kind: 'link', target: { type: 'external', url: e.target.value, newTab: t.newTab } })}
+                  placeholder="https://example.com"
+                  className="w-full border border-neutral-200 rounded-md px-2 py-1 text-[12px]"
+                />
+                <label className="flex items-center gap-1.5 text-[11px] text-neutral-500">
+                  <input
+                    type="checkbox"
+                    checked={!!t.newTab}
+                    onChange={(e) => onChange({ kind: 'link', target: { type: 'external', url: t.url, newTab: e.target.checked } })}
+                  />
+                  Open in new tab
+                </label>
+              </div>
+            );
+          })()}
+
+          {binding.kind === 'link' && binding.target.type === 'anchor' && (() => {
+            const t = binding.target;
+            return (
+              <input
+                value={t.id}
+                onChange={(e) => onChange({ kind: 'link', target: { type: 'anchor', id: e.target.value } })}
+                placeholder="section-id"
+                className="w-full border border-neutral-200 rounded-md px-2 py-1 text-[12px] mono"
+              />
+            );
+          })()}
+
+        </>
+      ) : null}
+      </div>
+      )}
+    </div>
+  );
+}
+
+function ListSelectorEditor({
+  selector,
+  onChange,
+}: {
+  selector: { filter?: string; sort?: string; limit?: number };
+  onChange: (next: { filter?: string; sort?: string; limit?: number }) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="text-[10px] uppercase tracking-wider text-neutral-400">List selector</div>
+      <input
+        value={selector.filter ?? ''}
+        onChange={(e) => onChange({ ...selector, filter: e.target.value || undefined })}
+        placeholder="filter (e.g. status=published)"
+        className="w-full border border-neutral-200 rounded-md px-2.5 py-1.5 text-[12px]"
+      />
+      <input
+        value={selector.sort ?? ''}
+        onChange={(e) => onChange({ ...selector, sort: e.target.value || undefined })}
+        placeholder="sort (e.g. createdAt:desc)"
+        className="w-full border border-neutral-200 rounded-md px-2.5 py-1.5 text-[12px]"
+      />
+      <input
+        type="number"
+        value={selector.limit ?? ''}
+        onChange={(e) => onChange({ ...selector, limit: e.target.value ? Number(e.target.value) : undefined })}
+        placeholder="limit"
+        className="w-full border border-neutral-200 rounded-md px-2.5 py-1.5 text-[12px]"
+      />
     </div>
   );
 }

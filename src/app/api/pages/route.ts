@@ -10,6 +10,7 @@ const CreatePage = z.object({
   published: z.boolean().optional(),
   themeId: z.string().nullable().optional(),
   params: z.string().nullable().optional(),
+  defaultCollection: z.string().nullable().optional(),
   seo: z.any().optional(),
 });
 
@@ -35,5 +36,12 @@ export const POST = withApi('write:pages', async (req) => {
       seo: body.data.seo ? JSON.stringify(body.data.seo) : null,
     }
   });
+  if (body.data.defaultCollection !== undefined) {
+    await prisma.$executeRawUnsafe(
+      'UPDATE "Page" SET defaultCollection = ? WHERE id = ?',
+      body.data.defaultCollection,
+      created.id
+    );
+  }
   return NextResponse.json({ id: created.id }, { status: 201 });
 });

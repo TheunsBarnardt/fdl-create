@@ -10,15 +10,22 @@ const UpdatePage = z.object({
   published: z.boolean().optional(),
   themeId: z.string().nullable().optional(),
   params: z.string().nullable().optional(),
+  defaultCollection: z.string().nullable().optional(),
   seo: z.any().optional(),
 });
 
 type P = { params: { id: string } };
 
 export const GET = withApi<P>('read:pages', async (_req, { params }) => {
-  const p = await prisma.page.findUnique({ where: { id: params.id } });
+  const rows = await prisma.$queryRaw<any[]>`SELECT * FROM "Page" WHERE id = ${params.id} LIMIT 1`;
+  const p = rows[0];
   if (!p) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  return NextResponse.json({ ...p, tree: JSON.parse(p.tree), seo: p.seo ? JSON.parse(p.seo) : null });
+  return NextResponse.json({
+    ...p,
+    tree: JSON.parse(p.tree),
+    seo: p.seo ? JSON.parse(p.seo) : null,
+    defaultCollection: p.defaultCollection ?? null,
+  });
 });
 
 export const PATCH = withApi<P>('write:pages', async (req, { params }) => {
@@ -36,6 +43,13 @@ export const PATCH = withApi<P>('write:pages', async (req, { params }) => {
       ...('seo' in body.data && { seo: body.data.seo ? JSON.stringify(body.data.seo) : null }),
     }
   });
+  if ('defaultCollection' in body.data) {
+    await prisma.$executeRawUnsafe(
+      'UPDATE "Page" SET defaultCollection = ? WHERE id = ?',
+      body.data.defaultCollection ?? null,
+      params.id
+    );
+  }
   return NextResponse.json({ id: params.id });
 });
 

@@ -41,7 +41,10 @@ export default async function PublicPage({
 
   if (!page.published && !canPreview) notFound();
 
-  const body = await renderPageTree(page.tree);
+  const body = await renderPageTree(page.tree, {
+    defaultCollection: (page as any).defaultCollection ?? null,
+    routeParams: {},
+  });
 
   return (
     <main className="min-h-screen bg-paper">

@@ -405,45 +405,197 @@ function jsxToHtml(src: string): string {
     );
 }
 
+export type SlotLinkTarget =
+  | { type: 'page'; pageId: string; query?: string; hash?: string; newTab?: boolean }
+  | { type: 'record'; collection: string; recordId: string; pagePattern?: string; newTab?: boolean }
+  | { type: 'external'; url: string; newTab?: boolean }
+  | { type: 'anchor'; id: string };
+
+export type SlotBinding =
+  | { kind: 'literal'; value: string }
+  // `template` is a string mixing literal text and `{fieldName}` tokens.
+  // Example: "your full name is {name} {lastname}". Single-field is "{name}".
+  | { kind: 'field'; template: string }
+  | { kind: 'link'; target: SlotLinkTarget };
+
+export type PresetBindingMode = 'literal' | 'route' | 'related' | 'related-list' | 'query-list';
+
+export type PresetListSelector = { filter?: string; sort?: string; limit?: number };
+
 export type SerializedPresetBlockNode = Spread<
-  { type: 'fdl-preset-block'; version: 1; presetId: string; source: string; slots: Record<string, string>; label?: string },
+  {
+    type: 'fdl-preset-block';
+    version: 2;
+    presetId: string;
+    source: string;
+    label?: string;
+    // New placement-time binding (all optional — unset means literal/unbound).
+    collection?: string | null;
+    bindingMode?: PresetBindingMode;
+    relatedFk?: string | null;
+    listSelector?: PresetListSelector;
+    slotMap?: Record<string, SlotBinding>;
+    // v1 back-compat — literal slot values. Kept as a read-path alias for
+    // older serialized trees; new writes use slotMap above.
+    slots?: Record<string, string>;
+  },
   SerializedLexicalNode
 >;
 
 export class PresetBlockNode extends DecoratorNode<React.JSX.Element> {
   __presetId: string;
   __source: string;
-  __slots: Record<string, string>;
   __label: string;
+  __collection: string | null;
+  __bindingMode: PresetBindingMode;
+  __relatedFk: string | null;
+  __listSelector: PresetListSelector;
+  __slotMap: Record<string, SlotBinding>;
 
   static getType() { return 'fdl-preset-block'; }
-  static clone(n: PresetBlockNode) { return new PresetBlockNode(n.__presetId, n.__source, n.__slots, n.__label, n.__key); }
+  static clone(n: PresetBlockNode) {
+    return new PresetBlockNode(
+      n.__presetId, n.__source, n.__label,
+      { collection: n.__collection, bindingMode: n.__bindingMode, relatedFk: n.__relatedFk, listSelector: n.__listSelector, slotMap: n.__slotMap },
+      n.__key
+    );
+  }
 
-  constructor(presetId: string, source: string, slots: Record<string, string> = {}, label = '', key?: NodeKey) {
+  constructor(
+    presetId: string,
+    source: string,
+    label = '',
+    bind: {
+      collection?: string | null;
+      bindingMode?: PresetBindingMode;
+      relatedFk?: string | null;
+      listSelector?: PresetListSelector;
+      slotMap?: Record<string, SlotBinding>;
+    } = {},
+    key?: NodeKey
+  ) {
     super(key);
     this.__presetId = presetId;
     this.__source = source;
-    this.__slots = slots;
     this.__label = label;
+    this.__collection = bind.collection ?? null;
+    this.__bindingMode = bind.bindingMode ?? 'literal';
+    this.__relatedFk = bind.relatedFk ?? null;
+    this.__listSelector = bind.listSelector ?? {};
+    this.__slotMap = bind.slotMap ?? {};
   }
   createDOM() { return document.createElement('div'); }
   updateDOM() { return false; }
+
   getPresetId() { return this.__presetId; }
   getSource() { return this.__source; }
-  getSlots() { return this.__slots; }
   getLabel() { return this.__label; }
-  setSlots(v: Record<string, string>) { this.getWritable().__slots = v; }
-  setLabel(v: string) { this.getWritable().__label = v; }
+  getCollection() { return this.__collection; }
+  getBindingMode() { return this.__bindingMode; }
+  getRelatedFk() { return this.__relatedFk; }
+  getListSelector() { return this.__listSelector; }
+  getSlotMap() { return this.__slotMap; }
 
-  static importJSON(j: SerializedPresetBlockNode) {
-    return new PresetBlockNode(j.presetId, j.source, j.slots ?? {}, j.label ?? '');
+  setLabel(v: string) { this.getWritable().__label = v; }
+  setCollection(v: string | null) { this.getWritable().__collection = v; }
+  setBindingMode(v: PresetBindingMode) { this.getWritable().__bindingMode = v; }
+  setRelatedFk(v: string | null) { this.getWritable().__relatedFk = v; }
+  setListSelector(v: PresetListSelector) { this.getWritable().__listSelector = v; }
+  setSlotMap(v: Record<string, SlotBinding>) { this.getWritable().__slotMap = v; }
+
+  // Back-compat: older inspector code called setSlots with literal values.
+  setSlots(v: Record<string, string>) {
+    const next: Record<string, SlotBinding> = { ...this.__slotMap };
+    for (const [k, val] of Object.entries(v)) next[k] = { kind: 'literal', value: val };
+    this.getWritable().__slotMap = next;
+    if (this.__bindingMode === 'literal') {
+      // nothing else to do
+    }
+  }
+
+  // Back-compat read accessor — returns literal values only (for legacy inspector code).
+  getSlots(): Record<string, string> {
+    const out: Record<string, string> = {};
+    for (const [k, b] of Object.entries(this.__slotMap)) {
+      if (b.kind === 'literal') out[k] = b.value;
+    }
+    return out;
+  }
+
+  static importJSON(j: any) {
+    const presetId = j.presetId;
+    const source = j.source ?? '';
+    const label = j.label ?? '';
+    if (j.version === 2) {
+      // Migrate old `field: string` and the interim `fields: string[]` shapes → `template: string`.
+      const rawMap = j.slotMap ?? {};
+      const slotMap: Record<string, SlotBinding> = {};
+      for (const [k, b] of Object.entries<any>(rawMap)) {
+        if (b && b.kind === 'field' && typeof b.template !== 'string') {
+          if (Array.isArray(b.fields)) {
+            const sep = typeof b.separator === 'string' ? b.separator : ' ';
+            slotMap[k] = { kind: 'field', template: b.fields.map((f: string) => `{${f}}`).join(sep) };
+          } else {
+            slotMap[k] = { kind: 'field', template: b.field ? `{${b.field}}` : '' };
+          }
+        } else {
+          slotMap[k] = b as SlotBinding;
+        }
+      }
+      return new PresetBlockNode(presetId, source, label, {
+        collection: j.collection ?? null,
+        bindingMode: j.bindingMode ?? 'literal',
+        relatedFk: j.relatedFk ?? null,
+        listSelector: j.listSelector ?? {},
+        slotMap,
+      });
+    }
+    // v1 → v2: coerce { slots: Record<string,string> } into slotMap literals.
+    const slotMap: Record<string, SlotBinding> = {};
+    const legacy: Record<string, string> = j.slots ?? {};
+    for (const [k, v] of Object.entries(legacy)) slotMap[k] = { kind: 'literal', value: v };
+    return new PresetBlockNode(presetId, source, label, {
+      collection: null, bindingMode: 'literal', relatedFk: null, listSelector: {}, slotMap,
+    });
   }
   exportJSON(): SerializedPresetBlockNode {
-    return { type: 'fdl-preset-block', version: 1, presetId: this.__presetId, source: this.__source, slots: this.__slots, label: this.__label };
+    return {
+      type: 'fdl-preset-block',
+      version: 2,
+      presetId: this.__presetId,
+      source: this.__source,
+      label: this.__label,
+      collection: this.__collection,
+      bindingMode: this.__bindingMode,
+      relatedFk: this.__relatedFk,
+      listSelector: this.__listSelector,
+      slotMap: this.__slotMap,
+    };
   }
   decorate(editor: LexicalEditor) {
-    return <PresetBlock nodeKey={this.__key} presetId={this.__presetId} source={this.__source} slots={this.__slots} editor={editor} />;
+    return <PresetBlock nodeKey={this.__key} presetId={this.__presetId} source={this.__source} slots={previewSlotValues(this.__slotMap)} editor={editor} />;
   }
+}
+
+// Resolves slot bindings for the in-editor preview (no record data wired yet).
+// Field bindings show the raw template text so authors can see what they've
+// configured without leaving the editor.
+function previewSlotValues(slotMap: Record<string, SlotBinding>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [slot, b] of Object.entries(slotMap)) {
+    if (!b) continue;
+    if (b.kind === 'literal') out[slot] = b.value;
+    else if (b.kind === 'field') out[slot] = b.template || `[${slot}]`;
+    else if (b.kind === 'link') {
+      const t = b.target;
+      out[slot] =
+        t.type === 'external' ? t.url :
+        t.type === 'anchor'   ? `#${t.id}` :
+        t.type === 'page'     ? `/${t.pageId}` :
+        `/${t.collection}/${t.recordId}`;
+    }
+  }
+  return out;
 }
 
 function fillSlots(html: string, slots: Record<string, string>) {
@@ -619,7 +771,20 @@ export function getSelectedDecorator(
     }
     if (t === 'fdl-preset-block') {
       const pn = n as PresetBlockNode;
-      return { key, type: t, props: { presetId: pn.getPresetId(), source: pn.getSource(), slots: pn.getSlots() } };
+      return {
+        key,
+        type: t,
+        props: {
+          presetId: pn.getPresetId(),
+          source: pn.getSource(),
+          slots: pn.getSlots(),
+          slotMap: pn.getSlotMap(),
+          collection: pn.getCollection(),
+          bindingMode: pn.getBindingMode(),
+          relatedFk: pn.getRelatedFk(),
+          listSelector: pn.getListSelector(),
+        },
+      };
     }
     return null;
   });

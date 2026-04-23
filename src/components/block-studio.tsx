@@ -6,14 +6,20 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { CATEGORY_ORDER, CATEGORY_META } from '@/lib/block-presets';
 import { applyThemeTypography, flattenVarsFromCollections, type VarItem } from '@/lib/theme-typography';
+import {
+  SLOT_TYPE_LABELS,
+  SLOT_FORMAT_PRESETS,
+  type SlotSchema,
+  type SlotType,
+  type SlotTypeDef,
+} from '@/lib/slots';
 
-// Monaco must be client-only (browser-only deps, worker loader).
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
 type MonacoEditorInstance = any;
 type MonacoNamespace = any;
 
 type Viewport = 'desktop' | 'tablet' | 'mobile';
-type Step = 'paste' | 'slots' | 'bind' | 'map';
+type Shape = 'single' | 'list';
 
 const VP_LABELS: Record<Viewport, string> = {
   desktop: '1280 × auto',
@@ -21,7 +27,7 @@ const VP_LABELS: Record<Viewport, string> = {
   mobile: '375 × 812'
 };
 
-const SAMPLE = `<section className="py-16 bg-white">
+const SAMPLE_SINGLE = `<section className="py-16 bg-white">
   <div className="max-w-5xl mx-auto px-6 grid grid-cols-2 gap-10 items-center">
     <div>
       <span className="chip bg-accent-soft text-accent">{{badge}}</span>
@@ -35,15 +41,24 @@ const SAMPLE = `<section className="py-16 bg-white">
   </div>
 </section>`;
 
+const SAMPLE_LIST = `<div className="grid grid-cols-3 gap-4">
+  {{#each rows}}
+    <div className="border border-neutral-200 rounded-md p-4">
+      <img src="{{avatar}}" alt="" className="w-16 h-16 rounded-full mb-3" />
+      <div className="font-semibold">{{name}}</div>
+      <div className="text-[12px] text-neutral-500">{{role}}</div>
+    </div>
+  {{/each}}
+</div>`;
+
 export function BlockStudio({
   initial,
-  collections,
-  collectionFieldsByName,
   mode
 }: {
-  initial: { id?: string; name: string; title?: string | null; description?: string | null; source: string; collection?: string | null; slotMap: Record<string, string>; category?: string | null; themeId?: string | null };
-  collections: Array<{ name: string; label: string }>;
-  collectionFieldsByName: Record<string, string[]>;
+  initial: { id?: string; name: string; title?: string | null; description?: string | null; source: string; shape?: Shape | null; slotSchema?: SlotSchema | null; category?: string | null; themeId?: string | null };
+  // collections + field map still accepted by the server page for future use, but no longer needed here.
+  collections?: Array<{ name: string; label: string }>;
+  collectionFieldsByName?: Record<string, string[]>;
   mode: 'create' | 'edit';
 }) {
   const router = useRouter();
@@ -51,11 +66,10 @@ export function BlockStudio({
   const [title, setTitle] = useState(initial.title ?? '');
   const [description, setDescription] = useState(initial.description ?? '');
   const [category, setCategory] = useState(initial.category ?? '');
-  const [source, setSource] = useState(initial.source || SAMPLE);
-  const [collection, setCollection] = useState<string>(initial.collection ?? '');
-  const [slotMap, setSlotMap] = useState<Record<string, string>>(initial.slotMap);
+  const [shape, setShape] = useState<Shape>(initial.shape === 'list' ? 'list' : 'single');
+  const [slotSchema, setSlotSchema] = useState<SlotSchema>(initial.slotSchema ?? {});
+  const [source, setSource] = useState(initial.source || SAMPLE_SINGLE);
   const [viewport, setViewport] = useState<Viewport>('desktop');
-  const [step, setStep] = useState<Step>('paste');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [themeId, setThemeId] = useState<string>(initial.themeId ?? '');
@@ -114,40 +128,39 @@ export function BlockStudio({
     document.body.style.userSelect = 'none';
   };
 
+  // Detect `{{#each rows}} ... {{/each}}` region for list mode.
+  const eachMatch = useMemo(() => source.match(/\{\{#each\s+rows\}\}([\s\S]*?)\{\{\/each\}\}/), [source]);
+  const rowTemplate = eachMatch ? eachMatch[1] : source;
+  const hasEachBlock = !!eachMatch;
+
   const detectedSlots = useMemo(() => {
     const re = /\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g;
     const out = new Set<string>();
+    // For slots, scan the row template when in list mode (the repeating content), else the whole source.
+    const scanText = shape === 'list' ? rowTemplate : source;
     let m: RegExpExecArray | null;
-    while ((m = re.exec(source)) !== null) out.add(m[1]);
+    while ((m = re.exec(scanText)) !== null) out.add(m[1]);
     return [...out];
-  }, [source]);
+  }, [source, rowTemplate, shape]);
 
-  const availableFields = collection ? collectionFieldsByName[collection] ?? [] : [];
-  const mappedCount = detectedSlots.filter((s) => slotMap[s]).length;
-
-  // Slots used inside href="..." or action="..." attributes are link-type slots.
-  const linkSlots = useMemo(() => {
-    const re = /(?:href|action)="[^"]*\{\{(\w+)\}\}[^"]*"/g;
-    const out = new Set<string>();
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(source)) !== null) out.add(m[1]);
-    return out;
-  }, [source]);
-  const boundCollection = collections.find((c) => c.name === collection);
-
+  // Preview: render row placeholders `[slot]`; for list shape, repeat 3×.
   const preview = useMemo(() => {
-    let html = source;
-    for (const slot of detectedSlots) {
-      const field = slotMap[slot];
-      const placeholder = field ? `[${collection}.${field}]` : `[${slot}]`;
-      html = html.replace(new RegExp(`\\{\\{\\s*${slot}\\s*\\}\\}`, 'g'), placeholder);
+    const fillRow = (tmpl: string) =>
+      tmpl.replace(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g, (_, name) => `[${name}]`);
+    let html: string;
+    if (shape === 'list') {
+      const rows = Array.from({ length: 3 }, () => fillRow(rowTemplate)).join('\n');
+      html = hasEachBlock
+        ? source.replace(/\{\{#each\s+rows\}\}[\s\S]*?\{\{\/each\}\}/, rows)
+        : rows;
+    } else {
+      html = fillRow(source);
     }
-    // Strip className → class so the browser renders Tailwind utilities in preview.
     html = html.replace(/className=/g, 'class=');
     return applyThemeTypography(html, typeBindings, allVars);
-  }, [source, detectedSlots, slotMap, collection, typeBindings, allVars]);
+  }, [source, shape, rowTemplate, hasEachBlock, typeBindings, allVars]);
 
-  // Paint slot highlights in Monaco after each edit / mount.
+  // Paint slot highlights + `{{#each}}` tag highlights in Monaco.
   const applySlotDecorations = () => {
     const editor = editorRef.current;
     const monaco = monacoRef.current;
@@ -155,10 +168,10 @@ export function BlockStudio({
     const model = editor.getModel();
     if (!model) return;
     const text: string = model.getValue();
-    const re = /\{\{\s*[a-zA-Z_][a-zA-Z0-9_]*\s*\}\}/g;
     const decorations: any[] = [];
+    const slotRe = /\{\{\s*[a-zA-Z_][a-zA-Z0-9_]*\s*\}\}/g;
     let m: RegExpExecArray | null;
-    while ((m = re.exec(text)) !== null) {
+    while ((m = slotRe.exec(text)) !== null) {
       const start = model.getPositionAt(m.index);
       const end = model.getPositionAt(m.index + m[0].length);
       decorations.push({
@@ -166,21 +179,33 @@ export function BlockStudio({
         options: { inlineClassName: 'monaco-slot-highlight' }
       });
     }
+    const eachRe = /\{\{#each\s+rows\}\}|\{\{\/each\}\}/g;
+    while ((m = eachRe.exec(text)) !== null) {
+      const start = model.getPositionAt(m.index);
+      const end = model.getPositionAt(m.index + m[0].length);
+      decorations.push({
+        range: new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column),
+        options: { inlineClassName: 'monaco-each-highlight' }
+      });
+    }
     decorationIdsRef.current = editor.deltaDecorations(decorationIdsRef.current, decorations);
   };
 
-  useEffect(() => {
-    applySlotDecorations();
-  }, [source]);
+  useEffect(() => { applySlotDecorations(); }, [source]);
 
   async function save() {
     setSaving(true);
     setError(null);
     try {
+      // Only persist schema entries for slots currently detected in source.
+      const prunedSchema: SlotSchema = {};
+      for (const s of detectedSlots) {
+        if (slotSchema[s]) prunedSchema[s] = slotSchema[s];
+      }
       const payload: any = {
         source,
-        slotMap,
-        collection: collection || null,
+        shape,
+        slotSchema: Object.keys(prunedSchema).length ? prunedSchema : null,
         title: title || null,
         description: description || null,
         category: category || null,
@@ -216,10 +241,14 @@ export function BlockStudio({
     try {
       const text = await navigator.clipboard.readText();
       if (text) setSource(text);
-    } catch {
-      // Clipboard blocked — silent, user can paste manually.
-    }
+    } catch {}
   }
+
+  const loadSample = () => {
+    setSource(shape === 'list' ? SAMPLE_LIST : SAMPLE_SINGLE);
+  };
+
+  const listLintWarn = shape === 'list' && !hasEachBlock;
 
   return (
     <section className="flex-1 flex flex-col overflow-hidden">
@@ -236,13 +265,12 @@ export function BlockStudio({
             placeholder="Block title"
             className="display text-lg bg-transparent focus:outline-none focus:ring-0 min-w-[140px] max-w-[280px]"
           />
-          {boundCollection ? (
-            <span className="chip bg-accent-soft text-accent">Bound to {boundCollection.label}</span>
-          ) : detectedSlots.length === 0 ? (
-            <span className="chip bg-ok/10 text-ok" title="Static block — drop anywhere, no collection required.">Static</span>
-          ) : (
-            <span className="chip bg-neutral-100 text-neutral-500">Unbound · {detectedSlots.length} slot{detectedSlots.length === 1 ? '' : 's'}</span>
-          )}
+          <span className={cn('chip', shape === 'list' ? 'bg-purple-50 text-purple-700' : 'bg-accent-soft text-accent')}>
+            {shape === 'list' ? 'List template' : 'Single template'}
+          </span>
+          <span className="chip bg-neutral-100 text-neutral-500">
+            {detectedSlots.length} slot{detectedSlots.length === 1 ? '' : 's'}
+          </span>
           <span className="chip bg-ok/10 text-ok" title="Every block ships responsive by default.">
             Responsive by default
           </span>
@@ -252,13 +280,6 @@ export function BlockStudio({
           <ViewportSwitch viewport={viewport} onChange={setViewport} />
           <span className="text-neutral-400 mono">{VP_LABELS[viewport]}</span>
           <span className="w-px h-5 bg-neutral-200" />
-          <button
-            type="button"
-            className="px-2.5 py-1 border border-neutral-200 rounded-md hover:bg-neutral-50"
-            title="Preview using the first record of the bound collection"
-          >
-            Preview with real data
-          </button>
           {mode === 'edit' && (
             <button
               type="button"
@@ -282,17 +303,6 @@ export function BlockStudio({
         </div>
       </header>
 
-      {/* Stepper tabs */}
-      <div className="border-b border-neutral-200 px-6 flex items-center gap-1 text-[12px] bg-white shrink-0">
-        <StepTab step="paste" active={step} onClick={setStep} n={1} label="Paste markup" />
-        <StepTab step="slots" active={step} onClick={setStep} n={2} label="Declare slots" />
-        <StepTab step="bind" active={step} onClick={setStep} n={3} label="Bind collection" />
-        <StepTab step="map" active={step} onClick={setStep} n={4} label="Map fields" />
-        <span className="ml-auto text-[11px] text-neutral-400">
-          Paste from shadcn/ui · Tailwind UI · HeroUI · hand-written JSX or HTML
-        </span>
-      </div>
-
       {error && (
         <div className="px-6 py-2 bg-danger/5 border-b border-danger/20 text-xs text-danger mono shrink-0">
           {error}
@@ -302,7 +312,6 @@ export function BlockStudio({
       <div className="flex-1 flex overflow-hidden">
         {/* LEFT COLUMN — Preview on top, Monaco on bottom */}
         <div className="flex-1 flex flex-col overflow-hidden border-r border-neutral-200">
-          {/* TOP — Preview */}
           <div className="flex-1 overflow-auto scrollbar bg-neutral-100 flex flex-col min-h-0">
             <div className="flex-1 p-6">
               <div
@@ -315,26 +324,16 @@ export function BlockStudio({
               >
                 <div className="px-4 py-2 text-[11px] text-neutral-500 border-b border-neutral-100 flex items-center justify-between">
                   <span>
-                    {boundCollection
-                      ? `Live preview · using first ${boundCollection.label} record`
-                      : 'Live preview · unbound (placeholders shown)'}
+                    {shape === 'list'
+                      ? 'Preview · row template repeated 3× with placeholder values'
+                      : 'Preview · placeholders shown'}
                   </span>
                   <span className="mono text-neutral-400">{viewport}</span>
                 </div>
                 <div className="p-6" dangerouslySetInnerHTML={{ __html: preview }} />
               </div>
               <div className="mt-3 text-[11px] text-neutral-500 flex items-center gap-3">
-                <span>
-                  <span
-                    className={cn(
-                      'w-1.5 h-1.5 rounded-full inline-block mr-1',
-                      mappedCount === detectedSlots.length && detectedSlots.length > 0
-                        ? 'bg-ok'
-                        : 'bg-warn'
-                    )}
-                  />
-                  {mappedCount}/{detectedSlots.length} slots mapped
-                </span>
+                <span>Callers bind a collection + map slots on the page editor.</span>
                 <span>·</span>
                 <span>Renders as static HTML (fast), cache-safe</span>
               </div>
@@ -347,16 +346,15 @@ export function BlockStudio({
                 <span className="text-neutral-400 italic">none — add {'{{slot_name}}'} to the source</span>
               )}
               {detectedSlots.map((s) => (
-                <span
-                  key={s}
-                  className={cn(
-                    'chip',
-                    slotMap[s] ? 'bg-accent-soft text-accent' : 'bg-neutral-100 text-neutral-500'
-                  )}
-                >
+                <span key={s} className="chip bg-neutral-100 text-neutral-500">
                   {'{' + s + '}'}
                 </span>
               ))}
+              {shape === 'list' && (
+                <span className={cn('chip ml-2', hasEachBlock ? 'bg-ok/10 text-ok' : 'bg-warn/10 text-warn')}>
+                  {hasEachBlock ? '{{#each rows}} found' : 'whole template will repeat per row'}
+                </span>
+              )}
             </div>
           </div>
 
@@ -372,33 +370,27 @@ export function BlockStudio({
           <div className="border-neutral-200 bg-[#1e1e1e] text-white flex flex-col shrink-0" style={{ height: editorHeight }}>
             <div className="px-4 py-2 border-b border-white/10 flex items-center justify-between text-[11px]">
               <div className="flex items-center gap-2">
-                <span
-                  className={cn(
-                    'w-2 h-2 rounded-full',
-                    detectedSlots.length > 0 ? 'bg-ok' : 'bg-neutral-500'
-                  )}
-                />
+                <span className={cn('w-2 h-2 rounded-full', detectedSlots.length > 0 ? 'bg-ok' : 'bg-neutral-500')} />
                 <span>
                   {detectedSlots.length > 0
                     ? `Parsed · ${detectedSlots.length} slot${detectedSlots.length === 1 ? '' : 's'} detected`
                     : 'No slots detected'}
                 </span>
+                {listLintWarn && (
+                  <span className="ml-3 text-warn">
+                    Tip: wrap rows in <code className="mono">{'{{#each rows}} … {{/each}}'}</code>
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <span className="chip bg-white/10 text-white/60">JSX</span>
-                <button
-                  type="button"
-                  onClick={paste}
-                  className="text-white/50 hover:text-white"
-                  title="Paste from clipboard"
-                >
+                <button type="button" onClick={loadSample} className="text-white/50 hover:text-white" title="Load sample template">
+                  Sample
+                </button>
+                <button type="button" onClick={paste} className="text-white/50 hover:text-white" title="Paste from clipboard">
                   Paste
                 </button>
-                <button
-                  type="button"
-                  onClick={applySlotDecorations}
-                  className="text-accent hover:text-accent/80"
-                >
+                <button type="button" onClick={applySlotDecorations} className="text-accent hover:text-accent/80">
                   Detect slots
                 </button>
               </div>
@@ -431,7 +423,7 @@ export function BlockStudio({
           </div>
         </div>
 
-        {/* RIGHT — Slot mapping */}
+        {/* RIGHT — Block info */}
         <aside className="w-80 border-l border-neutral-200 bg-white flex flex-col overflow-hidden">
           <div className="p-4 border-b border-neutral-200 space-y-3">
             <div className="text-[10px] uppercase tracking-wider text-neutral-400 mb-1">Block info</div>
@@ -481,121 +473,85 @@ export function BlockStudio({
                   <option key={t.id} value={t.id}>{t.name}</option>
                 ))}
               </select>
-              {activeTheme && Object.keys(typeBindings).length > 0 && (
-                <div className="text-[10px] text-neutral-500 mt-1">
-                  Applying {Object.keys(typeBindings).length} typography binding{Object.keys(typeBindings).length === 1 ? '' : 's'} — strip matching Tailwind utilities to let the theme show through.
-                </div>
-              )}
             </div>
-          </div>
-          <div className="p-4 border-b border-neutral-200">
-            <div className="flex items-center justify-between">
-              <div className="text-[10px] uppercase tracking-wider text-neutral-400">Bind to collection</div>
-              <span className="text-[10px] text-neutral-400">optional</span>
-            </div>
-            <select
-              value={collection}
-              onChange={(e) => {
-                setCollection(e.target.value);
-                setSlotMap({});
-              }}
-              className="mt-1 w-full border border-neutral-200 rounded-md px-3 py-2 text-sm bg-white"
-            >
-              <option value="">— static (no collection) —</option>
-              {collections.map((c) => (
-                <option key={c.name} value={c.name}>
-                  📦 {c.label}
-                </option>
-              ))}
-            </select>
-            {boundCollection ? (
-              <div className="text-[11px] text-neutral-500 mt-1.5">
-                {availableFields.length} field{availableFields.length === 1 ? '' : 's'} available
-              </div>
-            ) : (
-              <div className="text-[11px] text-neutral-500 mt-1.5">
-                Static blocks ship as-is. Drop them on any page without picking a collection.
-              </div>
-            )}
           </div>
 
+          {/* Shape toggle */}
+          <div className="p-4 border-b border-neutral-200">
+            <div className="text-[10px] uppercase tracking-wider text-neutral-400 mb-2">Shape</div>
+            <div className="inline-flex items-center bg-neutral-100 rounded-md p-0.5 w-full">
+              <button
+                type="button"
+                onClick={() => setShape('single')}
+                className={cn(
+                  'flex-1 px-3 py-1.5 rounded text-[12px]',
+                  shape === 'single' ? 'bg-white shadow-sm font-medium' : 'text-neutral-500'
+                )}
+              >
+                Single
+              </button>
+              <button
+                type="button"
+                onClick={() => setShape('list')}
+                className={cn(
+                  'flex-1 px-3 py-1.5 rounded text-[12px]',
+                  shape === 'list' ? 'bg-white shadow-sm font-medium' : 'text-neutral-500'
+                )}
+              >
+                List
+              </button>
+            </div>
+            <p className="text-[11px] text-neutral-500 mt-2 leading-relaxed">
+              {shape === 'single'
+                ? 'Renders once. Each slot resolves to one value (a literal, or a field on a single record).'
+                : 'Renders per-row. Wrap the repeating markup in {{#each rows}} … {{/each}} — slots inside resolve per-record.'}
+            </p>
+          </div>
+
+          {/* Detected slots — type + format editor */}
           <div className="p-4 border-b border-neutral-200">
             <div className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500 mb-2">
-              Slot → field map
+              Slots detected in source
             </div>
-            {detectedSlots.length === 0 && (
+            {detectedSlots.length === 0 ? (
               <p className="text-[11px] text-neutral-400">
                 No slots declared yet. Use <code className="mono">{'{{name}}'}</code> in the source.
               </p>
+            ) : (
+              <>
+                <p className="text-[11px] text-neutral-500 mb-3 leading-relaxed">
+                  Declare the type + display format here — it's enforced at every placement and applied when the page renders.
+                </p>
+                <div className="space-y-2.5">
+                  {detectedSlots.map((slot) => (
+                    <SlotSchemaRow
+                      key={slot}
+                      slot={slot}
+                      def={slotSchema[slot]}
+                      onChange={(def) =>
+                        setSlotSchema((prev) => {
+                          const next = { ...prev };
+                          if (!def) delete next[slot];
+                          else next[slot] = def;
+                          return next;
+                        })
+                      }
+                    />
+                  ))}
+                </div>
+              </>
             )}
-            <div className="space-y-2.5">
-              {detectedSlots.map((slot) => {
-                const isLink = linkSlots.has(slot);
-                return (
-                  <div key={slot}>
-                    <div className="flex items-center gap-2">
-                      <code className={cn(
-                        'mono text-[11px] px-1.5 py-0.5 rounded flex-shrink-0 w-24 truncate flex items-center gap-1',
-                        isLink ? 'bg-purple-50 text-purple-600' : 'bg-accent/10 text-accent'
-                      )}>
-                        {isLink && <span title="Link slot (href/action)">🔗</span>}
-                        {'{' + slot + '}'}
-                      </code>
-                      <span className="text-neutral-400">→</span>
-                      <select
-                        value={slotMap[slot] ?? ''}
-                        onChange={(e) => setSlotMap({ ...slotMap, [slot]: e.target.value })}
-                        disabled={!collection}
-                        className="flex-1 text-[12px] px-2 py-1 border border-neutral-200 rounded disabled:bg-neutral-50 disabled:text-neutral-400"
-                      >
-                        <option value="">— unmapped —</option>
-                        {availableFields.map((f) => (
-                          <option key={f} value={f}>{f}</option>
-                        ))}
-                      </select>
-                    </div>
-                    {isLink && !collection && (
-                      <p className="text-[10px] text-purple-400 mt-0.5 pl-1">
-                        Link slot — fill in on the page editor, e.g. <span className="mono">/sign-up</span>
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="p-4 border-b border-neutral-200">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500 mb-2">
-              Props
-            </div>
-            <div className="space-y-1.5 text-[12px]">
-              <label className="flex items-center gap-2">
-                <input type="checkbox" className="accent-accent" defaultChecked />
-                Allow use without binding{' '}
-                <span className="text-neutral-400 text-[11px]">(static mode)</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input type="checkbox" className="accent-accent" />
-                Render server-side only
-              </label>
-              <label className="flex items-center gap-2">
-                <input type="checkbox" className="accent-accent" defaultChecked />
-                Available in slash menu
-              </label>
-            </div>
           </div>
 
           <div className="p-4 flex-1 overflow-auto scrollbar">
             <div className="flex items-center justify-between mb-2">
               <div className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
-                Claude assist
+                Binding
               </div>
-              <span className="chip bg-neutral-100 text-neutral-500">Off</span>
             </div>
             <p className="text-[11px] text-neutral-500 leading-relaxed">
-              When on, Claude auto-suggests slot → field mappings for new block imports. Off by default per
-              POPIA policy.
+              Blocks are collection-agnostic. When you drop this block on a page, the page editor lets you bind it to
+              the page's default collection (or any collection related to it) and map slots → fields.
             </p>
           </div>
         </aside>
@@ -604,33 +560,106 @@ export function BlockStudio({
   );
 }
 
-function StepTab({
-  step,
-  active,
-  onClick,
-  n,
-  label
+function SlotSchemaRow({
+  slot,
+  def,
+  onChange,
 }: {
-  step: Step;
-  active: Step;
-  onClick: (s: Step) => void;
-  n: number;
-  label: string;
+  slot: string;
+  def: SlotTypeDef | undefined;
+  onChange: (def: SlotTypeDef | null) => void;
 }) {
-  const isActive = step === active;
+  const [expanded, setExpanded] = useState(false);
+  const effective: SlotTypeDef = def ?? { type: 'string' };
+  const presets = SLOT_FORMAT_PRESETS[effective.type] ?? [];
+  const hasFormat = presets.length > 0 || effective.type === 'number' || effective.type === 'date';
+
+  const update = (patch: Partial<SlotTypeDef>) => {
+    const merged: SlotTypeDef = { ...effective, ...patch };
+    // Clear format when type changes to one without formatters.
+    if (patch.type && (patch.type === 'string' || patch.type === 'link' || patch.type === 'image' || patch.type === 'richtext')) {
+      merged.format = undefined;
+    }
+    onChange(merged);
+  };
+
   return (
-    <button
-      type="button"
-      onClick={() => onClick(step)}
-      className={cn(
-        'px-3 py-2 border-b-2',
-        isActive
-          ? 'border-ink-950 font-medium text-ink-950'
-          : 'border-transparent text-neutral-500 hover:text-neutral-900'
+    <div className="border border-neutral-200 rounded-md bg-neutral-50/50">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 text-left"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <code className="mono text-[11px] px-1.5 py-0.5 rounded bg-accent/10 text-accent shrink-0">
+            {'{' + slot + '}'}
+          </code>
+          <span className="text-[11px] text-neutral-500 truncate">
+            {SLOT_TYPE_LABELS[effective.type]}
+            {effective.format ? ` · ${effective.format}` : ''}
+          </span>
+        </div>
+        <span className="text-neutral-400 text-[11px] shrink-0">{expanded ? '▾' : '▸'}</span>
+      </button>
+      {expanded && (
+        <div className="px-2.5 pb-2.5 space-y-2 border-t border-neutral-200 pt-2">
+          <div>
+            <label className="text-[10px] text-neutral-400">Type</label>
+            <select
+              value={effective.type}
+              onChange={(e) => update({ type: e.target.value as SlotType })}
+              className="mt-0.5 w-full border border-neutral-200 rounded-md px-2 py-1.5 text-[12px] bg-white"
+            >
+              {(Object.keys(SLOT_TYPE_LABELS) as SlotType[]).map((t) => (
+                <option key={t} value={t}>{SLOT_TYPE_LABELS[t]}</option>
+              ))}
+            </select>
+          </div>
+          {hasFormat && (
+            <div>
+              <label className="text-[10px] text-neutral-400">Format</label>
+              {presets.length > 0 ? (
+                <select
+                  value={effective.format ?? ''}
+                  onChange={(e) => update({ format: e.target.value || undefined })}
+                  className="mt-0.5 w-full border border-neutral-200 rounded-md px-2 py-1.5 text-[12px] bg-white"
+                >
+                  <option value="">— raw value —</option>
+                  {presets.map((p) => (
+                    <option key={p.value} value={p.value}>{p.label} — {p.value}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  value={effective.format ?? ''}
+                  onChange={(e) => update({ format: e.target.value || undefined })}
+                  placeholder="e.g. yyyy-MM-dd"
+                  className="mt-0.5 w-full border border-neutral-200 rounded-md px-2 py-1.5 text-[12px] mono"
+                />
+              )}
+            </div>
+          )}
+          <div>
+            <label className="text-[10px] text-neutral-400">Fallback</label>
+            <input
+              value={effective.fallback ?? ''}
+              onChange={(e) => update({ fallback: e.target.value || undefined })}
+              placeholder="shown when value is empty"
+              className="mt-0.5 w-full border border-neutral-200 rounded-md px-2 py-1.5 text-[12px]"
+            />
+          </div>
+          {def && (
+            <button
+              type="button"
+              onClick={() => onChange(null)}
+              className="text-[11px] text-neutral-400 hover:text-danger"
+            >
+              Reset to defaults
+            </button>
+          )}
+        </div>
       )}
-    >
-      {n} · {label}
-    </button>
+    </div>
   );
 }
 

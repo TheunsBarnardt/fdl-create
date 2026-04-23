@@ -8,8 +8,8 @@ const UpdateBlock = z.object({
   title: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
   source: z.string().optional(),
-  slotMap: z.record(z.string()).nullable().optional(),
-  collection: z.string().nullable().optional(),
+  shape: z.enum(['single', 'list']).optional(),
+  slotSchema: z.record(z.any()).nullable().optional(),
   category: z.string().nullable().optional(),
   themeId: z.string().nullable().optional()
 });
@@ -20,7 +20,11 @@ export const GET = withApi<P>('read:blocks', async (_req, { params }) => {
   const rows = await prisma.$queryRaw<any[]>`SELECT * FROM "CustomBlock" WHERE id = ${params.id} LIMIT 1`;
   const b = rows[0];
   if (!b) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  return NextResponse.json({ ...b, slotMap: b.slotMap ? JSON.parse(b.slotMap) : {} });
+  return NextResponse.json({
+    ...b,
+    shape: b.shape ?? 'single',
+    slotSchema: b.slotSchema ? JSON.parse(b.slotSchema) : null,
+  });
 });
 
 export const PATCH = withApi<P>('write:blocks', async (req, { params }) => {
@@ -35,8 +39,8 @@ export const PATCH = withApi<P>('write:blocks', async (req, { params }) => {
   if (d.title !== undefined)      { sets.push('title = ?');       vals.push(d.title); }
   if (d.description !== undefined){ sets.push('description = ?'); vals.push(d.description); }
   if (d.source !== undefined)     { sets.push('source = ?');      vals.push(d.source); }
-  if (d.slotMap !== undefined)    { sets.push('slotMap = ?');     vals.push(d.slotMap ? JSON.stringify(d.slotMap) : null); }
-  if (d.collection !== undefined) { sets.push('collection = ?');  vals.push(d.collection); }
+  if (d.shape !== undefined)      { sets.push('shape = ?');       vals.push(d.shape); }
+  if (d.slotSchema !== undefined) { sets.push('slotSchema = ?');  vals.push(d.slotSchema ? JSON.stringify(d.slotSchema) : null); }
   if (d.category !== undefined)   { sets.push('category = ?');    vals.push(d.category); }
   if (d.themeId !== undefined)    { sets.push('themeId = ?');     vals.push(d.themeId); }
 

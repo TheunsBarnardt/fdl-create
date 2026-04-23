@@ -89,16 +89,17 @@ model Record {
 }
 
 model Page {
-  id        String   @id @default(cuid())
-  slug      String   @unique
-  title     String
-  tree      String   // JSON block tree
-  published Boolean  @default(false)
-  themeId   String?  // links to Theme.id
-  params    String?  // JSON: string[] — e.g. ["id"] for /customers/[id]
-  seo       String?  // JSON: { metaTitle, metaDescription, ogTitle, ogDescription, ogImage, canonicalUrl, noIndex }
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String   @id @default(cuid())
+  slug              String   @unique
+  title             String
+  tree              String   // JSON block tree
+  published         Boolean  @default(false)
+  themeId           String?  // links to Theme.id
+  params            String?  // JSON: string[] — e.g. ["id"] for /customers/[id]
+  defaultCollection String?  // Collection.name — block placements on this page must bind to this or a related collection
+  seo               String?  // JSON: { metaTitle, metaDescription, ogTitle, ogDescription, ogImage, canonicalUrl, noIndex }
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   navItems  NavItem[]
 }
@@ -108,9 +109,9 @@ model CustomBlock {
   name        String   @unique
   title       String?
   description String?
-  source      String   // pasted JSX/HTML
-  slotMap     String?  // JSON { slotName: fieldName }
-  collection  String?
+  source      String   // pasted JSX/HTML — pure template with {{slot}} placeholders
+  shape       String   @default("single") // 'single' | 'list' — list blocks use {{#each rows}}...{{/each}}
+  slotSchema  String?  // JSON: { [slotName]: { type: 'string'|'number'|'date'|'boolean'|'link'|'image'|'richtext', format?, fallback? } }
   category    String?
   themeId     String?  // optional — preset/theme applied for typography bindings
   createdAt   DateTime @default(now())
