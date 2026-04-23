@@ -425,6 +425,16 @@ export function ThemeStudio({
     setActivePreset('slate');
   };
 
+  async function saveName() {
+    if (!selectedId || !name.trim()) return;
+    await fetch(`/api/themes/${selectedId}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    router.refresh();
+  }
+
   async function save() {
     setSaving(true);
     setError(null);
@@ -466,6 +476,8 @@ export function ThemeStudio({
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
+            onBlur={saveName}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.currentTarget.blur(); } }}
             className="text-sm bg-transparent outline-none focus:bg-neutral-100 px-1.5 py-0.5 rounded"
           />
           <span className="chip bg-accent-soft text-accent">System-wide</span>
