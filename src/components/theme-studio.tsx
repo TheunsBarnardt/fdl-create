@@ -437,7 +437,9 @@ export function ThemeStudio({
           body: JSON.stringify({ name, tokens, isDefault })
         }
       );
-      if (!res.ok) throw new Error(JSON.stringify((await res.json()).error));
+      const saved = await res.json();
+      if (!res.ok) throw new Error(JSON.stringify(saved.error));
+      if (!selectedId && saved.id) setSelectedId(saved.id);
       router.refresh();
     } catch (e: any) {
       setError(e.message);
@@ -558,7 +560,7 @@ export function ThemeStudio({
                             <span className="w-3 h-3 rounded-sm" style={{ background: fgColor }} />
                             <span className="w-3 h-3 rounded-sm" style={{ background: bgColor, border: `1px solid ${bgBorder}` }} />
                           </div>
-                          <span className="truncate">{p.name}</span>
+                          <span className="truncate">{p.id === activePreset && p.custom ? name : p.name}</span>
                         </button>
                         {p.custom && (
                           <button
@@ -1058,7 +1060,7 @@ export function ThemeStudio({
                         <span className="w-3 h-3 rounded-sm" style={{ background: hslToHex(tk.primary) }} />
                         <span className="w-3 h-3 rounded-sm border border-neutral-200" style={{ background: hslToHex(tk.background) }} />
                       </div>
-                      <span className="truncate w-full text-center">{t.name}</span>
+                      <span className="truncate w-full text-center">{t.id === selectedId ? name : t.name}</span>
                     </button>
                   );
                 })}
