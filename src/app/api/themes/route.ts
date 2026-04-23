@@ -3,18 +3,9 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { withApi } from '@/lib/with-api';
 
-const ThemeTokens = z.object({
-  mode: z.enum(['light', 'dark', 'both']).default('both'),
-  radius: z.number().min(0).max(2),
-  font: z.enum(['inter', 'geist', 'jetbrains']).default('inter'),
-  accent: z.string(),
-  surface: z.string(),
-  ink: z.string()
-});
-
 const CreateTheme = z.object({
   name: z.string().min(1),
-  tokens: ThemeTokens,
+  tokens: z.any(),
   isDefault: z.boolean().optional()
 });
 
