@@ -2515,9 +2515,11 @@ function PresetBlockInspector({
                 // Prefer field binding when a collection is reachable — saves a click.
                 const binding: SlotBinding = slotMap[slot] ?? (def?.type === 'link'
                   ? { kind: 'link', target: { type: 'external', url: '' } }
-                  : effectiveCollection
-                    ? { kind: 'field', template: '' }
-                    : { kind: 'literal', value: '' });
+                  : def?.type === 'document'
+                    ? { kind: 'literal', value: '' }
+                    : effectiveCollection
+                      ? { kind: 'field', template: '' }
+                      : { kind: 'literal', value: '' });
                 const isConfigured = !!slotMap[slot];
                 return (
                   <SlotMapRow
@@ -2776,7 +2778,14 @@ function SlotMapRow({
         )}
       </div>
 
-      {binding.kind === 'literal' && (
+      {binding.kind === 'literal' && slotType === 'document' && (
+        <DocumentPicker
+          value={binding.value}
+          onChange={(next) => onChange({ kind: 'literal', value: next })}
+        />
+      )}
+
+      {binding.kind === 'literal' && slotType !== 'document' && (
         <input
           type={slotType === 'number' ? 'number' : slotType === 'date' ? 'date' : 'text'}
           value={binding.value}
@@ -2925,6 +2934,45 @@ function ListSelectorEditor({
         placeholder="limit"
         className="w-full border border-neutral-200 rounded-md px-2.5 py-1.5 text-[12px]"
       />
+    </div>
+  );
+}
+
+function DocumentPicker({ value, onChange }: { value: string; onChange: (next: string) => void }) {
+  type Doc = { id: string; name: string; url: string; mimeType: string };
+  const [docs, setDocs] = useState<Doc[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch('/api/documents')
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => setDocs(Array.isArray(data) ? data : []))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const selected = docs.find((d) => d.url === value);
+
+  return (
+    <div className="space-y-1.5">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full border border-neutral-200 rounded-md px-2 py-1 text-[12px] bg-white"
+      >
+        <option value="">{loading ? 'Loading documents…' : docs.length ? '— pick a document —' : 'No documents uploaded yet'}</option>
+        {docs.map((d) => (
+          <option key={d.id} value={d.url}>{d.name}</option>
+        ))}
+      </select>
+      {selected && (
+        <div className="flex items-center justify-between text-[10px] text-neutral-500">
+          <a href={selected.url} target="_blank" rel="noreferrer" className="text-accent hover:underline truncate">
+            {selected.url}
+          </a>
+          <span className="text-neutral-400 ml-2 shrink-0">{selected.mimeType}</span>
+        </div>
+      )}
     </div>
   );
 }

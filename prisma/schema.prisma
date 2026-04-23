@@ -193,6 +193,36 @@ model Asset {
   @@index([categoryId])
 }
 
+model DocumentCategory {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  parentId  String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  parent    DocumentCategory?  @relation("DocumentCategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children  DocumentCategory[] @relation("DocumentCategoryTree")
+  documents Document[]
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  categoryId  String?
+  name        String
+  filename    String   @unique
+  url         String
+  mimeType    String
+  size        Int
+  description String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category DocumentCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  @@index([categoryId])
+}
+
 model AiAuditLog {
   id         String   @id @default(cuid())
   userId     String?

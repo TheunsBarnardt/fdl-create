@@ -9,6 +9,7 @@ export type SlotType =
   | 'boolean'
   | 'link'
   | 'image'
+  | 'document'
   | 'richtext';
 
 export type SlotTypeDef = {
@@ -26,6 +27,7 @@ export const SLOT_TYPE_LABELS: Record<SlotType, string> = {
   boolean: 'Boolean',
   link: 'Link',
   image: 'Image URL',
+  document: 'Document',
   richtext: 'Rich text',
 };
 
@@ -58,6 +60,11 @@ export const SLOT_FORMAT_PRESETS: Record<SlotType, Array<{ value: string; label:
   ],
   link: [],
   image: [],
+  document: [
+    { value: 'url', label: 'URL only', sample: '/documents/file.pdf' },
+    { value: 'name', label: 'Document name', sample: 'Terms of Service' },
+    { value: 'link', label: 'Link (name → URL)', sample: '<a href="…">name</a>' },
+  ],
   richtext: [],
 };
 
@@ -140,6 +147,17 @@ export function formatSlot(value: any, def: SlotTypeDef | undefined): string {
         return formatDate(value, def?.format);
       case 'boolean':
         return formatBoolean(value, def?.format);
+      case 'document': {
+        // Accept either a plain URL string or a `{ url, name }` shape from a Document record.
+        if (typeof value === 'object' && value) {
+          const url = (value as any).url ?? '';
+          const name = (value as any).name ?? url;
+          if (def?.format === 'name') return String(name);
+          if (def?.format === 'url')  return String(url);
+          return String(name);
+        }
+        return String(value);
+      }
       case 'image':
       case 'link':
       case 'richtext':
