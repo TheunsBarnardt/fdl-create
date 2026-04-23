@@ -1,13 +1,15 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { Plus, Trash2, ChevronDown, Palette, Hash, Type, ToggleLeft, Ruler, Pencil } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, Palette, Pencil, Wind, ALargeSmall, Copy, Check, FolderOpen } from 'lucide-react';
+import { getTwSuggestions, getTwHint } from '@/lib/tailwind-classes';
+import { loadGoogleFont, getFontImport, searchFonts, getCategoryLabel, POPULAR_FONTS } from '@/lib/google-fonts-list';
 import { cn } from '@/lib/utils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type VariableType = 'color' | 'number' | 'string' | 'boolean' | 'dimension';
+type VariableType = 'color' | 'tailwind' | 'font';
 
 type VariableValue = string | { light: string; dark: string };
 
@@ -99,11 +101,9 @@ function buildTree(vars: Var[]): Group {
 
 function typeIcon(t: string) {
   const cls = 'w-3 h-3 shrink-0 text-neutral-400';
-  if (t === 'color')     return <Palette className={cls} />;
-  if (t === 'number')    return <Hash className={cls} />;
-  if (t === 'string')    return <Type className={cls} />;
-  if (t === 'boolean')   return <ToggleLeft className={cls} />;
-  if (t === 'dimension') return <Ruler className={cls} />;
+  if (t === 'color')    return <Palette className={cls} />;
+  if (t === 'tailwind') return <Wind className={cls} />;
+  if (t === 'font')     return <ALargeSmall className={cls} />;
   return null;
 }
 
@@ -115,8 +115,158 @@ function colorSwatch(value: VariableValue, type: string) {
 }
 
 function fmtValue(v: VariableValue, type?: string) {
+  if (type === 'tailwind' && typeof v === 'string') {
+    const hint = getTwHint(v);
+    return hint ? `${v} — ${hint.split(';')[0]}` : v;
+  }
   if (typeof v === 'string') return v;
   return `${v.light} / ${v.dark}`;
+}
+
+// ─── Font picker ──────────────────────────────────────────────────────────────
+
+function FontPicker({ value, onChange, usedFonts }: { value: string; onChange: (v: string) => void; usedFonts: string[] }) {
+  const [tab, setTab]       = useState<'google' | 'local'>('google');
+  const [search, setSearch] = useState('');
+  const [cat, setCat]       = useState('');
+  const [copied, setCopied] = useState('');
+
+  const fonts = searchFonts(search).filter(f => !cat || f.category === cat);
+
+  useEffect(() => {
+    fonts.slice(0, 25).forEach(f => loadGoogleFont(f.family));
+  }, [search, cat]);
+
+  function selectFont(family: string) {
+    loadGoogleFont(family);
+    onChange(family);
+  }
+
+  function copyImport(family: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    navigator.clipboard.writeText(getFontImport(family));
+    setCopied(family);
+    setTimeout(() => setCopied(''), 1800);
+  }
+
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [localName, setLocalName] = useState(tab === 'local' ? value : '');
+
+  async function pickLocalFont(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const guessed = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+    const url = URL.createObjectURL(file);
+    try {
+      const ff = new FontFace(guessed, `url(${url})`);
+      await ff.load();
+      (document.fonts as any).add(ff);
+    } catch {}
+    setLocalName(guessed);
+    onChange(guessed);
+  }
+
+  if (tab === 'local') {
+    return (
+      <div className="space-y-2">
+        <div className="flex gap-1 p-0.5 bg-neutral-100 rounded-md w-fit">
+          <button onClick={() => setTab('google')} className="text-[11px] px-2.5 py-1 rounded hover:bg-white">Google</button>
+          <button className="text-[11px] px-2.5 py-1 rounded bg-white shadow-sm font-medium">Local</button>
+        </div>
+        <input ref={fileRef} type="file" accept=".ttf,.otf,.woff,.woff2" className="hidden" onChange={pickLocalFont} />
+        <button
+          onClick={() => fileRef.current?.click()}
+          className="w-full flex items-center gap-2 px-3 py-2.5 border border-dashed border-neutral-300 rounded-md hover:border-neutral-400 hover:bg-neutral-50 text-sm text-neutral-600 transition-colors"
+        >
+          <FolderOpen className="w-4 h-4 text-neutral-400" />
+          <span>Browse font files</span>
+          <span className="ml-auto text-[10px] text-neutral-400">.ttf .otf .woff .woff2</span>
+        </button>
+        {localName && (
+          <>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                className="flex-1 px-3 py-2 text-sm border border-neutral-200 rounded-md focus:outline-none focus:ring-1 focus:ring-accent font-mono"
+                value={localName}
+                onChange={e => { setLocalName(e.target.value); onChange(e.target.value); }}
+                placeholder="Font family name"
+              />
+            </div>
+            <p className="text-[10px] text-neutral-400">Edit the family name if needed — this is what gets stored</p>
+            <div className="p-3 border border-neutral-200 rounded-md">
+              <p className="text-[10px] text-neutral-400 mb-1">Preview</p>
+              <p className="text-sm leading-relaxed" style={{ fontFamily: localName }}>The quick brown fox jumps over the lazy dog</p>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-1 p-0.5 bg-neutral-100 rounded-md w-fit">
+        <button className="text-[11px] px-2.5 py-1 rounded bg-white shadow-sm font-medium">Google</button>
+        <button onClick={() => { setTab('local'); setSearch(''); }} className="text-[11px] px-2.5 py-1 rounded hover:bg-white">Local</button>
+      </div>
+      <input
+        type="text"
+        autoFocus
+        className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-md focus:outline-none focus:ring-1 focus:ring-accent"
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        placeholder="Search fonts…"
+      />
+      <div className="flex flex-wrap gap-1">
+        {(['', 'sans-serif', 'serif', 'monospace', 'display', 'handwriting'] as const).map(c => (
+          <button
+            key={c || 'all'}
+            onClick={() => setCat(c)}
+            className={cn('text-[10px] px-1.5 py-0.5 rounded', cat === c ? 'bg-neutral-900 text-white' : 'bg-neutral-100 hover:bg-neutral-200')}
+          >
+            {c ? getCategoryLabel(c) : 'All'}
+          </button>
+        ))}
+      </div>
+      <div className="max-h-44 overflow-auto border border-neutral-200 rounded-md divide-y divide-neutral-100">
+        {fonts.slice(0, 30).map(f => (
+          <button
+            key={f.family}
+            onClick={() => selectFont(f.family)}
+            className={cn(
+              'w-full px-3 py-2 flex items-center justify-between gap-2 hover:bg-neutral-50 text-left group/font',
+              value === f.family && 'bg-sky-50'
+            )}
+          >
+            <div className="flex-1 min-w-0">
+              <span
+                className={cn('text-sm block truncate', usedFonts.includes(f.family) && 'font-bold')}
+                style={{ fontFamily: f.family }}
+              >
+                {f.family}
+              </span>
+              <span className="text-[10px] text-neutral-400 capitalize">{f.category.replace('-', ' ')}</span>
+            </div>
+            <button
+              onClick={e => copyImport(f.family, e)}
+              className="shrink-0 opacity-0 group-hover/font:opacity-100 text-[10px] text-neutral-400 hover:text-neutral-900 px-1.5 py-0.5 rounded hover:bg-neutral-100 flex items-center gap-1"
+              title="Copy @import"
+            >
+              {copied === f.family ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+            </button>
+          </button>
+        ))}
+        {fonts.length === 0 && <p className="text-sm text-neutral-400 px-3 py-4 text-center">No fonts found</p>}
+      </div>
+      {value && (
+        <div className="p-3 border border-neutral-200 rounded-md">
+          <p className="text-[10px] text-neutral-400 mb-1">Preview — <span className="font-mono">{value}</span></p>
+          <p className="text-sm leading-relaxed" style={{ fontFamily: value }}>The quick brown fox jumps over the lazy dog</p>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function GroupNode({
@@ -160,7 +310,7 @@ function GroupNode({
               {typeIcon(v.type)}
               <span className="flex-1 text-[12px] truncate">{v.name.split('/').pop()}</span>
               <div className="flex items-center gap-1.5 shrink-0 pr-2">
-                <span className="text-[10px] text-neutral-400 max-w-[80px] truncate">{fmtValue(v.value)}</span>
+                <span className="text-[10px] text-neutral-400 max-w-[100px] truncate">{fmtValue(v.value, v.type)}</span>
                 {colorSwatch(v.value, v.type)}
               </div>
             </button>
@@ -285,21 +435,81 @@ function CollectionModal({
   );
 }
 
+
+function TwClassInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [idx, setIdx]   = useState(-1);
+  const ref = useRef<HTMLDivElement>(null);
+  const suggestions = open ? getTwSuggestions(value) : [];
+  const hint = getTwHint(value);
+
+  useEffect(() => { setIdx(-1); }, [value]);
+  useEffect(() => {
+    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  function onKey(e: React.KeyboardEvent) {
+    if (!open || suggestions.length === 0) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); setIdx(i => Math.min(i + 1, suggestions.length - 1)); }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); setIdx(i => Math.max(i - 1, -1)); }
+    if (e.key === 'Enter' && idx >= 0) { e.preventDefault(); onChange(suggestions[idx]); setOpen(false); }
+    if (e.key === 'Escape') setOpen(false);
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      <input
+        type="text"
+        autoFocus
+        className="mt-1 w-full px-3 py-2 text-sm border border-neutral-200 rounded-md focus:outline-none focus:ring-1 focus:ring-accent font-mono"
+        value={value}
+        placeholder="pt-4, text-lg, rounded-md…"
+        onChange={e => { onChange(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onKeyDown={onKey}
+      />
+      {hint && (
+        <p className="mt-1 text-[10px] text-neutral-400 font-mono">→ {hint}</p>
+      )}
+      {open && suggestions.length > 0 && (
+        <ul className="absolute z-50 left-0 right-0 top-full mt-0.5 bg-white border border-neutral-200 rounded-md shadow-lg max-h-44 overflow-auto py-0.5 text-[12px]">
+          {suggestions.map((s, i) => {
+            const sh = getTwHint(s);
+            return (
+              <li
+                key={s}
+                className={cn('px-3 py-1.5 cursor-pointer flex items-center justify-between gap-2', i === idx ? 'bg-accent text-white' : 'hover:bg-neutral-50')}
+                onMouseDown={e => { e.preventDefault(); onChange(s); setOpen(false); }}
+              >
+                <span className="font-mono">{s}</span>
+                {sh && <span className={cn('text-[10px] truncate max-w-[140px]', i === idx ? 'text-white/70' : 'text-neutral-400')}>{sh.split(';')[0]}</span>}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+
 function VariableModal({
-  v, col, onClose, onSave,
-}: { v: Var | null; col: Col; onClose: () => void; onSave: (d: any) => Promise<void> }) {
-  const [name,  setName]  = useState(v?.name ?? '');
-  const [type,  setType]  = useState<VariableType>(v?.type ?? 'color');
-  const [lv,    setLv]    = useState(typeof v?.value === 'string' ? v.value : (v?.value as any)?.light ?? '');
-  const [dv,    setDv]    = useState(typeof v?.value === 'object' ? (v.value as any)?.dark ?? '' : '');
-  const [desc,  setDesc]  = useState(v?.description ?? '');
-  const [busy,  setBusy]  = useState(false);
-  const [err,   setErr]   = useState('');
+  v, col, onClose, onSave, usedFonts,
+}: { v: Var | null; col: Col; onClose: () => void; onSave: (d: any) => Promise<void>; usedFonts: string[] }) {
+  const [name,   setName]   = useState(v?.name ?? '');
+  const [type,   setType]   = useState<VariableType>(v?.type ?? 'color');
+  const [lv,     setLv]     = useState(typeof v?.value === 'string' ? v.value : (v?.value as any)?.light ?? '');
+  const [dv,     setDv]     = useState(typeof v?.value === 'object' ? (v.value as any)?.dark ?? '' : '');
+  const [desc,   setDesc]   = useState(v?.description ?? '');
+  const [busy,   setBusy]   = useState(false);
+  const [err,    setErr]    = useState('');
 
   async function submit() {
     if (!name.trim()) { setErr('Name is required'); return; }
     if (!lv.trim()) { setErr('Value is required'); return; }
-    const value = col.mode === 'multi' ? { light: lv.trim(), dark: dv.trim() } : lv.trim();
+    const value = (col.mode === 'multi' && type !== 'font') ? { light: lv.trim(), dark: dv.trim() } : lv.trim();
     setBusy(true);
     try {
       await onSave({ name: name.trim().toLowerCase().replace(/\s+/g, '-'), type, value, description: desc.trim() || undefined });
@@ -333,56 +543,59 @@ function VariableModal({
           <select
             className="mt-1 w-full px-3 py-2 text-sm border border-neutral-200 rounded-md focus:outline-none focus:ring-1 focus:ring-accent bg-white"
             value={type}
-            onChange={(e) => setType(e.target.value as VariableType)}
+            onChange={(e) => {
+              const t = e.target.value as VariableType;
+              setType(t);
+              if (t === 'tailwind' || type === 'tailwind' || t === 'font' || type === 'font') { setLv(''); setDv(''); }
+            }}
           >
             <option value="color">Color</option>
-            <option value="number">Number</option>
-            <option value="string">String</option>
-            <option value="boolean">Boolean</option>
-            <option value="dimension">Dimension</option>
+            <option value="tailwind">Tailwind</option>
+            <option value="font">Font</option>
           </select>
         </label>
 
-        {(['light', 'dark'] as const).filter(m => col.mode === 'multi' || m === 'light').map((m) => {
-          const val = m === 'light' ? lv : dv;
-          const set = m === 'light' ? setLv : setDv;
-          return (
-            <label key={m} className="block">
-              <span className="text-[11px] uppercase tracking-wider text-neutral-500">
-                {col.mode === 'multi' ? (m === 'light' ? 'Light value' : 'Dark value') : 'Value'}
-              </span>
-              <div className="mt-1 flex gap-2">
-                {type === 'color' && (
+        {type === 'font' ? (
+          <div>
+            <span className="text-[11px] uppercase tracking-wider text-neutral-500">Font family</span>
+            <div className="mt-2">
+              <FontPicker value={lv} onChange={setLv} usedFonts={usedFonts} />
+            </div>
+          </div>
+        ) : type === 'tailwind' ? (
+          <label className="block">
+            <span className="text-[11px] uppercase tracking-wider text-neutral-500">Value</span>
+            <TwClassInput value={lv} onChange={setLv} />
+          </label>
+        ) : (
+          (['light', 'dark'] as const).filter(m => col.mode === 'multi' || m === 'light').map((m) => {
+            const val = m === 'light' ? lv : dv;
+            const set = m === 'light' ? setLv : setDv;
+            return (
+              <label key={m} className="block">
+                <span className="text-[11px] uppercase tracking-wider text-neutral-500">
+                  {col.mode === 'multi' ? (m === 'light' ? 'Light value' : 'Dark value') : 'Value'}
+                </span>
+                <div className="mt-1 flex gap-2">
                   <input
                     type="color"
                     value={val.startsWith('#') ? val : (val ? hslToHex(val) : '#000000')}
                     onChange={(e) => set(e.target.value)}
                     className="w-10 h-10 rounded cursor-pointer border border-neutral-200 p-0.5"
                   />
-                )}
-                {type === 'boolean' ? (
-                  <select
-                    className="flex-1 px-3 py-2 text-sm border border-neutral-200 rounded-md focus:outline-none focus:ring-1 focus:ring-accent bg-white"
-                    value={val}
-                    onChange={(e) => set(e.target.value)}
-                  >
-                    <option value="">Pick one</option>
-                    <option value="true">true</option>
-                    <option value="false">false</option>
-                  </select>
-                ) : (
                   <input
-                    type={type === 'number' ? 'number' : 'text'}
+                    type="text"
                     className="flex-1 px-3 py-2 text-sm border border-neutral-200 rounded-md focus:outline-none focus:ring-1 focus:ring-accent font-mono"
                     value={val}
                     onChange={(e) => set(e.target.value)}
-                    placeholder={type === 'color' ? '#FF0000 or 222 47% 11%' : type === 'dimension' ? '16px or 1rem' : 'Enter value'}
+                    placeholder="#FF0000 or 222 47% 11%"
                   />
-                )}
-              </div>
-            </label>
-          );
-        })}
+                </div>
+              </label>
+            );
+          })
+        )}
+
 
         <label className="block">
           <span className="text-[11px] uppercase tracking-wider text-neutral-500">Description</span>
@@ -643,14 +856,42 @@ export function VariableCollectionsPanel() {
                 </div>
               )}
 
-              {selVar.type !== 'color' && (
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider text-neutral-400">Value</p>
-                  <p className="text-sm font-mono mt-1 break-all">
-                    {typeof selVar.value === 'string' ? selVar.value : JSON.stringify(selVar.value)}
-                  </p>
-                </div>
-              )}
+              {selVar.type === 'tailwind' && typeof selVar.value === 'string' && (() => {
+                const hint = getTwHint(selVar.value);
+                return (
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] uppercase tracking-wider text-neutral-400">Class</p>
+                    <p className="text-sm font-mono">{selVar.value}</p>
+                    {hint && (
+                      <>
+                        <p className="text-[10px] uppercase tracking-wider text-neutral-400 mt-2">CSS</p>
+                        <div className="font-mono text-[11px] text-neutral-600 space-y-0.5">
+                          {hint.split(';').filter(Boolean).map((line, i) => (
+                            <p key={i}>{line.trim()}</p>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {selVar.type === 'font' && typeof selVar.value === 'string' && (() => {
+                loadGoogleFont(selVar.value);
+                return (
+                  <div className="space-y-2">
+                    <p className="text-[10px] uppercase tracking-wider text-neutral-400">Family</p>
+                    <p className="text-sm font-mono">{selVar.value}</p>
+                    <div className="p-3 border border-neutral-200 rounded-md">
+                      <p className="text-[10px] text-neutral-400 mb-1">Preview</p>
+                      <p className="text-sm leading-relaxed" style={{ fontFamily: selVar.value }}>
+                        The quick brown fox jumps over the lazy dog
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
+
 
               {selVar.description && (
                 <div>
@@ -700,6 +941,7 @@ export function VariableCollectionsPanel() {
           col={active}
           onClose={() => setVarModal(null)}
           onSave={saveVar}
+          usedFonts={active.variables.filter(v => v.type === 'font').map(v => typeof v.value === 'string' ? v.value : '').filter(Boolean)}
         />
       )}
     </div>

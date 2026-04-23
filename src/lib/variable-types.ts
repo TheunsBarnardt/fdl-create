@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export type VariableType = 'color' | 'number' | 'string' | 'boolean' | 'dimension';
+export type VariableType = 'color' | 'tailwind' | 'font';
 
 export type VariableValue =
   | string // single mode: "#FF0000" or "16px" or "true" or "{colors/primary}"
@@ -58,7 +58,7 @@ const VariableValueSchema = z.union([
 
 export const CreateVariableSchema = z.object({
   name: z.string().min(1).regex(/^[a-z0-9_-]+(?:\/[a-z0-9_-]+)*$/, 'Invalid variable name format'),
-  type: z.enum(['color', 'number', 'string', 'boolean', 'dimension']),
+  type: z.enum(['color', 'tailwind', 'font']),
   value: VariableValueSchema,
   description: z.string().optional(),
 });
@@ -67,7 +67,7 @@ export type CreateVariable = z.infer<typeof CreateVariableSchema>;
 
 export const UpdateVariableSchema = z.object({
   name: z.string().min(1).regex(/^[a-z0-9_-]+(?:\/[a-z0-9_-]+)*$/).optional(),
-  type: z.enum(['color', 'number', 'string', 'boolean', 'dimension']).optional(),
+  type: z.enum(['color', 'tailwind', 'font']).optional(),
   value: VariableValueSchema.optional(),
   description: z.string().optional(),
   order: z.number().int().optional(),

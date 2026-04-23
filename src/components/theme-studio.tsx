@@ -1,9 +1,10 @@
 'use client';
-import { useMemo, useState, useEffect, type CSSProperties } from 'react';
+import { useMemo, useState, useEffect, useRef, useCallback, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Copy, Save, Sun, Moon, Sparkles, Link2, Search } from 'lucide-react';
+import { Copy, Save, Sun, Moon, Sparkles, Link2, Search, ChevronDown, Trash2, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getTwHint } from '@/lib/tailwind-classes';
 
 type Scope = 'both' | 'admin' | 'published';
 type Mode = 'light' | 'dark';
@@ -35,15 +36,8 @@ type Tokens = {
   fontBody: string;
   fontDisplay: string;
   fontMono: string;
-  // Typography scale
-  h1Size: string; h1Weight: number; h1Tracking: string; h1Leading: string;
-  h2Size: string; h2Weight: number; h2Tracking: string; h2Leading: string;
-  h3Size: string; h3Weight: number; h3Tracking: string; h3Leading: string;
-  h4Size: string; h4Weight: number; h4Tracking: string; h4Leading: string;
-  h5Size: string; h5Weight: number; h5Tracking: string; h5Leading: string;
-  h6Size: string; h6Weight: number; h6Tracking: string; h6Leading: string;
-  bodySize: string; bodyWeight: number; bodyLeading: string;
-  underlineOffset: string; underlineThickness: string;
+  // Dynamic type scale: element → variable group path
+  typeBindings: Record<string, string>; // { h1: 'display-2xl/book', p: 'body/regular', … }
 };
 
 type Theme = { id?: string; name: string; tokens: any; isDefault: boolean };
@@ -106,14 +100,7 @@ const DEFAULT_TOKENS: Tokens = {
   fontBody: 'Inter',
   fontDisplay: 'Fraunces',
   fontMono: 'JetBrains Mono',
-  h1Size: '2.5rem',  h1Weight: 700, h1Tracking: '-0.025em', h1Leading: '1.15',
-  h2Size: '2rem',    h2Weight: 700, h2Tracking: '-0.02em',  h2Leading: '1.2',
-  h3Size: '1.5rem',  h3Weight: 600, h3Tracking: '-0.015em', h3Leading: '1.25',
-  h4Size: '1.25rem', h4Weight: 600, h4Tracking: '-0.01em',  h4Leading: '1.3',
-  h5Size: '1.125rem',h5Weight: 600, h5Tracking: '-0.005em', h5Leading: '1.35',
-  h6Size: '1rem',    h6Weight: 600, h6Tracking: '0em',      h6Leading: '1.4',
-  bodySize: '0.875rem', bodyWeight: 400, bodyLeading: '1.6',
-  underlineOffset: '3px', underlineThickness: '1px',
+  typeBindings: {},
 };
 
 function hslToHex(hsl: string): string {
@@ -198,7 +185,160 @@ const PRESET_SWATCHES: Record<string, { label: string; fg: string; bg: string; b
 };
 
 function normalizeTokens(raw: any): Tokens {
-  return { ...DEFAULT_TOKENS, ...(raw && typeof raw === 'object' ? raw : {}) };
+  const merged = { ...DEFAULT_TOKENS, ...(raw && typeof raw === 'object' ? raw : {}) };
+  if (!merged.typeBindings || typeof merged.typeBindings !== 'object') merged.typeBindings = {};
+  return merged;
+}
+
+// ── Type scale helpers ────────────────────────────────────────────────────────
+
+const COMMON_ELEMENTS = ['h1','h2','h3','h4','h5','h6','p','a','label','small','code','blockquote','caption'];
+
+const ALL_ELEMENTS = [
+  'body','main','section','article','header','footer','nav','aside',
+  'h1','h2','h3','h4','h5','h6',
+  'p','a','span','div','li','ul','ol',
+  'label','small','strong','em','b','i','mark','del','ins','sub','sup','s',
+  'code','pre','kbd','samp','var',
+  'blockquote','cite','q','abbr','dfn','address','time',
+  'caption','th','td','figcaption','legend','summary',
+  'button','input','select','textarea',
+  'table','thead','tbody','tr',
+];
+
+function ElementSearchInput({ existing, onAdd }: { existing: string[]; onAdd: (el: string) => void }) {
+  const [query, setQuery] = useState('');
+  const [open, setOpen]   = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const suggestions = ALL_ELEMENTS.filter(e => !existing.includes(e) && (!query || e.includes(query.toLowerCase())));
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); } };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+
+  function pick(el: string) { onAdd(el); setQuery(''); setOpen(false); }
+
+  return (
+    <div ref={ref} className="relative">
+      <input
+        className="text-[11px] font-mono px-2 py-1.5 border border-dashed border-neutral-200 rounded w-full focus:outline-none focus:border-accent placeholder:text-neutral-400"
+        placeholder="Search element… (body, section, button…)"
+        value={query}
+        onChange={e => { setQuery(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' && query.trim()) {
+            pick(query.trim());
+          }
+          if (e.key === 'Escape') setOpen(false);
+        }}
+      />
+      {open && suggestions.length > 0 && (
+        <ul className="absolute z-50 left-0 top-full mt-0.5 bg-white border border-neutral-200 rounded-md shadow-lg max-h-44 overflow-auto py-0.5 min-w-[120px]">
+          {suggestions.map(e => (
+            <li
+              key={e}
+              className="px-3 py-1.5 text-[11px] font-mono cursor-pointer hover:bg-neutral-50"
+              onMouseDown={ev => { ev.preventDefault(); pick(e); }}
+            >
+              {e}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function resolveToCssValue(v: VarItem): string {
+  const raw = typeof v.value === 'string' ? v.value : (v.value as any).light ?? '';
+  if (v.type === 'tailwind') {
+    const hint = getTwHint(raw);
+    if (!hint) return raw;
+    const firstPart = hint.split(';')[0].split('/')[0].trim();
+    const idx = firstPart.indexOf(':');
+    return idx >= 0 ? firstPart.slice(idx + 1).trim() : raw;
+  }
+  return raw;
+}
+
+function buildBindingStyles(groupPath: string, allVars: VarItem[]): CSSProperties {
+  if (!groupPath) return {};
+  const styles: Record<string, string> = {};
+  for (const gv of allVars) {
+    const parts = gv.name.split('/');
+    if (parts.slice(0, -1).join('/') !== groupPath) continue;
+    const prop = parts[parts.length - 1];
+    const val = resolveToCssValue(gv);
+    if (val) (styles as any)[prop.replace(/-([a-z])/g, (_: string, c: string) => c.toUpperCase())] = val;
+  }
+  return styles as CSSProperties;
+}
+
+// ── GroupSelector ─────────────────────────────────────────────────────────────
+
+function GroupSelector({ value, onChange, groups, allVars }: {
+  value: string; onChange: (v: string) => void; groups: string[]; allVars: VarItem[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+  const filtered = groups.filter(g => !search || g.toLowerCase().includes(search.toLowerCase()));
+  const preview = value ? allVars.filter(v => v.name.split('/').slice(0, -1).join('/') === value) : [];
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); setSearch(''); } };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative flex-1 min-w-0">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className={cn('w-full flex items-center justify-between px-2 py-1 border rounded text-[11px] font-mono hover:border-neutral-300 transition-colors', value ? 'border-neutral-200' : 'border-dashed border-neutral-300 text-neutral-400')}
+      >
+        <span className="truncate">{value || 'assign group…'}</span>
+        <ChevronDown className="w-3 h-3 shrink-0 text-neutral-400 ml-1" />
+      </button>
+      {value && preview.length > 0 && (
+        <div className="mt-0.5 flex flex-wrap gap-1">
+          {preview.map(v => (
+            <span key={v.id} className="text-[9px] bg-neutral-100 rounded px-1 py-0.5 font-mono text-neutral-500">
+              {v.name.split('/').pop()}: <span className="text-neutral-700">{typeof v.value === 'string' ? v.value : (v.value as any).light}</span>
+            </span>
+          ))}
+        </div>
+      )}
+      {open && (
+        <div className="absolute z-50 left-0 top-full mt-0.5 w-full min-w-[200px] bg-white border border-neutral-200 rounded-md shadow-lg">
+          <div className="p-1.5 border-b border-neutral-100">
+            <input
+              autoFocus
+              className="w-full px-2 py-1 text-[11px] border border-neutral-200 rounded focus:outline-none"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search groups…"
+            />
+          </div>
+          <ul className="max-h-44 overflow-auto py-0.5">
+            {filtered.map(g => (
+              <li
+                key={g}
+                className={cn('px-3 py-1.5 text-[11px] font-mono cursor-pointer', value === g ? 'bg-sky-50 text-sky-700 font-medium' : 'hover:bg-neutral-50')}
+                onMouseDown={e => { e.preventDefault(); onChange(g); setOpen(false); setSearch(''); }}
+              >
+                {g}
+              </li>
+            ))}
+            {filtered.length === 0 && <li className="px-3 py-3 text-[11px] text-neutral-400 text-center">No variable groups found</li>}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function ThemeStudio({
@@ -225,31 +365,46 @@ export function ThemeStudio({
     presets: true, colors: true, radius: false, fonts: false, typeScale: false, claude: false,
   });
   const toggle = (k: string) => setOpen((o) => ({ ...o, [k]: !o[k] }));
-  const [colorVars, setColorVars] = useState<VarItem[]>([]);
+  const [allVars, setAllVars] = useState<VarItem[]>([]);
+  const colorVars = useMemo(() => allVars.filter(v => v.type === 'color'), [allVars]);
+  const typeVars  = useMemo(() => allVars.filter(v => v.type === 'tailwind'), [allVars]);
+  const varGroups = useMemo(() => {
+    const groups = new Set<string>();
+    for (const v of typeVars) {
+      const parts = v.name.split('/');
+      if (parts.length >= 2) groups.add(parts.slice(0, -1).join('/'));
+    }
+    return Array.from(groups).sort();
+  }, [typeVars]);
   const [varPickerOpen, setVarPickerOpen] = useState<string | null>(null);
   const [varSearch, setVarSearch] = useState('');
 
-  // Load custom presets and color variables on mount
-  useEffect(() => {
-    (async () => {
-      try {
-        const [presetsRes, varsRes] = await Promise.all([
-          fetch('/api/presets'),
-          fetch('/api/variable-collections'),
-        ]);
-        if (presetsRes.ok) setPresets(await presetsRes.json());
-        if (varsRes.ok) {
-          const cols = await varsRes.json();
-          const all: VarItem[] = (Array.isArray(cols) ? cols : []).flatMap(
-            (col: any) => (col.variables ?? []).filter((v: any) => v.type === 'color').map((v: any) => ({ ...v, collectionLabel: col.label || col.name || 'Variables' }))
-          );
-          setColorVars(all);
-        }
-      } catch (e) {
-        console.error('Failed to load', e);
+  // Load presets and all variables — also re-fetch when tab becomes visible (handles HMR stale state)
+  const loadVars = useCallback(async () => {
+    try {
+      const [presetsRes, varsRes] = await Promise.all([
+        fetch('/api/presets'),
+        fetch('/api/variable-collections'),
+      ]);
+      if (presetsRes.ok) setPresets(await presetsRes.json());
+      if (varsRes.ok) {
+        const cols = await varsRes.json();
+        const all: VarItem[] = (Array.isArray(cols) ? cols : []).flatMap(
+          (col: any) => (col.variables ?? []).map((v: any) => ({ ...v, collectionLabel: col.label || col.name || 'Variables' }))
+        );
+        setAllVars(all);
       }
-    })();
+    } catch (e) {
+      console.error('Failed to load', e);
+    }
   }, []);
+
+  useEffect(() => {
+    loadVars();
+    const onVisible = () => { if (document.visibilityState === 'visible') loadVars(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [loadVars]);
 
   const loadTheme = (t: typeof themes[number]) => {
     setSelectedId(t.id);
@@ -387,14 +542,6 @@ export function ThemeStudio({
       '--ring': rc(d ? tokens.darkRing : tokens.ring),
       '--radius': `${tokens.radius}rem`,
       '--theme-font': tokens.fontBody,
-      '--h1-size': tokens.h1Size, '--h1-weight': String(tokens.h1Weight), '--h1-tracking': tokens.h1Tracking, '--h1-leading': tokens.h1Leading,
-      '--h2-size': tokens.h2Size, '--h2-weight': String(tokens.h2Weight), '--h2-tracking': tokens.h2Tracking, '--h2-leading': tokens.h2Leading,
-      '--h3-size': tokens.h3Size, '--h3-weight': String(tokens.h3Weight), '--h3-tracking': tokens.h3Tracking, '--h3-leading': tokens.h3Leading,
-      '--h4-size': tokens.h4Size, '--h4-weight': String(tokens.h4Weight), '--h4-tracking': tokens.h4Tracking, '--h4-leading': tokens.h4Leading,
-      '--h5-size': tokens.h5Size, '--h5-weight': String(tokens.h5Weight), '--h5-tracking': tokens.h5Tracking, '--h5-leading': tokens.h5Leading,
-      '--h6-size': tokens.h6Size, '--h6-weight': String(tokens.h6Weight), '--h6-tracking': tokens.h6Tracking, '--h6-leading': tokens.h6Leading,
-      '--body-size': tokens.bodySize, '--body-weight': String(tokens.bodyWeight), '--body-leading': tokens.bodyLeading,
-      '--underline-offset': tokens.underlineOffset, '--underline-thickness': tokens.underlineThickness,
     } as CSSProperties;
   }, [tokens, colorVars]);
 
@@ -787,97 +934,58 @@ export function ThemeStudio({
 
           <div className="border-b border-neutral-200">
             <button onClick={() => toggle('typeScale')} className="w-full px-4 py-3 flex items-center justify-between hover:bg-neutral-50">
-              <span className="text-[10px] uppercase tracking-wider text-neutral-400">Type scale</span>
+              <span className="text-[10px] uppercase tracking-wider text-neutral-400">
+                Type scale
+                {Object.keys(tokens.typeBindings || {}).length > 0 && (
+                  <span className="ml-1.5 text-neutral-400 normal-case tracking-normal font-normal">
+                    ({Object.keys(tokens.typeBindings).length})
+                  </span>
+                )}
+              </span>
               <Chevron open={open.typeScale} />
             </button>
-          {open.typeScale && <div className="px-4 pb-4">
-            <div className="grid grid-cols-[28px_52px_44px_54px_44px] gap-1 px-0 mb-1">
-              <span />
-              <span className="text-[10px] text-neutral-400">Size</span>
-              <span className="text-[10px] text-neutral-400">Wt</span>
-              <span className="text-[10px] text-neutral-400">Tracking</span>
-              <span className="text-[10px] text-neutral-400">Leading</span>
-            </div>
-            <div className="mb-3 space-y-1.5">
-              {(['h1','h2','h3','h4','h5','h6'] as const).map((tag) => (
-                <div key={tag} className="grid grid-cols-[28px_52px_44px_54px_44px] gap-1 items-center">
-                  <span className="mono text-[11px] text-neutral-500 uppercase">{tag}</span>
-                  <input
-                    title="Size"
-                    className="mono text-[11px] px-1 py-0.5 border border-neutral-200 rounded focus:outline-none focus:border-accent"
-                    value={tokens[`${tag}Size`]}
-                    onChange={(e) => setTokens({ ...tokens, [`${tag}Size`]: e.target.value })}
-                    placeholder="2rem"
-                  />
-                  <input
-                    title="Weight"
-                    type="number"
-                    min={100} max={900} step={100}
-                    className="mono text-[11px] px-1 py-0.5 border border-neutral-200 rounded focus:outline-none focus:border-accent"
-                    value={tokens[`${tag}Weight`]}
-                    onChange={(e) => setTokens({ ...tokens, [`${tag}Weight`]: Number(e.target.value) })}
-                  />
-                  <input
-                    title="Letter spacing"
-                    className="mono text-[11px] px-1 py-0.5 border border-neutral-200 rounded focus:outline-none focus:border-accent"
-                    value={tokens[`${tag}Tracking`]}
-                    onChange={(e) => setTokens({ ...tokens, [`${tag}Tracking`]: e.target.value })}
-                    placeholder="-0.02em"
-                  />
-                  <input
-                    title="Line height"
-                    className="mono text-[11px] px-1 py-0.5 border border-neutral-200 rounded focus:outline-none focus:border-accent"
-                    value={tokens[`${tag}Leading`]}
-                    onChange={(e) => setTokens({ ...tokens, [`${tag}Leading`]: e.target.value })}
-                    placeholder="1.2"
+            {open.typeScale && (
+              <div className="px-4 pb-4 space-y-2">
+                {Object.entries(tokens.typeBindings || {}).map(([element, group]) => (
+                  <div key={element} className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="mono text-[11px] text-neutral-600 font-medium w-10 shrink-0">{element}</span>
+                      <GroupSelector
+                        value={group}
+                        onChange={g => setTokens(t => ({ ...t, typeBindings: { ...t.typeBindings, [element]: g } }))}
+                        groups={varGroups}
+                        allVars={typeVars}
+                      />
+                      <button
+                        onClick={() => setTokens(t => {
+                          const { [element]: _, ...rest } = t.typeBindings || {};
+                          return { ...t, typeBindings: rest };
+                        })}
+                        className="shrink-0 text-neutral-300 hover:text-destructive transition-colors"
+                        title="Remove"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Add element row */}
+                <div className="pt-1">
+                  <div className="text-[10px] text-neutral-400 mb-1.5">Add element</div>
+                  <ElementSearchInput
+                    existing={Object.keys(tokens.typeBindings || {})}
+                    onAdd={el => setTokens(t => ({ ...t, typeBindings: { ...(t.typeBindings || {}), [el]: '' } }))}
                   />
                 </div>
-              ))}
-              <div className="grid grid-cols-[28px_52px_44px_1fr] gap-1 items-center pt-1 border-t border-neutral-100 mt-1">
-                <span className="mono text-[11px] text-neutral-500">p</span>
-                <input
-                  title="Body size"
-                  className="mono text-[11px] px-1 py-0.5 border border-neutral-200 rounded focus:outline-none focus:border-accent"
-                  value={tokens.bodySize}
-                  onChange={(e) => setTokens({ ...tokens, bodySize: e.target.value })}
-                />
-                <input
-                  title="Body weight"
-                  type="number" min={100} max={900} step={100}
-                  className="mono text-[11px] px-1 py-0.5 border border-neutral-200 rounded focus:outline-none focus:border-accent"
-                  value={tokens.bodyWeight}
-                  onChange={(e) => setTokens({ ...tokens, bodyWeight: Number(e.target.value) })}
-                />
-                <input
-                  title="Body line height"
-                  className="mono text-[11px] px-1 py-0.5 border border-neutral-200 rounded focus:outline-none focus:border-accent"
-                  value={tokens.bodyLeading}
-                  onChange={(e) => setTokens({ ...tokens, bodyLeading: e.target.value })}
-                />
+
+                {varGroups.length === 0 && (
+                  <p className="text-[10px] text-neutral-400 italic pt-1">
+                    No variable groups yet — add variables with group paths (e.g. <span className="font-mono">display-2xl/book/font-size</span>) in the Variables section.
+                  </p>
+                )}
               </div>
-            </div>
-            <div className="mt-3 space-y-1.5">
-              <div className="text-[10px] uppercase tracking-wider text-neutral-400 mb-1.5">Underline</div>
-              <div className="flex items-center gap-2">
-                <label className="text-[11px] text-neutral-500 w-14 shrink-0">Offset</label>
-                <input
-                  className="mono text-[11px] w-20 px-1.5 py-0.5 border border-neutral-200 rounded focus:outline-none focus:border-accent"
-                  value={tokens.underlineOffset}
-                  onChange={(e) => setTokens({ ...tokens, underlineOffset: e.target.value })}
-                  placeholder="3px"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-[11px] text-neutral-500 w-14 shrink-0">Thickness</label>
-                <input
-                  className="mono text-[11px] w-20 px-1.5 py-0.5 border border-neutral-200 rounded focus:outline-none focus:border-accent"
-                  value={tokens.underlineThickness}
-                  onChange={(e) => setTokens({ ...tokens, underlineThickness: e.target.value })}
-                  placeholder="1px"
-                />
-              </div>
-            </div>
-          </div>}
+            )}
           </div>
 
           <div className="p-4">
@@ -914,29 +1022,24 @@ export function ThemeStudio({
             >
               <div className="mb-6">
                 <div className="text-xs tp-muted uppercase tracking-wider mb-3">Type scale</div>
-                {(['h1','h2','h3','h4','h5','h6'] as const).map((tag) => (
-                  <div key={tag} style={{
-                    fontSize: `var(--${tag}-size)`,
-                    fontWeight: `var(--${tag}-weight)`,
-                    letterSpacing: `var(--${tag}-tracking)`,
-                    lineHeight: `var(--${tag}-leading)`,
-                    fontFamily: tokens.fontDisplay,
-                    marginBottom: '0.15em',
-                  }}>
-                    {tag.toUpperCase()} — The quick brown fox
-                  </div>
-                ))}
-                <p style={{
-                  fontSize: 'var(--body-size)',
-                  fontWeight: 'var(--body-weight)',
-                  lineHeight: 'var(--body-leading)',
-                  marginTop: '0.75rem',
-                }} className="tp-muted">
-                  Body — The quick brown fox jumps over the lazy dog. 0123456789
-                </p>
-                <p style={{ fontSize: 'var(--body-size)', textDecoration: 'underline', textUnderlineOffset: 'var(--underline-offset)', textDecorationThickness: 'var(--underline-thickness)', marginTop: '0.25rem' }}>
-                  Underline style — click here to learn more
-                </p>
+                {Object.keys(tokens.typeBindings || {}).length === 0 ? (
+                  <p className="text-[11px] tp-muted italic">No type bindings yet — assign variable groups to elements in the Type scale panel.</p>
+                ) : (
+                  Object.entries(tokens.typeBindings || {}).map(([element, group]) => {
+                    const styles = buildBindingStyles(group, typeVars);
+                    return (
+                      <div
+                        key={element}
+                        style={{ ...styles, fontFamily: tokens.fontDisplay, marginBottom: '0.25em' }}
+                      >
+                        <span className="tp-muted text-[10px] font-mono normal-case mr-2" style={{ fontFamily: 'inherit', fontSize: undefined, fontWeight: undefined }}>
+                          {element}
+                        </span>
+                        — The quick brown fox jumps over the lazy dog
+                      </div>
+                    );
+                  })
+                )}
               </div>
 
               <div className="tp-divider mb-8" />
