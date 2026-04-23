@@ -5,9 +5,23 @@ import { prisma } from '@/lib/db';
 import { auth } from '@/auth';
 import { renderPageTree } from '@/lib/page-render';
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+// Map the trailing URL segments onto the page's declared params array.
+// URL `/pages/posts/abc-123` + page { slug: "posts", params: "id" }
+//   → { id: "abc-123" }.
+function buildRouteParams(page: { params: string | null }, rest: string[]): Record<string, string> {
+  const names = (page.params ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+  const out: Record<string, string> = {};
+  names.forEach((name, i) => {
+    if (rest[i] !== undefined) out[name] = rest[i];
+  });
+  return out;
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string[] }> }): Promise<Metadata> {
   const { slug } = await params;
-  const page = await prisma.page.findUnique({ where: { slug }, select: { title: true, seo: true } }).catch(() => null);
+  const pageSlug = slug?.[0];
+  if (!pageSlug) return {};
+  const page = await prisma.page.findUnique({ where: { slug: pageSlug }, select: { title: true, seo: true } }).catch(() => null);
   if (!page) return {};
   const seo = page.seo ? JSON.parse(page.seo) : {};
   return {
@@ -27,13 +41,17 @@ export default async function PublicPage({
   params,
   searchParams
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ slug: string[] }>;
   searchParams: Promise<{ preview?: string }>;
 }) {
   const { slug } = await params;
   const { preview } = await searchParams;
 
-  const page = await prisma.page.findUnique({ where: { slug } }).catch(() => null);
+  const pageSlug = slug?.[0];
+  if (!pageSlug) notFound();
+  const rest = slug.slice(1);
+
+  const page = await prisma.page.findUnique({ where: { slug: pageSlug } }).catch(() => null);
   if (!page) notFound();
 
   const session = preview === '1' ? await auth() : null;
@@ -41,9 +59,11 @@ export default async function PublicPage({
 
   if (!page.published && !canPreview) notFound();
 
+  const routeParams = buildRouteParams(page, rest);
+
   const body = await renderPageTree(page.tree, {
     defaultCollection: (page as any).defaultCollection ?? null,
-    routeParams: {},
+    routeParams,
   });
 
   return (
