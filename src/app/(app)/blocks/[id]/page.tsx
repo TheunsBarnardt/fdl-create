@@ -25,7 +25,8 @@ export default async function EditBlockPage({ params }: { params: { id: string }
         source: block.source,
         collection: block.collection,
         slotMap: block.slotMap ? JSON.parse(block.slotMap) : {},
-        category: block.category ?? ''
+        category: block.category ?? '',
+        themeId: block.themeId ?? null
       }}
     />
   );

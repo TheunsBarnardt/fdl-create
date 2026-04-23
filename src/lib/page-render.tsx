@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { prisma } from '@/lib/db';
 import { jsxToHtml } from '@/lib/editor/jsx-to-html';
+import { applyThemeTypography, type VarItem } from '@/lib/theme-typography';
 
 // Server-side renderer for Lexical page trees → HTML.
 // Keep this in sync with the decorator node types in src/lib/editor/nodes.tsx.
@@ -19,15 +20,57 @@ export async function renderPageTree(raw: string | null | undefined): Promise<Re
   }
 
   const collectionNames = new Set<string>();
+  const presetIds = new Set<string>();
   const walk = (n: LexNode) => {
     if (n.type === 'fdl-collection-list' && n.collection) collectionNames.add(n.collection);
+    if (n.type === 'fdl-preset-block' && n.presetId) presetIds.add(n.presetId);
     (n.children ?? []).forEach(walk);
   };
   children.forEach(walk);
 
-  const collectionData = await loadCollectionData([...collectionNames]);
+  const [collectionData, blockThemes] = await Promise.all([
+    loadCollectionData([...collectionNames]),
+    loadBlockThemes([...presetIds])
+  ]);
 
-  return <>{children.map((n, i) => renderNode(n, `${i}`, collectionData))}</>;
+  return <>{children.map((n, i) => renderNode(n, `${i}`, collectionData, blockThemes))}</>;
+}
+
+type BlockTheme = { typeBindings: Record<string, string>; vars: VarItem[] };
+
+async function loadBlockThemes(blockIds: string[]): Promise<Record<string, BlockTheme>> {
+  if (blockIds.length === 0) return {};
+  // Gather each block's themeId, then unique themes + all variables once.
+  const rows = await prisma.$queryRawUnsafe<Array<{ id: string; themeId: string | null }>>(
+    `SELECT id, themeId FROM "CustomBlock" WHERE id IN (${blockIds.map(() => '?').join(',')})`,
+    ...blockIds
+  ).catch(() => [] as Array<{ id: string; themeId: string | null }>);
+
+  const themeIds = Array.from(new Set(rows.map((r) => r.themeId).filter((x): x is string => !!x)));
+  if (themeIds.length === 0) return {};
+
+  const [themes, varCols] = await Promise.all([
+    prisma.theme.findMany({ where: { id: { in: themeIds } } }),
+    prisma.variableCollection.findMany({ include: { variables: true } }).catch(() => [])
+  ]);
+  const vars: VarItem[] = (varCols as any[]).flatMap((c) =>
+    (c.variables || []).map((v: any) => ({
+      name: v.name,
+      type: v.type,
+      value: (() => { try { return JSON.parse(v.value); } catch { return v.value; } })()
+    }))
+  );
+  const themeById: Record<string, BlockTheme> = {};
+  for (const t of themes) {
+    let tokens: any = {};
+    try { tokens = JSON.parse(t.tokens); } catch {}
+    themeById[t.id] = { typeBindings: tokens.typeBindings ?? {}, vars };
+  }
+  const out: Record<string, BlockTheme> = {};
+  for (const r of rows) {
+    if (r.themeId && themeById[r.themeId]) out[r.id] = themeById[r.themeId];
+  }
+  return out;
 }
 
 async function loadCollectionData(names: string[]) {
@@ -50,7 +93,7 @@ async function loadCollectionData(names: string[]) {
   return data;
 }
 
-function renderNode(n: LexNode, key: string, data: Record<string, { label: string; records: any[] }>): React.ReactNode {
+function renderNode(n: LexNode, key: string, data: Record<string, { label: string; records: any[] }>, blockThemes: Record<string, BlockTheme> = {}): React.ReactNode {
   switch (n.type) {
     case 'paragraph':
       return <p key={key} className="my-3 leading-relaxed">{renderChildren(n.children, key, data)}</p>;
@@ -152,17 +195,19 @@ function renderNode(n: LexNode, key: string, data: Record<string, { label: strin
       const src = (n.source as string) || '';
       if (!src) return null;
       const slots = (n.slots as Record<string, string>) ?? {};
-      const html = jsxToHtml(src).replace(/\{\{(\w+)\}\}/g, (_, name) => slots[name] ?? '');
+      let html = jsxToHtml(src).replace(/\{\{(\w+)\}\}/g, (_, name) => slots[name] ?? '');
+      const theme = n.presetId ? blockThemes[n.presetId as string] : undefined;
+      if (theme) html = applyThemeTypography(html, theme.typeBindings, theme.vars);
       return <div key={key} dangerouslySetInnerHTML={{ __html: html }} />;
     }
 
     default:
-      if (Array.isArray(n.children)) return <div key={key}>{renderChildren(n.children, key, data)}</div>;
+      if (Array.isArray(n.children)) return <div key={key}>{renderChildren(n.children, key, data, blockThemes)}</div>;
       return null;
   }
 }
 
-function renderChildren(children: LexNode[] | undefined, parentKey: string, data: Record<string, { label: string; records: any[] }>) {
+function renderChildren(children: LexNode[] | undefined, parentKey: string, data: Record<string, { label: string; records: any[] }>, blockThemes: Record<string, BlockTheme> = {}) {
   if (!children) return null;
-  return children.map((c, i) => renderNode(c, `${parentKey}.${i}`, data));
+  return children.map((c, i) => renderNode(c, `${parentKey}.${i}`, data, blockThemes));
 }

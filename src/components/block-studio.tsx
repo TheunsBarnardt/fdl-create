@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { CATEGORY_ORDER, CATEGORY_META } from '@/lib/block-presets';
+import { applyThemeTypography, flattenVarsFromCollections, type VarItem } from '@/lib/theme-typography';
 
 // Monaco must be client-only (browser-only deps, worker loader).
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
@@ -40,7 +41,7 @@ export function BlockStudio({
   collectionFieldsByName,
   mode
 }: {
-  initial: { id?: string; name: string; title?: string | null; description?: string | null; source: string; collection?: string | null; slotMap: Record<string, string>; category?: string | null };
+  initial: { id?: string; name: string; title?: string | null; description?: string | null; source: string; collection?: string | null; slotMap: Record<string, string>; category?: string | null; themeId?: string | null };
   collections: Array<{ name: string; label: string }>;
   collectionFieldsByName: Record<string, string[]>;
   mode: 'create' | 'edit';
@@ -57,6 +58,28 @@ export function BlockStudio({
   const [step, setStep] = useState<Step>('paste');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [themeId, setThemeId] = useState<string>(initial.themeId ?? '');
+  const [themes, setThemes] = useState<Array<{ id: string; name: string; tokens: any }>>([]);
+  const [allVars, setAllVars] = useState<VarItem[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [tRes, vRes] = await Promise.all([
+          fetch('/api/themes'),
+          fetch('/api/variable-collections')
+        ]);
+        if (tRes.ok) setThemes(await tRes.json());
+        if (vRes.ok) {
+          const cols = await vRes.json();
+          setAllVars(flattenVarsFromCollections(Array.isArray(cols) ? cols : []));
+        }
+      } catch {}
+    })();
+  }, []);
+
+  const activeTheme = themes.find((t) => t.id === themeId);
+  const typeBindings: Record<string, string> = activeTheme?.tokens?.typeBindings ?? {};
 
   const editorRef = useRef<MonacoEditorInstance | null>(null);
   const monacoRef = useRef<MonacoNamespace | null>(null);
@@ -120,8 +143,9 @@ export function BlockStudio({
       html = html.replace(new RegExp(`\\{\\{\\s*${slot}\\s*\\}\\}`, 'g'), placeholder);
     }
     // Strip className → class so the browser renders Tailwind utilities in preview.
-    return html.replace(/className=/g, 'class=');
-  }, [source, detectedSlots, slotMap, collection]);
+    html = html.replace(/className=/g, 'class=');
+    return applyThemeTypography(html, typeBindings, allVars);
+  }, [source, detectedSlots, slotMap, collection, typeBindings, allVars]);
 
   // Paint slot highlights in Monaco after each edit / mount.
   const applySlotDecorations = () => {
@@ -160,6 +184,7 @@ export function BlockStudio({
         title: title || null,
         description: description || null,
         category: category || null,
+        themeId: themeId || null,
         ...(mode === 'create' ? { name } : { name: name || undefined })
       };
       const res = await fetch(
@@ -440,6 +465,27 @@ export function BlockStudio({
                   <option key={c} value={c}>{CATEGORY_META[c].label}</option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label className="text-[10px] text-neutral-400 flex items-center justify-between">
+                <span>Theme</span>
+                <span className="text-neutral-400">optional</span>
+              </label>
+              <select
+                value={themeId}
+                onChange={(e) => setThemeId(e.target.value)}
+                className="mt-0.5 w-full border border-neutral-200 rounded-md px-2 py-1.5 text-[12px] bg-white"
+              >
+                <option value="">— none (raw Tailwind only) —</option>
+                {themes.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+              {activeTheme && Object.keys(typeBindings).length > 0 && (
+                <div className="text-[10px] text-neutral-500 mt-1">
+                  Applying {Object.keys(typeBindings).length} typography binding{Object.keys(typeBindings).length === 1 ? '' : 's'} — strip matching Tailwind utilities to let the theme show through.
+                </div>
+              )}
             </div>
           </div>
           <div className="p-4 border-b border-neutral-200">

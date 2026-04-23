@@ -10,7 +10,8 @@ const CreateBlock = z.object({
   source: z.string().min(1),
   slotMap: z.record(z.string()).optional(),
   collection: z.string().nullable().optional(),
-  category: z.string().nullable().optional()
+  category: z.string().nullable().optional(),
+  themeId: z.string().nullable().optional()
 });
 
 export const GET = withApi('read:blocks', async () => {
@@ -22,6 +23,7 @@ export const GET = withApi('read:blocks', async () => {
     description: b.description,
     collection: b.collection,
     category: b.category,
+    themeId: b.themeId ?? null,
     source: b.source,
     slotMap: b.slotMap ? JSON.parse(b.slotMap) : {},
     createdAt: b.createdAt
@@ -43,10 +45,11 @@ export const POST = withApi('write:blocks', async (req) => {
     }
   });
   await prisma.$executeRawUnsafe(
-    'UPDATE "CustomBlock" SET title = ?, description = ?, category = ? WHERE id = ?',
+    'UPDATE "CustomBlock" SET title = ?, description = ?, category = ?, themeId = ? WHERE id = ?',
     d.title ?? null,
     d.description ?? null,
     d.category ?? null,
+    d.themeId ?? null,
     created.id
   );
   return NextResponse.json({ id: created.id }, { status: 201 });

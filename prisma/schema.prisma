@@ -112,6 +112,7 @@ model CustomBlock {
   slotMap     String?  // JSON { slotName: fieldName }
   collection  String?
   category    String?
+  themeId     String?  // optional — preset/theme applied for typography bindings
   createdAt   DateTime @default(now())
 }
 

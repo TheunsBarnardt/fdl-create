@@ -10,7 +10,8 @@ const UpdateBlock = z.object({
   source: z.string().optional(),
   slotMap: z.record(z.string()).nullable().optional(),
   collection: z.string().nullable().optional(),
-  category: z.string().nullable().optional()
+  category: z.string().nullable().optional(),
+  themeId: z.string().nullable().optional()
 });
 
 type P = { params: { id: string } };
@@ -37,6 +38,7 @@ export const PATCH = withApi<P>('write:blocks', async (req, { params }) => {
   if (d.slotMap !== undefined)    { sets.push('slotMap = ?');     vals.push(d.slotMap ? JSON.stringify(d.slotMap) : null); }
   if (d.collection !== undefined) { sets.push('collection = ?');  vals.push(d.collection); }
   if (d.category !== undefined)   { sets.push('category = ?');    vals.push(d.category); }
+  if (d.themeId !== undefined)    { sets.push('themeId = ?');     vals.push(d.themeId); }
 
   if (sets.length > 0) {
     vals.push(params.id);
