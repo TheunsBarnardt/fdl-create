@@ -595,12 +595,6 @@ export function ThemeStudio({
                     <div key={key} className="flex items-center justify-between gap-2">
                       <label className="mono text-[11px] text-neutral-600 shrink-0">--{key}</label>
                       <div className="flex items-center gap-1.5">
-                        {/* color swatch — always shows resolved color */}
-                        <span
-                          className="w-7 h-7 rounded shrink-0 border border-neutral-200"
-                          style={{ background: resolved.startsWith('#') ? resolved : `hsl(${resolved})` }}
-                        />
-
                         {linked ? (
                           /* Linked state: show variable name + unlink button */
                           <div className="flex items-center gap-1 bg-accent/10 border border-accent/30 rounded px-1.5 py-0.5">
@@ -624,6 +618,12 @@ export function ThemeStudio({
                             onChange={(e) => setColor(key, e.target.value)}
                           />
                         )}
+
+                        {/* color swatch */}
+                        <span
+                          className="w-7 h-7 rounded shrink-0 border border-neutral-200"
+                          style={{ background: resolved.startsWith('#') ? resolved : `hsl(${resolved})` }}
+                        />
 
                         {/* Variable picker button */}
                         {colorVars.length > 0 && (
