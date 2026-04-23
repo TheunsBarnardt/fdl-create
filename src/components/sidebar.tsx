@@ -5,11 +5,11 @@ import { cn } from '@/lib/utils';
 
 const buildNav = [
   { href: '/', label: 'Workspace', icon: HomeIcon },
-  { href: '/theme', label: 'Theme', icon: ThemeIcon },
   { href: '/variables', label: 'Variables', icon: VariablesIcon },
+  { href: '/assets', label: 'Assets', icon: AssetsIcon },
+  { href: '/theme', label: 'Theme', icon: ThemeIcon },
   { href: '/blocks', label: 'Block studio', icon: BlocksIcon },
   { href: '/pages', label: 'Page editor', icon: PageIcon },
-  { href: '/assets', label: 'Assets', icon: AssetsIcon }
 ];
 
 const dataNav = [

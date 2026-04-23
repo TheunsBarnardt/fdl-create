@@ -552,7 +552,7 @@ export function ThemeStudio({
                   + Save current as preset
                 </button>
                 <div className="grid grid-cols-3 gap-2">
-                  {allPresets.map((p) => {
+                  {allPresets.filter((p) => !p.custom).map((p) => {
                     const swatch = PRESET_SWATCHES[p.id as keyof typeof PRESET_SWATCHES];
                     const fgColor = p.custom ? hslToHex(p.tokens.primary || '0 0% 0%') : swatch?.fg;
                     const bgColor = p.custom ? hslToHex(p.tokens.background || '0 0% 100%') : swatch?.bg;

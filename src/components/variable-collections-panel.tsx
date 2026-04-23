@@ -114,7 +114,7 @@ function colorSwatch(value: VariableValue, type: string) {
   return <span className="w-3 h-3 rounded-sm border border-neutral-200 shrink-0" style={{ background: hex }} />;
 }
 
-function fmtValue(v: VariableValue) {
+function fmtValue(v: VariableValue, type?: string) {
   if (typeof v === 'string') return v;
   return `${v.light} / ${v.dark}`;
 }
