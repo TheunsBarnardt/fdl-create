@@ -228,13 +228,6 @@ export function ThemeStudio({
   const [colorVars, setColorVars] = useState<VarItem[]>([]);
   const [varPickerOpen, setVarPickerOpen] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!varPickerOpen) return;
-    const close = () => setVarPickerOpen(null);
-    window.addEventListener('click', close, { capture: true });
-    return () => window.removeEventListener('click', close, { capture: true });
-  }, [varPickerOpen]);
-
   // Load custom presets and color variables on mount
   useEffect(() => {
     (async () => {
@@ -601,7 +594,7 @@ export function ThemeStudio({
                         {/* color swatch — always shows resolved color */}
                         <span
                           className="w-7 h-7 rounded shrink-0 border border-neutral-200"
-                          style={{ background: `hsl(${resolved})` }}
+                          style={{ background: resolved.startsWith('#') ? resolved : `hsl(${resolved})` }}
                         />
 
                         {linked ? (
@@ -630,7 +623,7 @@ export function ThemeStudio({
 
                         {/* Variable picker button */}
                         {colorVars.length > 0 && (
-                          <div className="relative" onClick={(e) => e.stopPropagation()}>
+                          <div className="relative">
                             <button
                               onClick={() => setVarPickerOpen(varPickerOpen === key ? null : key)}
                               className={cn(
@@ -642,6 +635,8 @@ export function ThemeStudio({
                               <Link2 className="w-3 h-3" />
                             </button>
                             {varPickerOpen === key && (
+                              <>
+                              <div className="fixed inset-0 z-40" onClick={() => setVarPickerOpen(null)} />
                               <div className="absolute right-0 top-6 z-50 w-52 bg-white border border-neutral-200 rounded-lg shadow-lg overflow-hidden">
                                 <div className="px-2 py-1.5 border-b border-neutral-100">
                                   <p className="text-[10px] uppercase tracking-wider text-neutral-400">Color variables</p>
@@ -670,6 +665,7 @@ export function ThemeStudio({
                                   </button>
                                 </div>
                               </div>
+                              </>
                             )}
                           </div>
                         )}
