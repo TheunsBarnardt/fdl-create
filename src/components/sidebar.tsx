@@ -1,12 +1,14 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
 const buildNav = [
   { href: '/', label: 'Workspace', icon: HomeIcon },
   { href: '/variables', label: 'Variables', icon: VariablesIcon },
   { href: '/assets', label: 'Assets', icon: AssetsIcon },
+  { href: '/documents', label: 'Documents', icon: DocumentsIcon },
   { href: '/theme', label: 'Theme', icon: ThemeIcon },
   { href: '/blocks', label: 'Block studio', icon: BlocksIcon },
   { href: '/pages', label: 'Page editor', icon: PageIcon },
@@ -40,11 +42,50 @@ const accountNav = [
 ];
 
 type Role = 'admin' | 'editor' | 'viewer';
+type NavItem = { href: string; label: string; icon: (p: { className?: string }) => React.ReactNode };
+
+function NavGroup({
+  label,
+  items,
+  isActive,
+  defaultOpen,
+}: {
+  label: string;
+  items: NavItem[];
+  isActive: (href: string) => boolean;
+  defaultOpen: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="mt-4 first:mt-2">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between px-2 mb-1 group"
+      >
+        <span className="text-[10px] uppercase tracking-wider text-white/40 group-hover:text-white/60 transition-colors">
+          {label}
+        </span>
+        <svg
+          width="10" height="10" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth="2.5"
+          className={cn('text-white/25 group-hover:text-white/50 transition-transform', open ? 'rotate-0' : '-rotate-90')}
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      {open && items.map((n) => (
+        <NavLink key={n.href} href={n.href} label={n.label} Icon={n.icon} active={isActive(n.href)} />
+      ))}
+    </div>
+  );
+}
 
 export function Sidebar({ role = 'viewer' }: { role?: Role }) {
   const pathname = usePathname();
   const isActive = (href: string) =>
     pathname === href || (href !== '/' && pathname.startsWith(href + '/'));
+
+  const hasActive = (items: NavItem[]) => items.some((n) => isActive(n.href));
 
   return (
     <aside className="w-56 shrink-0 bg-ink-950 text-paper flex flex-col border-r border-ink-900">
@@ -62,31 +103,14 @@ export function Sidebar({ role = 'viewer' }: { role?: Role }) {
         </div>
       </div>
 
-      <nav className="flex-1 py-3 px-2 space-y-0.5 text-sm">
-        <div className="text-[10px] uppercase tracking-wider text-white/40 px-2 mt-2 mb-1">Build</div>
-        {buildNav.map((n) => (
-          <NavLink key={n.href} href={n.href} label={n.label} Icon={n.icon} active={isActive(n.href)} />
-        ))}
-        <div className="text-[10px] uppercase tracking-wider text-white/40 px-2 mt-5 mb-1">Data</div>
-        {dataNav.map((n) => (
-          <NavLink key={n.href} href={n.href} label={n.label} Icon={n.icon} active={isActive(n.href)} />
-        ))}
-        <div className="text-[10px] uppercase tracking-wider text-white/40 px-2 mt-5 mb-1">Run</div>
-        {runNav.map((n) => (
-          <NavLink key={n.href} href={n.href} label={n.label} Icon={n.icon} active={isActive(n.href)} />
-        ))}
+      <nav className="flex-1 py-3 px-2 overflow-y-auto scrollbar text-sm">
+        <NavGroup label="Build" items={buildNav} isActive={isActive} defaultOpen={hasActive(buildNav)} />
+        <NavGroup label="Data"  items={dataNav}  isActive={isActive} defaultOpen={hasActive(dataNav)} />
+        <NavGroup label="Run"   items={runNav}   isActive={isActive} defaultOpen={hasActive(runNav)} />
         {role === 'admin' && (
-          <>
-            <div className="text-[10px] uppercase tracking-wider text-white/40 px-2 mt-5 mb-1">Admin</div>
-            {adminNav.map((n) => (
-              <NavLink key={n.href} href={n.href} label={n.label} Icon={n.icon} active={isActive(n.href)} />
-            ))}
-          </>
+          <NavGroup label="Admin" items={adminNav} isActive={isActive} defaultOpen={hasActive(adminNav)} />
         )}
-        <div className="text-[10px] uppercase tracking-wider text-white/40 px-2 mt-5 mb-1">You</div>
-        {accountNav.map((n) => (
-          <NavLink key={n.href} href={n.href} label={n.label} Icon={n.icon} active={isActive(n.href)} />
-        ))}
+        <NavGroup label="You" items={accountNav} isActive={isActive} defaultOpen={hasActive(accountNav)} />
       </nav>
 
       <div className="p-3 border-t border-ink-800 text-[11px] text-white/40 leading-relaxed">
@@ -275,6 +299,15 @@ function AssetsIcon({ className }: { className?: string }) {
       <rect x="13" y="3" width="8" height="8" rx="1" />
       <rect x="3" y="13" width="8" height="8" rx="1" />
       <path d="M17 13v8M13 17h8" />
+    </svg>
+  );
+}
+function DocumentsIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z" />
+      <path d="M14 3v5h5" />
+      <path d="M9 13h6M9 17h4" />
     </svg>
   );
 }
