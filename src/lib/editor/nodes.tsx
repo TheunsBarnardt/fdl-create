@@ -579,13 +579,19 @@ export class PresetBlockNode extends DecoratorNode<React.JSX.Element> {
 
 // Resolves slot bindings for the in-editor preview (no record data wired yet).
 // Field bindings show the raw template text so authors can see what they've
-// configured without leaving the editor.
+// configured without leaving the editor. `{field}` tokens are wrapped in a
+// colored chip so linked values are visually distinct from static text.
 function previewSlotValues(slotMap: Record<string, SlotBinding>): Record<string, string> {
   const out: Record<string, string> = {};
+  const wrapTokens = (s: string) =>
+    s.replace(
+      /\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g,
+      '<span style="color:#0369a1;background:rgba(14,165,233,0.12);padding:0 4px;border-radius:3px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.92em;">{$1}</span>'
+    );
   for (const [slot, b] of Object.entries(slotMap)) {
     if (!b) continue;
     if (b.kind === 'literal') out[slot] = b.value;
-    else if (b.kind === 'field') out[slot] = b.template || `[${slot}]`;
+    else if (b.kind === 'field') out[slot] = wrapTokens(b.template || `{${slot}}`);
     else if (b.kind === 'link') {
       const t = b.target;
       out[slot] =

@@ -230,7 +230,9 @@ export function PageEditor({
       );
       if (!res.ok) throw new Error(JSON.stringify((await res.json()).error));
       const data = await res.json();
-      router.push(mode === 'create' ? `/pages/edit/${data.id}` : '/pages');
+      // Create: route into edit so subsequent saves target the new id.
+      // Edit: stay on the page so the author can keep working after save.
+      if (mode === 'create') router.push(`/pages/edit/${data.id}`);
       router.refresh();
     } catch (e: any) {
       setError(e.message);
@@ -2572,6 +2574,10 @@ function FieldTemplateEditor({
     });
   };
 
+  // Split template into literal + token parts so we can render a preview
+  // where linked fields are chipped (distinct from static text).
+  const parts = template.split(/(\{[a-zA-Z_][a-zA-Z0-9_]*\})/g);
+
   return (
     <div className="space-y-1.5">
       <input
@@ -2583,6 +2589,19 @@ function FieldTemplateEditor({
         placeholder="e.g. your full name is {name} {lastname}"
         className="w-full border border-neutral-200 rounded-md px-2 py-1 text-[12px] mono bg-white"
       />
+      {template && (
+        <div className="flex flex-wrap items-center gap-0.5 text-[11px] border border-dashed border-neutral-200 rounded-md px-2 py-1 bg-neutral-50">
+          {parts.map((p, i) => {
+            if (!p) return null;
+            const isToken = /^\{[a-zA-Z_][a-zA-Z0-9_]*\}$/.test(p);
+            return isToken ? (
+              <span key={i} className="mono text-accent bg-accent/10 px-1 rounded">{p}</span>
+            ) : (
+              <span key={i} className="text-neutral-600 whitespace-pre-wrap">{p}</span>
+            );
+          })}
+        </div>
+      )}
       <div className="relative">
         <input
           value={search}
@@ -2641,10 +2660,23 @@ function SlotMapRow({
   const linkKind = binding.kind === 'link' ? binding.target.type : null;
 
   // Short summary shown in the collapsed header so authors can scan bindings without opening each row.
-  const summary = (() => {
+  // Renders `{field}` tokens as accent chips so linked values stand out from static text.
+  const renderTemplate = (tmpl: string): React.ReactNode => {
+    const parts = tmpl.split(/(\{[a-zA-Z_][a-zA-Z0-9_]*\})/g);
+    return parts.map((p, i) => {
+      if (!p) return null;
+      const isToken = /^\{[a-zA-Z_][a-zA-Z0-9_]*\}$/.test(p);
+      return isToken
+        ? <span key={i} className="mono text-accent bg-accent/10 px-1 rounded">{p}</span>
+        : <span key={i}>{p}</span>;
+    });
+  };
+  const summary: React.ReactNode = (() => {
     if (binding.kind === 'literal') return binding.value ? `"${binding.value}"` : 'empty';
     if (binding.kind === 'field') {
-      return binding.template ? `field · ${binding.template}` : 'field · —';
+      return binding.template
+        ? <>field · {renderTemplate(binding.template)}</>
+        : 'field · —';
     }
     if (binding.kind === 'link') {
       const t = binding.target;
@@ -2666,7 +2698,12 @@ function SlotMapRow({
         className="w-full flex items-center justify-between gap-2 px-2 py-1.5 text-left"
       >
         <div className="flex items-center gap-2 min-w-0">
-          <code className="mono text-[11px] px-1.5 py-0.5 rounded bg-accent/10 text-accent shrink-0">
+          <code className={cn(
+            'mono text-[11px] px-1.5 py-0.5 rounded shrink-0',
+            binding.kind === 'field' ? 'bg-purple-100 text-purple-700'
+            : binding.kind === 'link' ? 'bg-amber-100 text-amber-700'
+            : 'bg-accent/10 text-accent'
+          )}>
             {'{' + slot + '}'}
           </code>
           <span className="text-[10px] text-neutral-500 truncate">
