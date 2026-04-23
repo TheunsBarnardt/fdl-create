@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { cn } from '@/lib/utils';
 import { VariableCollection } from '@/lib/variable-types';
 
 interface VariableCollectionModalProps {
@@ -19,7 +18,6 @@ export function VariableCollectionModal({
 }: VariableCollectionModalProps) {
   const [name, setName] = useState('');
   const [label, setLabel] = useState('');
-  const [mode, setMode] = useState<'single' | 'multi'>('single');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,11 +25,9 @@ export function VariableCollectionModal({
     if (collection) {
       setName(collection.name);
       setLabel(collection.label);
-      setMode(collection.mode as 'single' | 'multi');
     } else {
       setName('');
       setLabel('');
-      setMode('single');
     }
     setError(null);
   }, [collection, open]);
@@ -41,17 +37,13 @@ export function VariableCollectionModal({
       setError('Label is required');
       return;
     }
-
     setSaving(true);
     try {
       if (collection) {
-        onSave({ label, mode });
+        onSave({ label });
       } else {
-        if (!name.trim()) {
-          setError('Name is required');
-          return;
-        }
-        onSave({ name, label, mode });
+        if (!name.trim()) { setError('Name is required'); return; }
+        onSave({ name, label });
       }
     } finally {
       setSaving(false);
@@ -78,7 +70,6 @@ export function VariableCollectionModal({
               onChange={(e) => setName(e.target.value.toLowerCase().replace(/\s+/g, '_'))}
               placeholder="colors, typography, spacing"
               className="w-full px-3 py-2 border border-neutral-200 rounded-md focus:outline-none focus:border-accent"
-              disabled={!!collection}
             />
             <p className="text-[10px] text-neutral-400 mt-1">Lowercase, underscores only</p>
           </div>
@@ -93,39 +84,6 @@ export function VariableCollectionModal({
             placeholder="Colors, Typography, Spacing"
             className="w-full px-3 py-2 border border-neutral-200 rounded-md focus:outline-none focus:border-accent"
           />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-2">Mode</label>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setMode('single')}
-              className={cn(
-                'flex-1 px-3 py-2 rounded-md border transition-colors text-sm',
-                mode === 'single'
-                  ? 'bg-accent text-white border-accent'
-                  : 'border-neutral-200 hover:border-accent'
-              )}
-            >
-              Single
-            </button>
-            <button
-              onClick={() => setMode('multi')}
-              className={cn(
-                'flex-1 px-3 py-2 rounded-md border transition-colors text-sm',
-                mode === 'multi'
-                  ? 'bg-accent text-white border-accent'
-                  : 'border-neutral-200 hover:border-accent'
-              )}
-            >
-              Light/Dark
-            </button>
-          </div>
-          <p className="text-[10px] text-neutral-400 mt-2">
-            {mode === 'single'
-              ? 'Single value per variable'
-              : 'Different values for light and dark mode'}
-          </p>
         </div>
 
         {error && <p className="text-sm text-destructive">{error}</p>}

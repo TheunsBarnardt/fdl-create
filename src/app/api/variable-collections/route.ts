@@ -22,7 +22,6 @@ export const GET = withApi('read:themes', async () => {
       id: col.id,
       name: col.name,
       label: col.label,
-      mode: col.mode,
       order: col.order,
       variables: col.variables.map((v) => ({
         id: v.id,
@@ -60,7 +59,6 @@ export const POST = withApi('write:themes', async (req) => {
     data: {
       name: body.data.name,
       label: body.data.label,
-      mode: body.data.mode,
       order: (maxOrder?.order ?? 0) + 1,
     },
     include: {
@@ -73,7 +71,6 @@ export const POST = withApi('write:themes', async (req) => {
       id: created.id,
       name: created.name,
       label: created.label,
-      mode: created.mode,
       order: created.order,
       variables: [],
     },

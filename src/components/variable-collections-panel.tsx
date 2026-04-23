@@ -28,7 +28,6 @@ type Col = {
   id: string;
   name: string;
   label: string;
-  mode: 'single' | 'multi';
   order: number;
   variables: Var[];
 };
@@ -352,7 +351,6 @@ function CollectionModal({
 }: { col: Col | null; onClose: () => void; onSave: (d: any) => Promise<void> }) {
   const [name, setName]   = useState(col?.name ?? '');
   const [label, setLabel] = useState(col?.label ?? '');
-  const [mode, setMode]   = useState<'single' | 'multi'>(col?.mode ?? 'single');
   const [busy, setBusy]   = useState(false);
   const [err, setErr]     = useState('');
 
@@ -361,7 +359,7 @@ function CollectionModal({
     if (!col && !name.trim()) { setErr('Name is required'); return; }
     setBusy(true);
     try {
-      await onSave(col ? { label, mode } : { name: name.trim().toLowerCase().replace(/\s+/g, '_'), label, mode });
+      await onSave(col ? { label } : { name: name.trim().toLowerCase().replace(/\s+/g, '_'), label });
       onClose();
     } catch (e: any) {
       setErr(String(e));
@@ -399,24 +397,6 @@ function CollectionModal({
             autoFocus={!!col}
           />
         </label>
-
-        <div>
-          <span className="text-[11px] uppercase tracking-wider text-neutral-500">Mode</span>
-          <div className="mt-1 flex rounded-md overflow-hidden border border-neutral-200">
-            {(['single', 'multi'] as const).map((m) => (
-              <button
-                key={m}
-                onClick={() => setMode(m)}
-                className={cn('flex-1 py-2 text-sm transition-colors', mode === m ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-50')}
-              >
-                {m === 'single' ? 'Single' : 'Light / Dark'}
-              </button>
-            ))}
-          </div>
-          <p className="mt-1 text-[10px] text-neutral-400">
-            {mode === 'multi' ? 'Each variable stores a light and dark value.' : 'Each variable stores one value.'}
-          </p>
-        </div>
 
         {err && <p className="text-xs text-destructive">{err}</p>}
 
@@ -498,18 +478,19 @@ function TwClassInput({ value, onChange }: { value: string; onChange: (v: string
 function VariableModal({
   v, col, onClose, onSave, usedFonts,
 }: { v: Var | null; col: Col; onClose: () => void; onSave: (d: any) => Promise<void>; usedFonts: string[] }) {
-  const [name,   setName]   = useState(v?.name ?? '');
-  const [type,   setType]   = useState<VariableType>(v?.type ?? 'color');
-  const [lv,     setLv]     = useState(typeof v?.value === 'string' ? v.value : (v?.value as any)?.light ?? '');
-  const [dv,     setDv]     = useState(typeof v?.value === 'object' ? (v.value as any)?.dark ?? '' : '');
-  const [desc,   setDesc]   = useState(v?.description ?? '');
-  const [busy,   setBusy]   = useState(false);
-  const [err,    setErr]    = useState('');
+  const [name,     setName]     = useState(v?.name ?? '');
+  const [type,     setType]     = useState<VariableType>(v?.type ?? 'color');
+  const [lv,       setLv]       = useState(typeof v?.value === 'string' ? v.value : (v?.value as any)?.light ?? '');
+  const [dv,       setDv]       = useState(typeof v?.value === 'object' ? (v.value as any)?.dark ?? '' : '');
+  const [darkMode, setDarkMode] = useState(typeof v?.value === 'object');
+  const [desc,     setDesc]     = useState(v?.description ?? '');
+  const [busy,     setBusy]     = useState(false);
+  const [err,      setErr]      = useState('');
 
   async function submit() {
     if (!name.trim()) { setErr('Name is required'); return; }
     if (!lv.trim()) { setErr('Value is required'); return; }
-    const value = (col.mode === 'multi' && type !== 'font') ? { light: lv.trim(), dark: dv.trim() } : lv.trim();
+    const value = (darkMode && type === 'color') ? { light: lv.trim(), dark: dv.trim() } : lv.trim();
     setBusy(true);
     try {
       await onSave({ name: name.trim().toLowerCase().replace(/\s+/g, '-'), type, value, description: desc.trim() || undefined });
@@ -568,32 +549,57 @@ function VariableModal({
             <TwClassInput value={lv} onChange={setLv} />
           </label>
         ) : (
-          (['light', 'dark'] as const).filter(m => col.mode === 'multi' || m === 'light').map((m) => {
-            const val = m === 'light' ? lv : dv;
-            const set = m === 'light' ? setLv : setDv;
-            return (
-              <label key={m} className="block">
-                <span className="text-[11px] uppercase tracking-wider text-neutral-500">
-                  {col.mode === 'multi' ? (m === 'light' ? 'Light value' : 'Dark value') : 'Value'}
-                </span>
-                <div className="mt-1 flex gap-2">
-                  <input
-                    type="color"
-                    value={val.startsWith('#') ? val : (val ? hslToHex(val) : '#000000')}
-                    onChange={(e) => set(e.target.value)}
-                    className="w-10 h-10 rounded cursor-pointer border border-neutral-200 p-0.5"
-                  />
-                  <input
-                    type="text"
-                    className="flex-1 px-3 py-2 text-sm border border-neutral-200 rounded-md focus:outline-none focus:ring-1 focus:ring-accent font-mono"
-                    value={val}
-                    onChange={(e) => set(e.target.value)}
-                    placeholder="#FF0000 or 222 47% 11%"
-                  />
-                </div>
-              </label>
-            );
-          })
+          <>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] uppercase tracking-wider text-neutral-500">
+                {darkMode ? 'Light value' : 'Value'}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!darkMode) { setDv(lv); }
+                  setDarkMode(d => !d);
+                }}
+                className={cn(
+                  'flex items-center gap-1.5 text-[10px] px-2 py-0.5 rounded border transition-colors',
+                  darkMode
+                    ? 'border-sky-300 bg-sky-50 text-sky-700'
+                    : 'border-neutral-200 text-neutral-400 hover:border-neutral-300 hover:text-neutral-600'
+                )}
+              >
+                <span className={cn('w-2 h-2 rounded-full', darkMode ? 'bg-sky-500' : 'bg-neutral-300')} />
+                Dark mode
+              </button>
+            </div>
+            {([darkMode ? (['light', 'dark'] as const) : (['light'] as const)][0]).map((m) => {
+              const val = m === 'light' ? lv : dv;
+              const set = m === 'light' ? setLv : setDv;
+              return (
+                <label key={m} className="block">
+                  {darkMode && (
+                    <span className="text-[10px] text-neutral-400 mb-1 block">
+                      {m === 'light' ? '☀ Light' : '☽ Dark'}
+                    </span>
+                  )}
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      value={val.startsWith('#') ? val : (val ? hslToHex(val) : '#000000')}
+                      onChange={(e) => set(e.target.value)}
+                      className="w-10 h-10 rounded cursor-pointer border border-neutral-200 p-0.5"
+                    />
+                    <input
+                      type="text"
+                      className="flex-1 px-3 py-2 text-sm border border-neutral-200 rounded-md focus:outline-none focus:ring-1 focus:ring-accent font-mono"
+                      value={val}
+                      onChange={(e) => set(e.target.value)}
+                      placeholder="#FF0000 or 222 47% 11%"
+                    />
+                  </div>
+                </label>
+              );
+            })}
+          </>
         )}
 
 
@@ -792,7 +798,7 @@ export function VariableCollectionsPanel() {
             <div className="p-3 border-b border-neutral-200 flex items-center justify-between shrink-0">
               <div>
                 <p className="font-semibold text-sm">{active.label}</p>
-                <p className="text-[10px] text-neutral-400 mt-0.5">{active.mode === 'multi' ? 'Light / Dark' : 'Single'} · {active.variables.length} variables</p>
+                <p className="text-[10px] text-neutral-400 mt-0.5">{active.variables.length} variables</p>
               </div>
               <button
                 onClick={() => { setSelVar(null); setVarModal('new'); }}

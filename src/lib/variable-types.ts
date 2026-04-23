@@ -21,7 +21,6 @@ export type VariableCollection = {
   id: string;
   name: string;
   label: string;
-  mode: 'single' | 'multi';
   order: number;
   variables: Variable[];
 };
@@ -38,14 +37,12 @@ export type VariableGroup = {
 export const CreateVariableCollectionSchema = z.object({
   name: z.string().min(1).regex(/^[a-z0-9_-]+$/, 'Only lowercase letters, numbers, hyphens, underscores'),
   label: z.string().min(1),
-  mode: z.enum(['single', 'multi']).default('single'),
 });
 
 export type CreateVariableCollection = z.infer<typeof CreateVariableCollectionSchema>;
 
 export const UpdateVariableCollectionSchema = z.object({
   label: z.string().min(1).optional(),
-  mode: z.enum(['single', 'multi']).optional(),
   order: z.number().int().optional(),
 });
 

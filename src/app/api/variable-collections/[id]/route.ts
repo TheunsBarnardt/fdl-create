@@ -15,7 +15,6 @@ export const PATCH = withApi<P>('write:themes', async (req, { params }) => {
     where: { id: params.id },
     data: {
       ...(body.data.label !== undefined && { label: body.data.label }),
-      ...(body.data.mode !== undefined && { mode: body.data.mode }),
       ...(body.data.order !== undefined && { order: body.data.order }),
     },
   });
@@ -24,7 +23,6 @@ export const PATCH = withApi<P>('write:themes', async (req, { params }) => {
     id: updated.id,
     name: updated.name,
     label: updated.label,
-    mode: updated.mode,
     order: updated.order,
   });
 });
