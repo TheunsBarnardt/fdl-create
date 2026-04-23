@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Copy, Save, Sun, Moon, Sparkles, Link2, Search, ChevronDown, Trash2, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getTwHint } from '@/lib/tailwind-classes';
+import { loadGoogleFont } from '@/lib/google-fonts-list';
 
 type Scope = 'both' | 'admin' | 'published';
 type Mode = 'light' | 'dark';
@@ -33,9 +34,7 @@ type Tokens = {
   darkBorder: string;
   darkRing: string;
   radius: number;
-  fontBody: string;
-  fontDisplay: string;
-  fontMono: string;
+  fontBindings: Record<string, string>; // { body: 'Inter', display: 'Fraunces', mono: 'JetBrains Mono', … }
   // Dynamic type scale: element → variable group path
   typeBindings: Record<string, string>; // { h1: 'display-2xl/book', p: 'body/regular', … }
 };
@@ -97,9 +96,7 @@ const DEFAULT_TOKENS: Tokens = {
   darkBorder: '217 33% 17%',
   darkRing: '212 27% 84%',
   radius: 0.5,
-  fontBody: 'Inter',
-  fontDisplay: 'Fraunces',
-  fontMono: 'JetBrains Mono',
+  fontBindings: { body: 'Inter', display: 'Fraunces', mono: 'JetBrains Mono' },
   typeBindings: {},
 };
 
@@ -187,6 +184,13 @@ const PRESET_SWATCHES: Record<string, { label: string; fg: string; bg: string; b
 function normalizeTokens(raw: any): Tokens {
   const merged = { ...DEFAULT_TOKENS, ...(raw && typeof raw === 'object' ? raw : {}) };
   if (!merged.typeBindings || typeof merged.typeBindings !== 'object') merged.typeBindings = {};
+  if (!merged.fontBindings || typeof merged.fontBindings !== 'object') {
+    merged.fontBindings = {
+      body:    merged.fontBody    ?? 'Inter',
+      display: merged.fontDisplay ?? 'Fraunces',
+      mono:    merged.fontMono    ?? 'JetBrains Mono',
+    };
+  }
   return merged;
 }
 
@@ -244,6 +248,127 @@ function ElementSearchInput({ existing, onAdd }: { existing: string[]; onAdd: (e
               onMouseDown={ev => { ev.preventDefault(); pick(e); }}
             >
               {e}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// ── Font binding helpers ──────────────────────────────────────────────────────
+
+const FONT_ROLES = ['body','display','mono','heading','ui','code','caption','label','brand'];
+
+function FontValuePicker({ value, onChange, fontVars }: {
+  value: string; onChange: (v: string) => void; fontVars: VarItem[];
+}) {
+  const [open, setOpen]   = useState(false);
+  const [query, setQuery] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  const options = fontVars.filter(v => {
+    const family = typeof v.value === 'string' ? v.value : '';
+    return !query || family.toLowerCase().includes(query.toLowerCase()) || v.name.toLowerCase().includes(query.toLowerCase());
+  });
+
+  useEffect(() => {
+    fontVars.forEach(v => { if (typeof v.value === 'string' && v.value) loadGoogleFont(v.value); });
+  }, [fontVars]);
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); setQuery(''); } };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative flex-1">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className={cn('w-full flex items-center justify-between px-2 py-1 border rounded text-[11px] hover:border-neutral-300 transition-colors', value ? 'border-neutral-200' : 'border-dashed border-neutral-300 text-neutral-400')}
+        style={{ fontFamily: value || 'inherit' }}
+      >
+        <span className="truncate">{value || 'pick font…'}</span>
+        <ChevronDown className="w-3 h-3 shrink-0 text-neutral-400 ml-1" />
+      </button>
+      {open && (
+        <div className="absolute z-50 left-0 top-full mt-0.5 w-full min-w-[200px] bg-white border border-neutral-200 rounded-md shadow-lg">
+          <div className="p-1.5 border-b border-neutral-100">
+            <input
+              autoFocus
+              className="w-full px-2 py-1 text-[11px] border border-neutral-200 rounded focus:outline-none"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search or type family name…"
+            />
+          </div>
+          <ul className="max-h-48 overflow-auto py-0.5">
+            {options.map(v => {
+              const family = typeof v.value === 'string' ? v.value : '';
+              return (
+                <li
+                  key={v.id}
+                  className={cn('px-3 py-2 cursor-pointer', value === family ? 'bg-sky-50' : 'hover:bg-neutral-50')}
+                  onMouseDown={e => { e.preventDefault(); onChange(family); setOpen(false); setQuery(''); }}
+                >
+                  <span className="text-sm block" style={{ fontFamily: family }}>{family}</span>
+                  <span className="text-[9px] text-neutral-400 font-mono">{v.name}</span>
+                </li>
+              );
+            })}
+            {query && !options.some(v => (typeof v.value === 'string' ? v.value : '') === query) && (
+              <li
+                className="px-3 py-2 cursor-pointer hover:bg-neutral-50 text-[11px] text-neutral-500 italic"
+                onMouseDown={e => { e.preventDefault(); onChange(query); setOpen(false); setQuery(''); }}
+              >
+                Use &ldquo;{query}&rdquo; directly
+              </li>
+            )}
+            {options.length === 0 && !query && (
+              <li className="px-3 py-3 text-[11px] text-neutral-400 text-center">No font variables — add fonts in Variables</li>
+            )}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FontRoleInput({ existing, onAdd }: { existing: string[]; onAdd: (role: string) => void }) {
+  const [query, setQuery] = useState('');
+  const [open, setOpen]   = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const suggestions = FONT_ROLES.filter(r => !existing.includes(r) && (!query || r.includes(query.toLowerCase())));
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <input
+        className="text-[11px] font-mono px-2 py-1.5 border border-dashed border-neutral-200 rounded w-full focus:outline-none focus:border-accent placeholder:text-neutral-400"
+        placeholder="Add font role… (heading, ui, brand…)"
+        value={query}
+        onChange={e => { setQuery(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' && query.trim()) { onAdd(query.trim()); setQuery(''); setOpen(false); }
+          if (e.key === 'Escape') setOpen(false);
+        }}
+      />
+      {open && suggestions.length > 0 && (
+        <ul className="absolute z-50 left-0 top-full mt-0.5 bg-white border border-neutral-200 rounded-md shadow-lg max-h-44 overflow-auto py-0.5 min-w-[140px]">
+          {suggestions.map(r => (
+            <li
+              key={r}
+              className="px-3 py-1.5 text-[11px] font-mono cursor-pointer hover:bg-neutral-50"
+              onMouseDown={ev => { ev.preventDefault(); onAdd(r); setQuery(''); setOpen(false); }}
+            >
+              {r}
             </li>
           ))}
         </ul>
@@ -362,12 +487,13 @@ export function ThemeStudio({
   const [presetName, setPresetName] = useState('');
   const [showPresetModal, setShowPresetModal] = useState(false);
   const [open, setOpen] = useState<Record<string, boolean>>({
-    presets: true, colors: true, radius: false, fonts: false, typeScale: false, claude: false,
+    presets: true, colors: true, radius: false, fonts: false, typography: false, claude: false,
   });
   const toggle = (k: string) => setOpen((o) => ({ ...o, [k]: !o[k] }));
   const [allVars, setAllVars] = useState<VarItem[]>([]);
   const colorVars = useMemo(() => allVars.filter(v => v.type === 'color'), [allVars]);
   const typeVars  = useMemo(() => allVars.filter(v => v.type === 'tailwind'), [allVars]);
+  const fontVars  = useMemo(() => allVars.filter(v => v.type === 'font'), [allVars]);
   const varGroups = useMemo(() => {
     const groups = new Set<string>();
     for (const v of typeVars) {
@@ -541,7 +667,7 @@ export function ThemeStudio({
       '--input': rc(d ? tokens.darkBorder : tokens.border),
       '--ring': rc(d ? tokens.darkRing : tokens.ring),
       '--radius': `${tokens.radius}rem`,
-      '--theme-font': tokens.fontBody,
+      '--theme-font': tokens.fontBindings?.body ?? 'Inter',
     } as CSSProperties;
   }, [tokens, colorVars]);
 
@@ -906,45 +1032,58 @@ export function ThemeStudio({
           <div className="border-b border-neutral-200">
             <button onClick={() => toggle('fonts')} className="w-full px-4 py-3 flex items-center justify-between hover:bg-neutral-50">
               <span className="text-[10px] uppercase tracking-wider text-neutral-400">
-                Fonts <span className="text-neutral-500 normal-case tracking-normal ml-1">{tokens.fontBody}</span>
+                Fonts
+                {Object.keys(tokens.fontBindings || {}).length > 0 && (
+                  <span className="ml-1.5 text-neutral-500 normal-case tracking-normal font-normal">
+                    {tokens.fontBindings?.body ?? ''}
+                  </span>
+                )}
               </span>
               <Chevron open={open.fonts} />
             </button>
             {open.fonts && (
-              <div className="px-4 pb-4 space-y-2 text-[12px]">
-                {([
-                  ['Body', 'fontBody', ['Inter', 'Geist', 'system-ui', 'IBM Plex Sans']],
-                  ['Display', 'fontDisplay', ['Fraunces', 'Inter', 'Playfair Display', 'Instrument Serif']],
-                  ['Mono', 'fontMono', ['JetBrains Mono', 'Geist Mono', 'IBM Plex Mono']],
-                ] as [string, keyof Tokens, string[]][]).map(([label, key, opts]) => (
-                  <div key={key} className="flex items-center justify-between gap-2">
-                    <label className="text-[11px] text-neutral-500 w-12 shrink-0">{label}</label>
-                    <select
-                      value={tokens[key] as string}
-                      onChange={(e) => setTokens({ ...tokens, [key]: e.target.value } as Tokens)}
-                      className="flex-1 text-[11px] px-1.5 py-0.5 border border-neutral-200 rounded bg-white"
+              <div className="px-4 pb-4 space-y-2">
+                {Object.entries(tokens.fontBindings || {}).map(([role, family]) => (
+                  <div key={role} className="flex items-center gap-2">
+                    <span className="text-[11px] font-mono text-neutral-600 w-12 shrink-0">{role}</span>
+                    <FontValuePicker
+                      value={family}
+                      onChange={f => setTokens(t => ({ ...t, fontBindings: { ...t.fontBindings, [role]: f } }))}
+                      fontVars={fontVars}
+                    />
+                    <button
+                      onClick={() => setTokens(t => {
+                        const { [role]: _, ...rest } = t.fontBindings || {};
+                        return { ...t, fontBindings: rest };
+                      })}
+                      className="shrink-0 text-neutral-300 hover:text-destructive transition-colors"
+                      title="Remove"
                     >
-                      {opts.map((o) => <option key={o}>{o}</option>)}
-                    </select>
+                      <Trash2 className="w-3 h-3" />
+                    </button>
                   </div>
                 ))}
+                <FontRoleInput
+                  existing={Object.keys(tokens.fontBindings || {})}
+                  onAdd={role => setTokens(t => ({ ...t, fontBindings: { ...(t.fontBindings || {}), [role]: '' } }))}
+                />
               </div>
             )}
           </div>
 
           <div className="border-b border-neutral-200">
-            <button onClick={() => toggle('typeScale')} className="w-full px-4 py-3 flex items-center justify-between hover:bg-neutral-50">
+            <button onClick={() => toggle('typography')} className="w-full px-4 py-3 flex items-center justify-between hover:bg-neutral-50">
               <span className="text-[10px] uppercase tracking-wider text-neutral-400">
-                Type scale
+                Typography
                 {Object.keys(tokens.typeBindings || {}).length > 0 && (
                   <span className="ml-1.5 text-neutral-400 normal-case tracking-normal font-normal">
                     ({Object.keys(tokens.typeBindings).length})
                   </span>
                 )}
               </span>
-              <Chevron open={open.typeScale} />
+              <Chevron open={open.typography} />
             </button>
-            {open.typeScale && (
+            {open.typography && (
               <div className="px-4 pb-4 space-y-2">
                 {Object.entries(tokens.typeBindings || {}).map(([element, group]) => (
                   <div key={element} className="space-y-1">
@@ -1021,16 +1160,16 @@ export function ThemeStudio({
               style={cssVars}
             >
               <div className="mb-6">
-                <div className="text-xs tp-muted uppercase tracking-wider mb-3">Type scale</div>
+                <div className="text-xs tp-muted uppercase tracking-wider mb-3">Typography</div>
                 {Object.keys(tokens.typeBindings || {}).length === 0 ? (
-                  <p className="text-[11px] tp-muted italic">No type bindings yet — assign variable groups to elements in the Type scale panel.</p>
+                  <p className="text-[11px] tp-muted italic">No type bindings yet — assign variable groups to elements in the Typography panel.</p>
                 ) : (
                   Object.entries(tokens.typeBindings || {}).map(([element, group]) => {
                     const styles = buildBindingStyles(group, typeVars);
                     return (
                       <div
                         key={element}
-                        style={{ ...styles, fontFamily: tokens.fontDisplay, marginBottom: '0.25em' }}
+                        style={{ ...styles, fontFamily: tokens.fontBindings?.display ?? tokens.fontBindings?.body ?? 'inherit', marginBottom: '0.25em' }}
                       >
                         <span className="tp-muted text-[10px] font-mono normal-case mr-2" style={{ fontFamily: 'inherit', fontSize: undefined, fontWeight: undefined }}>
                           {element}
