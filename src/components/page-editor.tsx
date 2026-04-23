@@ -106,6 +106,17 @@ const PALETTE: PaletteGroup[] = [
 
 type LibraryBlock = { id: string; name: string; title: string; description: string; category: string; source: string };
 type SideTab = 'blocks' | 'pages' | 'library';
+type RightTab = 'props' | 'seo';
+
+type SeoData = {
+  metaTitle?: string;
+  metaDescription?: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
+  canonicalUrl?: string;
+  noIndex?: boolean;
+};
 
 export function PageEditor({
   initial,
@@ -116,7 +127,7 @@ export function PageEditor({
   themes = [],
   mode
 }: {
-  initial: { id?: string; slug: string; title: string; tree: any; published: boolean; themeId?: string | null; params?: string | null };
+  initial: { id?: string; slug: string; title: string; tree: any; published: boolean; themeId?: string | null; params?: string | null; seo?: SeoData | null };
   collections: Array<{ name: string; label: string }>;
   collectionFieldsByName: Record<string, string[]>;
   pages: Array<{ id: string; title: string; slug: string }>;
@@ -130,6 +141,8 @@ export function PageEditor({
   const [published, setPublished] = useState(initial.published);
   const [pageTheme, setPageTheme] = useState<string>(initial.themeId ?? '');
   const [pageParams, setPageParams] = useState<string>(initial.params ?? '');
+  const [seo, setSeo] = useState<SeoData>(initial.seo ?? {});
+  const [rightTab, setRightTab] = useState<RightTab>('props');
 
   const activeThemeTokens = useMemo(() => {
     if (!pageTheme) return null;
@@ -203,6 +216,7 @@ export function PageEditor({
         published: pub,
         themeId: pageTheme || null,
         params: pageParams || null,
+        seo: Object.keys(seo).length > 0 ? seo : null,
       };
       const res = await fetch(
         mode === 'create' ? '/api/pages' : `/api/pages/${initial.id}`,
@@ -411,14 +425,35 @@ export function PageEditor({
               {/* Canvas */}
               <CanvasArea viewport={viewport} draggedPresetRef={draggedPresetRef} draggedShadcnRef={draggedShadcnRef} themeStyle={canvasThemeStyle} />
 
-              {/* Right — Data binding panel */}
+              {/* Right — Properties / SEO */}
               <aside className="w-80 border-l border-neutral-200 bg-white flex flex-col overflow-hidden shrink-0">
-                <BlockPropsPanel
-                  selectedKey={selectedKey}
-                  collections={collections}
-                  collectionFieldsByName={collectionFieldsByName}
-                  pages={pages}
-                />
+                <div className="flex border-b border-neutral-200 shrink-0">
+                  {(['props', 'seo'] as RightTab[]).map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setRightTab(tab)}
+                      className={cn(
+                        'flex-1 py-2 text-[11px] font-medium border-b-2 -mb-px transition-colors',
+                        rightTab === tab
+                          ? 'border-ink-950 text-ink-950'
+                          : 'border-transparent text-neutral-400 hover:text-neutral-700'
+                      )}
+                    >
+                      {tab === 'props' ? 'Properties' : 'SEO'}
+                    </button>
+                  ))}
+                </div>
+                {rightTab === 'props' ? (
+                  <BlockPropsPanel
+                    selectedKey={selectedKey}
+                    collections={collections}
+                    collectionFieldsByName={collectionFieldsByName}
+                    pages={pages}
+                  />
+                ) : (
+                  <SeoPanel seo={seo} onChange={setSeo} title={title} slug={slug} />
+                )}
               </aside>
             </div>
           </SelectedKeyProvider>
@@ -427,6 +462,119 @@ export function PageEditor({
     </section>
     </DragCtx.Provider>
     </VisualSelCtx.Provider>
+  );
+}
+
+function SeoPanel({ seo, onChange, title, slug }: { seo: SeoData; onChange: (s: SeoData) => void; title: string; slug: string }) {
+  const set = (k: keyof SeoData, v: string | boolean) => onChange({ ...seo, [k]: v });
+  const previewTitle = seo.metaTitle || title || 'Untitled';
+  const previewDesc  = seo.metaDescription || '';
+  const previewUrl   = `yourdomain.com/pages/${slug}`;
+
+  return (
+    <div className="flex-1 overflow-auto scrollbar p-4 space-y-5 text-sm">
+      {/* Google preview */}
+      <div className="rounded-lg border border-neutral-200 p-3 bg-neutral-50">
+        <p className="text-[10px] uppercase tracking-wider text-neutral-400 mb-2">Search preview</p>
+        <p className="text-[11px] text-neutral-400 truncate">{previewUrl}</p>
+        <p className="text-[15px] text-blue-600 truncate font-medium leading-snug">{previewTitle}</p>
+        <p className="text-[12px] text-neutral-600 line-clamp-2 leading-relaxed">{previewDesc || <span className="italic text-neutral-400">No description set</span>}</p>
+      </div>
+
+      {/* Meta */}
+      <div className="space-y-3">
+        <p className="text-[10px] uppercase tracking-wider text-neutral-400">Meta</p>
+        <label className="block">
+          <span className="text-[11px] text-neutral-500 flex items-center justify-between">
+            Title <span className={cn('tabular-nums', (seo.metaTitle?.length ?? 0) > 60 ? 'text-destructive' : 'text-neutral-400')}>{seo.metaTitle?.length ?? 0}/60</span>
+          </span>
+          <input
+            className="mt-1 w-full px-2 py-1.5 text-[12px] border border-neutral-200 rounded focus:outline-none focus:border-accent"
+            value={seo.metaTitle ?? ''}
+            onChange={e => set('metaTitle', e.target.value)}
+            placeholder={title || 'Page title'}
+          />
+        </label>
+        <label className="block">
+          <span className="text-[11px] text-neutral-500 flex items-center justify-between">
+            Description <span className={cn('tabular-nums', (seo.metaDescription?.length ?? 0) > 160 ? 'text-destructive' : 'text-neutral-400')}>{seo.metaDescription?.length ?? 0}/160</span>
+          </span>
+          <textarea
+            className="mt-1 w-full px-2 py-1.5 text-[12px] border border-neutral-200 rounded focus:outline-none focus:border-accent resize-none"
+            rows={3}
+            value={seo.metaDescription ?? ''}
+            onChange={e => set('metaDescription', e.target.value)}
+            placeholder="Brief description for search results…"
+          />
+        </label>
+      </div>
+
+      <div className="border-t border-neutral-100" />
+
+      {/* Open Graph */}
+      <div className="space-y-3">
+        <p className="text-[10px] uppercase tracking-wider text-neutral-400">Open Graph</p>
+        <label className="block">
+          <span className="text-[11px] text-neutral-500">OG Title</span>
+          <input
+            className="mt-1 w-full px-2 py-1.5 text-[12px] border border-neutral-200 rounded focus:outline-none focus:border-accent"
+            value={seo.ogTitle ?? ''}
+            onChange={e => set('ogTitle', e.target.value)}
+            placeholder={seo.metaTitle || title || 'Inherits meta title'}
+          />
+        </label>
+        <label className="block">
+          <span className="text-[11px] text-neutral-500">OG Description</span>
+          <textarea
+            className="mt-1 w-full px-2 py-1.5 text-[12px] border border-neutral-200 rounded focus:outline-none focus:border-accent resize-none"
+            rows={2}
+            value={seo.ogDescription ?? ''}
+            onChange={e => set('ogDescription', e.target.value)}
+            placeholder={seo.metaDescription || 'Inherits meta description'}
+          />
+        </label>
+        <label className="block">
+          <span className="text-[11px] text-neutral-500">OG Image URL</span>
+          <input
+            className="mt-1 w-full px-2 py-1.5 text-[12px] border border-neutral-200 rounded focus:outline-none focus:border-accent font-mono"
+            value={seo.ogImage ?? ''}
+            onChange={e => set('ogImage', e.target.value)}
+            placeholder="https://…"
+          />
+          {seo.ogImage && (
+            <img src={seo.ogImage} alt="" className="mt-2 w-full rounded border border-neutral-200 object-cover max-h-32" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+          )}
+        </label>
+      </div>
+
+      <div className="border-t border-neutral-100" />
+
+      {/* Advanced */}
+      <div className="space-y-3">
+        <p className="text-[10px] uppercase tracking-wider text-neutral-400">Advanced</p>
+        <label className="block">
+          <span className="text-[11px] text-neutral-500">Canonical URL</span>
+          <input
+            className="mt-1 w-full px-2 py-1.5 text-[12px] border border-neutral-200 rounded focus:outline-none focus:border-accent font-mono"
+            value={seo.canonicalUrl ?? ''}
+            onChange={e => set('canonicalUrl', e.target.value)}
+            placeholder="https://… (leave blank to use page URL)"
+          />
+        </label>
+        <label className="flex items-center gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={seo.noIndex ?? false}
+            onChange={e => set('noIndex', e.target.checked)}
+            className="accent-accent"
+          />
+          <div>
+            <span className="text-[12px] text-neutral-700">No index</span>
+            <p className="text-[10px] text-neutral-400">Tell search engines not to index this page</p>
+          </div>
+        </label>
+      </div>
+    </div>
   );
 }
 

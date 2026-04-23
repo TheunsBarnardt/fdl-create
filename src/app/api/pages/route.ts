@@ -10,6 +10,7 @@ const CreatePage = z.object({
   published: z.boolean().optional(),
   themeId: z.string().nullable().optional(),
   params: z.string().nullable().optional(),
+  seo: z.any().optional(),
 });
 
 export const GET = withApi('read:pages', async () => {
@@ -31,6 +32,7 @@ export const POST = withApi('write:pages', async (req) => {
       published: body.data.published ?? false,
       themeId: body.data.themeId ?? null,
       params: body.data.params ?? null,
+      seo: body.data.seo ? JSON.stringify(body.data.seo) : null,
     }
   });
   return NextResponse.json({ id: created.id }, { status: 201 });

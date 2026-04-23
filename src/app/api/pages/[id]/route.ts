@@ -10,6 +10,7 @@ const UpdatePage = z.object({
   published: z.boolean().optional(),
   themeId: z.string().nullable().optional(),
   params: z.string().nullable().optional(),
+  seo: z.any().optional(),
 });
 
 type P = { params: { id: string } };
@@ -17,7 +18,7 @@ type P = { params: { id: string } };
 export const GET = withApi<P>('read:pages', async (_req, { params }) => {
   const p = await prisma.page.findUnique({ where: { id: params.id } });
   if (!p) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  return NextResponse.json({ ...p, tree: JSON.parse(p.tree) });
+  return NextResponse.json({ ...p, tree: JSON.parse(p.tree), seo: p.seo ? JSON.parse(p.seo) : null });
 });
 
 export const PATCH = withApi<P>('write:pages', async (req, { params }) => {
@@ -32,6 +33,7 @@ export const PATCH = withApi<P>('write:pages', async (req, { params }) => {
       ...(body.data.published !== undefined && { published: body.data.published }),
       ...('themeId' in body.data && { themeId: body.data.themeId ?? null }),
       ...('params' in body.data && { params: body.data.params ?? null }),
+      ...('seo' in body.data && { seo: body.data.seo ? JSON.stringify(body.data.seo) : null }),
     }
   });
   return NextResponse.json({ id: params.id });

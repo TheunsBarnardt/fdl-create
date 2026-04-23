@@ -33,6 +33,7 @@ export default async function EditPagePage({ params }: { params: { id: string } 
         published: page.published,
         themeId: page.themeId,
         params: page.params,
+        seo: page.seo ? JSON.parse(page.seo) : null,
       }}
     />
   );

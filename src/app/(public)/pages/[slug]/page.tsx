@@ -1,8 +1,27 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { auth } from '@/auth';
 import { renderPageTree } from '@/lib/page-render';
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const page = await prisma.page.findUnique({ where: { slug }, select: { title: true, seo: true } }).catch(() => null);
+  if (!page) return {};
+  const seo = page.seo ? JSON.parse(page.seo) : {};
+  return {
+    title: seo.metaTitle || page.title,
+    description: seo.metaDescription || undefined,
+    robots: seo.noIndex ? { index: false, follow: false } : undefined,
+    alternates: seo.canonicalUrl ? { canonical: seo.canonicalUrl } : undefined,
+    openGraph: {
+      title: seo.ogTitle || seo.metaTitle || page.title,
+      description: seo.ogDescription || seo.metaDescription || undefined,
+      images: seo.ogImage ? [{ url: seo.ogImage }] : undefined,
+    },
+  };
+}
 
 export default async function PublicPage({
   params,

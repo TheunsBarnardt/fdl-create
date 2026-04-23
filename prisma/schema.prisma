@@ -96,8 +96,11 @@ model Page {
   published Boolean  @default(false)
   themeId   String?  // links to Theme.id
   params    String?  // JSON: string[] — e.g. ["id"] for /customers/[id]
+  seo       String?  // JSON: { metaTitle, metaDescription, ogTitle, ogDescription, ogImage, canonicalUrl, noIndex }
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  navItems  NavItem[]
 }
 
 model CustomBlock {
@@ -178,6 +181,8 @@ model Asset {
   width      Int?
   height     Int?
   alt        String?
+  focalX     Float    @default(50)
+  focalY     Float    @default(50)
   order      Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -196,6 +201,59 @@ model AiAuditLog {
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
   @@index([collection])
+}
+
+// ---- Navigation & Footer ----
+model Navigation {
+  id        String   @id @default(cuid())
+  items     NavItem[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model NavItem {
+  id            String   @id @default(cuid())
+  navigationId  String
+  parentId      String?
+  label         String
+  navType       String   @default("flat")  // "flat" | "dropdown" | "mega"
+  pageId        String?
+  customUrl     String?
+  openInNewTab  Boolean  @default(false)
+  columns       Int?     // Number of columns for mega-nav
+  order         Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  navigation Navigation @relation(fields: [navigationId], references: [id], onDelete: Cascade)
+  parent     NavItem?   @relation("NavItemChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children   NavItem[]  @relation("NavItemChildren")
+  page       Page?      @relation(fields: [pageId], references: [id], onDelete: SetNull)
+
+  @@index([navigationId])
+  @@index([parentId])
+  @@index([pageId])
+}
+
+model Footer {
+  id        String        @id @default(cuid())
+  type      String        @default("simple")  // "simple" | "columns"
+  columns   FooterColumn[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model FooterColumn {
+  id        String   @id @default(cuid())
+  footerId  String
+  title     String
+  items     String   // JSON: [{ label, url }]
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  footer Footer @relation(fields: [footerId], references: [id], onDelete: Cascade)
+  @@index([footerId])
 }
 
 // ---- Platform observability + Management API ----
