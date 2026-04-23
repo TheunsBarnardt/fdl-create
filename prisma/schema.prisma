@@ -274,6 +274,60 @@ model ApiRequestLog {
   @@index([status])
 }
 
+model PageView {
+  id          String   @id @default(cuid())
+  path        String
+  referer     String?
+  country     String?  // best-effort from cf-ipcountry / x-vercel-ip-country header
+  device      String?  // desktop | mobile | tablet
+  browser     String?  // Chrome | Safari | Firefox | Edge | Other
+  os          String?
+  bytes       Int?     // transferSize from PerformanceNavigationTiming
+  durationMs  Int?     // navigation timing (responseEnd - startTime)
+  ipHash      String?  // sha256(ip + workspace salt) — never raw IP
+  userAgent   String?
+  sessionId   String?  // rotated per workspace salt
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([path])
+  @@index([country])
+}
+
+model VitalsEvent {
+  id        String   @id @default(cuid())
+  metric    String   // LCP | FID | CLS | INP | TTFB | FCP
+  value     Float
+  rating    String   // good | needs-improvement | poor
+  path      String
+  navId     String?  // web-vitals Metric.navigationType
+  device    String?
+  browser   String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([metric])
+  @@index([path])
+}
+
+model LighthouseRun {
+  id            String   @id @default(cuid())
+  url           String
+  strategy      String   @default("desktop") // desktop | mobile
+  performance   Int
+  accessibility Int
+  bestPractices Int
+  seo           Int
+  lcpMs         Int?
+  clsScore      Float?
+  tbtMs         Int?
+  source        String   @default("psi")     // psi | lhci | manual
+  createdAt     DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([url])
+}
+
 model ApiToken {
   id         String    @id @default(cuid())
   userId     String
