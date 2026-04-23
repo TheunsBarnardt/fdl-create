@@ -10,12 +10,14 @@ const buildNav = [
   { href: '/theme', label: 'Theme', icon: ThemeIcon },
   { href: '/blocks', label: 'Block studio', icon: BlocksIcon },
   { href: '/pages', label: 'Page editor', icon: PageIcon },
+  { href: '/pages/nav-footer', label: 'Nav & Footer', icon: NavFooterIcon },
 ];
 
 const dataNav = [
   { href: '/data', label: 'Overview', icon: DataIcon },
   { href: '/records', label: 'Tables', icon: RecordIcon },
   { href: '/schema', label: 'Schema', icon: SchemaIcon },
+  { href: '/data/procedures', label: 'Procedures', icon: ProceduresIcon },
   { href: '/data/visualizer', label: 'Visualizer', icon: VisualizerIcon },
   { href: '/data/backups', label: 'Backups', icon: BackupsIcon }
 ];
@@ -23,6 +25,7 @@ const dataNav = [
 const runNav = [
   { href: '/logs', label: 'Logs', icon: LogsIcon },
   { href: '/analytics', label: 'Analytics', icon: AnalyticsIcon },
+  { href: '/run/profiler', label: 'SQL Profiler', icon: ProfilerIcon },
   { href: '/tokens', label: 'API tokens', icon: TokensIcon },
   { href: '/api-reference', label: 'API reference', icon: BookIcon },
   { href: '/governance', label: 'Governance', icon: GovernanceIcon }
@@ -272,6 +275,30 @@ function AssetsIcon({ className }: { className?: string }) {
       <rect x="13" y="3" width="8" height="8" rx="1" />
       <rect x="3" y="13" width="8" height="8" rx="1" />
       <path d="M17 13v8M13 17h8" />
+    </svg>
+  );
+}
+function NavFooterIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M3 5h18M3 19h18M6 8v8M10 8v8M14 8v8M18 8v8" />
+    </svg>
+  );
+}
+function ProceduresIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M7 8l3 3-3 3M13 14h4" />
+    </svg>
+  );
+}
+function ProfilerIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M2 12h2M20 12h2M12 2v2M12 20v2" />
+      <circle cx="12" cy="12" r="4" />
+      <path d="M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2" />
     </svg>
   );
 }
