@@ -159,8 +159,10 @@ function GroupNode({
             >
               {typeIcon(v.type)}
               <span className="flex-1 text-[12px] truncate">{v.name.split('/').pop()}</span>
-              {colorSwatch(v.value, v.type)}
-              <span className="text-[10px] text-neutral-400 truncate max-w-[80px] pr-2">{fmtValue(v.value)}</span>
+              <div className="flex items-center gap-1.5 shrink-0 pr-2">
+                <span className="text-[10px] text-neutral-400 max-w-[80px] truncate">{fmtValue(v.value)}</span>
+                {colorSwatch(v.value, v.type)}
+              </div>
             </button>
           ))}
           {group.children.map((c) => (

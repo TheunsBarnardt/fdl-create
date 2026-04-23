@@ -2,7 +2,7 @@
 import { useMemo, useState, useEffect, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Copy, Save, Sun, Moon, Sparkles, Link2 } from 'lucide-react';
+import { Copy, Save, Sun, Moon, Sparkles, Link2, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type Scope = 'both' | 'admin' | 'published';
@@ -50,7 +50,7 @@ type Theme = { id?: string; name: string; tokens: any; isDefault: boolean };
 type Preset = { id: string; name: string; tokens: Partial<Tokens>; custom: boolean };
 
 // ── Variable linking ──────────────────────────────────────────────────────────
-type VarItem = { id: string; name: string; type: string; value: string | { light: string; dark: string } };
+type VarItem = { id: string; name: string; type: string; value: string | { light: string; dark: string }; collectionLabel?: string };
 
 function isVarRef(val: string) { return val.startsWith('{') && val.endsWith('}'); }
 function makeVarRef(name: string) { return `{${name}}`; }
@@ -227,6 +227,7 @@ export function ThemeStudio({
   const toggle = (k: string) => setOpen((o) => ({ ...o, [k]: !o[k] }));
   const [colorVars, setColorVars] = useState<VarItem[]>([]);
   const [varPickerOpen, setVarPickerOpen] = useState<string | null>(null);
+  const [varSearch, setVarSearch] = useState('');
 
   // Load custom presets and color variables on mount
   useEffect(() => {
@@ -240,7 +241,7 @@ export function ThemeStudio({
         if (varsRes.ok) {
           const cols = await varsRes.json();
           const all: VarItem[] = (Array.isArray(cols) ? cols : []).flatMap(
-            (col: any) => (col.variables ?? []).filter((v: any) => v.type === 'color')
+            (col: any) => (col.variables ?? []).filter((v: any) => v.type === 'color').map((v: any) => ({ ...v, collectionLabel: col.label || col.name || 'Variables' }))
           );
           setColorVars(all);
         }
@@ -252,6 +253,7 @@ export function ThemeStudio({
 
   const loadTheme = (t: typeof themes[number]) => {
     setSelectedId(t.id);
+    setActivePreset(t.id);
     setName(t.name);
     setTokens(normalizeTokens(t.tokens));
     setIsDefault(t.isDefault);
@@ -265,7 +267,14 @@ export function ThemeStudio({
     } else {
       const p = tokens.mode === 'dark' ? DARK_PRESETS[key] : PRESETS[key];
       if (!p) return;
-      setTokens({ ...tokens, ...p });
+      // Strip any variable references ({...}) before merging — they belong to the previous custom preset
+      const stripped = Object.fromEntries(
+        Object.entries(tokens).map(([k, v]) => [
+          k,
+          typeof v === 'string' && v.startsWith('{') ? DEFAULT_TOKENS[k as keyof Tokens] : v,
+        ])
+      ) as Tokens;
+      setTokens({ ...stripped, ...p });
     }
     setActivePreset(key);
   };
@@ -643,7 +652,7 @@ export function ThemeStudio({
                         {colorVars.length > 0 && (
                           <div className="relative">
                             <button
-                              onClick={() => setVarPickerOpen(varPickerOpen === key ? null : key)}
+                              onClick={() => { setVarPickerOpen(varPickerOpen === key ? null : key); setVarSearch(''); }}
                               className={cn(
                                 'w-5 h-5 flex items-center justify-center rounded hover:bg-neutral-100',
                                 linked ? 'text-accent' : 'text-neutral-400 hover:text-neutral-700'
@@ -655,28 +664,56 @@ export function ThemeStudio({
                             {varPickerOpen === key && (
                               <>
                               <div className="fixed inset-0 z-40" onClick={() => setVarPickerOpen(null)} />
-                              <div className="absolute right-0 top-6 z-50 w-52 bg-white border border-neutral-200 rounded-lg shadow-lg overflow-hidden">
-                                <div className="px-2 py-1.5 border-b border-neutral-100">
-                                  <p className="text-[10px] uppercase tracking-wider text-neutral-400">Color variables</p>
+                              <div className="absolute right-0 top-6 z-50 w-56 bg-white border border-neutral-200 rounded-lg shadow-lg overflow-hidden">
+                                <div className="px-2 py-1.5 border-b border-neutral-100 flex items-center gap-1.5">
+                                  <Search className="w-3 h-3 text-neutral-400 shrink-0" />
+                                  <input
+                                    autoFocus
+                                    placeholder="Search variables…"
+                                    className="flex-1 text-[11px] outline-none bg-transparent"
+                                    value={varSearch}
+                                    onChange={(e) => setVarSearch(e.target.value)}
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
                                 </div>
-                                <div className="max-h-48 overflow-auto py-1">
-                                  {colorVars.map((v) => {
-                                    const val = resolveVarValue(v, tokens.mode);
-                                    return (
-                                      <button
-                                        key={v.id}
-                                        onClick={() => { setColor(key, makeVarRef(v.name)); setVarPickerOpen(null); }}
-                                        className="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-neutral-50 text-left"
-                                      >
-                                        <span className="w-6 h-6 rounded shrink-0 border border-neutral-200" style={{ background: val.startsWith('#') ? val : `hsl(${val})` }} />
-                                        <span className="text-[11px] text-neutral-700 truncate flex-1">{v.name.split('/').pop()}</span>
-                                      </button>
+                                <div className="max-h-52 overflow-auto py-1">
+                                  {(() => {
+                                    const q = varSearch.toLowerCase();
+                                    const filtered = colorVars.filter(v => !q || v.name.toLowerCase().includes(q));
+                                    const groups = filtered.reduce<Record<string, VarItem[]>>((acc, v) => {
+                                      const parts = v.name.split('/');
+                                      const g = parts.length > 1
+                                        ? parts[0].replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+                                        : (v.collectionLabel || 'Other');
+                                      (acc[g] ??= []).push(v);
+                                      return acc;
+                                    }, {});
+                                    if (Object.keys(groups).length === 0) return (
+                                      <p className="px-3 py-3 text-[11px] text-neutral-400">No results</p>
                                     );
-                                  })}
+                                    return Object.entries(groups).map(([group, vars]) => (
+                                      <div key={group}>
+                                        <p className="px-2 pt-2 pb-0.5 text-[9px] uppercase tracking-wider text-neutral-400">{group}</p>
+                                        {vars.map((v) => {
+                                          const val = resolveVarValue(v, tokens.mode);
+                                          return (
+                                            <button
+                                              key={v.id}
+                                              onClick={() => { setColor(key, makeVarRef(v.name)); setVarPickerOpen(null); setVarSearch(''); }}
+                                              className="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-neutral-50 text-left"
+                                            >
+                                              <span className="text-[11px] text-neutral-700 truncate flex-1">{v.name.split('/').pop()}</span>
+                                              <span className="w-4 h-4 rounded-sm shrink-0 border border-neutral-200" style={{ background: val.startsWith('#') ? val : `hsl(${val})` }} />
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
+                                    ));
+                                  })()}
                                 </div>
                                 <div className="border-t border-neutral-100 px-2 py-1">
                                   <button
-                                    onClick={() => setVarPickerOpen(null)}
+                                    onClick={() => { setVarPickerOpen(null); setVarSearch(''); }}
                                     className="text-[10px] text-neutral-400 hover:text-neutral-700 w-full text-center py-0.5"
                                   >
                                     Close
@@ -1063,7 +1100,7 @@ export function ThemeStudio({
                       onClick={() => loadTheme(t)}
                       className={cn(
                         'rounded-md p-2 text-[11px] flex flex-col items-center gap-1 border transition-colors',
-                        selectedId === t.id
+                        activePreset === t.id
                           ? 'border-accent ring-2 ring-accent/30'
                           : 'border-neutral-200 hover:border-accent'
                       )}
@@ -1072,7 +1109,7 @@ export function ThemeStudio({
                         <span className="w-3 h-3 rounded-sm" style={{ background: hslToHex(tk.primary) }} />
                         <span className="w-3 h-3 rounded-sm border border-neutral-200" style={{ background: hslToHex(tk.background) }} />
                       </div>
-                      <span className="truncate w-full text-center">{t.id === selectedId ? name : t.name}</span>
+                      <span className="truncate w-full text-center">{t.id === activePreset ? name : t.name}</span>
                     </button>
                   );
                 })}
@@ -1088,7 +1125,7 @@ export function ThemeStudio({
                   onClick={() => loadTheme(t)}
                   className={cn(
                     'w-full flex items-center justify-between px-2 py-1.5 rounded text-left',
-                    selectedId === t.id ? 'bg-accent-soft text-accent' : 'hover:bg-neutral-50'
+                    activePreset === t.id ? 'bg-accent-soft text-accent' : 'hover:bg-neutral-50'
                   )}
                 >
                   <span>{t.name}</span>
