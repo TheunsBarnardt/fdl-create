@@ -354,24 +354,28 @@ export function ThemeStudio({
 
   const cssVars = useMemo(() => {
     const d = tokens.mode === 'dark';
+    const rc = (val: string) => {
+      const resolved = resolveColor(val, colorVars, tokens.mode);
+      return resolved.startsWith('#') ? hexToHsl(resolved) : resolved;
+    };
     return {
-      '--bg': d ? tokens.darkBackground : tokens.background,
-      '--fg': d ? tokens.darkForeground : tokens.foreground,
-      '--card': d ? tokens.darkBackground : tokens.background,
-      '--card-fg': d ? tokens.darkForeground : tokens.foreground,
-      '--primary': d ? tokens.darkPrimary : tokens.primary,
-      '--primary-fg': d ? tokens.darkBackground : '210 40% 98%',
-      '--secondary': d ? tokens.darkSecondary : tokens.secondary,
-      '--secondary-fg': d ? tokens.darkForeground : tokens.foreground,
-      '--muted': d ? tokens.darkMuted : tokens.muted,
+      '--bg': rc(d ? tokens.darkBackground : tokens.background),
+      '--fg': rc(d ? tokens.darkForeground : tokens.foreground),
+      '--card': rc(d ? tokens.darkBackground : tokens.background),
+      '--card-fg': rc(d ? tokens.darkForeground : tokens.foreground),
+      '--primary': rc(d ? tokens.darkPrimary : tokens.primary),
+      '--primary-fg': rc(d ? tokens.darkBackground : tokens.background),
+      '--secondary': rc(d ? tokens.darkSecondary : tokens.secondary),
+      '--secondary-fg': rc(d ? tokens.darkForeground : tokens.foreground),
+      '--muted': rc(d ? tokens.darkMuted : tokens.muted),
       '--muted-fg': d ? '215 20% 65%' : '215 16% 47%',
-      '--accent': d ? tokens.darkAccent : tokens.accent,
-      '--accent-fg': d ? tokens.darkForeground : tokens.foreground,
-      '--destructive': d ? tokens.darkDestructive : tokens.destructive,
+      '--accent': rc(d ? tokens.darkAccent : tokens.accent),
+      '--accent-fg': rc(d ? tokens.darkForeground : tokens.foreground),
+      '--destructive': rc(d ? tokens.darkDestructive : tokens.destructive),
       '--destructive-fg': '210 40% 98%',
-      '--border': d ? tokens.darkBorder : tokens.border,
-      '--input': d ? tokens.darkBorder : tokens.border,
-      '--ring': d ? tokens.darkRing : tokens.ring,
+      '--border': rc(d ? tokens.darkBorder : tokens.border),
+      '--input': rc(d ? tokens.darkBorder : tokens.border),
+      '--ring': rc(d ? tokens.darkRing : tokens.ring),
       '--radius': `${tokens.radius}rem`,
       '--theme-font': tokens.fontBody,
       '--h1-size': tokens.h1Size, '--h1-weight': String(tokens.h1Weight), '--h1-tracking': tokens.h1Tracking, '--h1-leading': tokens.h1Leading,
@@ -383,7 +387,7 @@ export function ThemeStudio({
       '--body-size': tokens.bodySize, '--body-weight': String(tokens.bodyWeight), '--body-leading': tokens.bodyLeading,
       '--underline-offset': tokens.underlineOffset, '--underline-thickness': tokens.underlineThickness,
     } as CSSProperties;
-  }, [tokens]);
+  }, [tokens, colorVars]);
 
   const cssSource = useMemo(() => {
     const lines = [
