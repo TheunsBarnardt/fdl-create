@@ -468,17 +468,17 @@ export function ThemeStudio({
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <header className="h-14 border-b border-neutral-200 bg-white/60 backdrop-blur px-6 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <Link href="/" className="text-xs text-neutral-500 hover:text-neutral-900">Workspace</Link>
-          <span className="text-xs text-neutral-400">›</span>
-          <div className="display text-lg">Theme studio</div>
-          <span className="text-xs text-neutral-400">›</span>
+        <div className="flex items-center gap-3 min-w-0 overflow-hidden">
+          <Link href="/" className="text-xs text-neutral-500 hover:text-neutral-900 shrink-0">Workspace</Link>
+          <span className="text-xs text-neutral-400 shrink-0">›</span>
+          <div className="display text-lg shrink-0">Theme studio</div>
+          <span className="text-xs text-neutral-400 shrink-0">›</span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             onBlur={saveName}
             onKeyDown={(e) => { if (e.key === 'Enter') { e.currentTarget.blur(); } }}
-            className="text-sm bg-transparent outline-none focus:bg-neutral-100 px-1.5 py-0.5 rounded"
+            className="text-sm bg-transparent outline-none focus:bg-neutral-100 px-1.5 py-0.5 rounded min-w-0 max-w-[160px]"
           />
           <span className="chip bg-accent-soft text-accent">System-wide</span>
         </div>
@@ -528,7 +528,7 @@ export function ThemeStudio({
           <button
             onClick={save}
             disabled={saving || !name}
-            className="px-2.5 py-1 bg-neutral-900 text-white rounded-md flex items-center gap-1.5 disabled:opacity-60"
+            className="px-2.5 py-1 bg-neutral-900 text-white rounded-md flex items-center gap-1.5 disabled:opacity-60 shrink-0"
           >
             <Save className="w-3 h-3" /> {saving ? 'Saving…' : selectedId ? 'Save theme' : 'Create theme'}
           </button>
