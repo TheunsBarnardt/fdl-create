@@ -6,8 +6,10 @@ import { cn } from '@/lib/utils';
 const buildNav = [
   { href: '/', label: 'Workspace', icon: HomeIcon },
   { href: '/theme', label: 'Theme', icon: ThemeIcon },
+  { href: '/variables', label: 'Variables', icon: VariablesIcon },
   { href: '/blocks', label: 'Block studio', icon: BlocksIcon },
-  { href: '/pages', label: 'Page editor', icon: PageIcon }
+  { href: '/pages', label: 'Page editor', icon: PageIcon },
+  { href: '/assets', label: 'Assets', icon: AssetsIcon }
 ];
 
 const dataNav = [
@@ -156,6 +158,14 @@ function BlocksIcon({ className }: { className?: string }) {
     </svg>
   );
 }
+function VariablesIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M4 7h16M4 12h10M4 17h6" />
+      <circle cx="19" cy="17" r="3" />
+    </svg>
+  );
+}
 function ThemeIcon({ className }: { className?: string }) {
   return (
     <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -252,6 +262,16 @@ function GovernanceIcon({ className }: { className?: string }) {
   return (
     <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z" />
+    </svg>
+  );
+}
+function AssetsIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="3" width="8" height="8" rx="1" />
+      <rect x="13" y="3" width="8" height="8" rx="1" />
+      <rect x="3" y="13" width="8" height="8" rx="1" />
+      <path d="M17 13v8M13 17h8" />
     </svg>
   );
 }

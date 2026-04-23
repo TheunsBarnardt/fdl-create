@@ -1,8 +1,8 @@
 'use client';
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useMemo, useState, useEffect, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Copy, Save, Sun, Moon, Sparkles } from 'lucide-react';
+import { Copy, Save, Sun, Moon, Sparkles, Link2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type Scope = 'both' | 'admin' | 'published';
@@ -47,6 +47,26 @@ type Tokens = {
 };
 
 type Theme = { id?: string; name: string; tokens: any; isDefault: boolean };
+type Preset = { id: string; name: string; tokens: Partial<Tokens>; custom: boolean };
+
+// ── Variable linking ──────────────────────────────────────────────────────────
+type VarItem = { id: string; name: string; type: string; value: string | { light: string; dark: string } };
+
+function isVarRef(val: string) { return val.startsWith('{') && val.endsWith('}'); }
+function makeVarRef(name: string) { return `{${name}}`; }
+function parseVarRef(val: string) { return val.slice(1, -1); }
+
+function resolveVarValue(v: VarItem, mode: 'light' | 'dark'): string {
+  if (typeof v.value === 'string') return v.value;
+  return mode === 'dark' ? v.value.dark : v.value.light;
+}
+
+function resolveColor(val: string, vars: VarItem[], mode: 'light' | 'dark'): string {
+  if (!isVarRef(val)) return val;
+  const name = parseVarRef(val);
+  const found = vars.find((v) => v.name === name);
+  return found ? resolveVarValue(found, mode) : '0 0% 50%';
+}
 
 const COLOR_KEYS = [
   'background',
@@ -197,10 +217,45 @@ export function ThemeStudio({
   const [activePreset, setActivePreset] = useState<string>('slate');
   const [copyState, setCopyState] = useState<'idle' | 'copied'>('idle');
   const [claudeOn, setClaudeOn] = useState(false);
+  const [presets, setPresets] = useState<Preset[]>([]);
+  const [savingPreset, setSavingPreset] = useState(false);
+  const [presetName, setPresetName] = useState('');
+  const [showPresetModal, setShowPresetModal] = useState(false);
   const [open, setOpen] = useState<Record<string, boolean>>({
     presets: true, colors: true, radius: false, fonts: false, typeScale: false, claude: false,
   });
   const toggle = (k: string) => setOpen((o) => ({ ...o, [k]: !o[k] }));
+  const [colorVars, setColorVars] = useState<VarItem[]>([]);
+  const [varPickerOpen, setVarPickerOpen] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!varPickerOpen) return;
+    const close = () => setVarPickerOpen(null);
+    window.addEventListener('click', close, { capture: true });
+    return () => window.removeEventListener('click', close, { capture: true });
+  }, [varPickerOpen]);
+
+  // Load custom presets and color variables on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const [presetsRes, varsRes] = await Promise.all([
+          fetch('/api/presets'),
+          fetch('/api/variable-collections'),
+        ]);
+        if (presetsRes.ok) setPresets(await presetsRes.json());
+        if (varsRes.ok) {
+          const cols = await varsRes.json();
+          const all: VarItem[] = (Array.isArray(cols) ? cols : []).flatMap(
+            (col: any) => (col.variables ?? []).filter((v: any) => v.type === 'color')
+          );
+          setColorVars(all);
+        }
+      } catch (e) {
+        console.error('Failed to load', e);
+      }
+    })();
+  }, []);
 
   const loadTheme = (t: typeof themes[number]) => {
     setSelectedId(t.id);
@@ -209,12 +264,83 @@ export function ThemeStudio({
     setIsDefault(t.isDefault);
   };
 
-  const applyPreset = (key: string) => {
-    const p = tokens.mode === 'dark' ? DARK_PRESETS[key] : PRESETS[key];
-    if (!p) return;
-    setTokens({ ...tokens, ...p });
+  const applyPreset = (key: string, isCustom = false) => {
+    if (isCustom) {
+      const preset = presets.find((p) => p.id === key);
+      if (!preset) return;
+      setTokens({ ...tokens, ...preset.tokens });
+    } else {
+      const p = tokens.mode === 'dark' ? DARK_PRESETS[key] : PRESETS[key];
+      if (!p) return;
+      setTokens({ ...tokens, ...p });
+    }
     setActivePreset(key);
   };
+
+  const allPresets = useMemo(() => {
+    const hardcoded = Object.entries(PRESET_SWATCHES).map(([key, swatch]) => ({
+      id: key,
+      name: swatch.label,
+      tokens: tokens.mode === 'dark' ? DARK_PRESETS[key] : PRESETS[key],
+      custom: false,
+    }));
+    const custom = presets.map((p) => ({ ...p, custom: true }));
+    return [...hardcoded, ...custom];
+  }, [presets, tokens.mode]);
+
+  async function saveAsPreset() {
+    if (!presetName.trim()) return;
+    setSavingPreset(true);
+    try {
+      const res = await fetch('/api/presets', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          name: presetName,
+          tokens: {
+            background: tokens.background,
+            foreground: tokens.foreground,
+            primary: tokens.primary,
+            secondary: tokens.secondary,
+            accent: tokens.accent,
+            muted: tokens.muted,
+            destructive: tokens.destructive,
+            border: tokens.border,
+            ring: tokens.ring,
+            darkBackground: tokens.darkBackground,
+            darkForeground: tokens.darkForeground,
+            darkPrimary: tokens.darkPrimary,
+            darkSecondary: tokens.darkSecondary,
+            darkAccent: tokens.darkAccent,
+            darkMuted: tokens.darkMuted,
+            darkDestructive: tokens.darkDestructive,
+            darkBorder: tokens.darkBorder,
+            darkRing: tokens.darkRing,
+          }
+        })
+      });
+      if (res.ok) {
+        const newPreset = await res.json();
+        setPresets((p) => [...p, newPreset]);
+        setShowPresetModal(false);
+        setPresetName('');
+      }
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setSavingPreset(false);
+    }
+  }
+
+  async function deletePreset(id: string) {
+    if (!confirm('Delete this preset?')) return;
+    try {
+      await fetch(`/api/presets/${id}`, { method: 'DELETE' });
+      setPresets((p) => p.filter((x) => x.id !== id));
+    } catch (e) {
+      setError(String(e));
+    }
+  }
 
   const darkKey = (key: ColorKey) =>
     `dark${key.charAt(0).toUpperCase()}${key.slice(1)}` as keyof Tokens;
@@ -222,8 +348,9 @@ export function ThemeStudio({
   const activeColorKey = (key: ColorKey): keyof Tokens =>
     tokens.mode === 'dark' ? darkKey(key) : key;
 
+  const getRawColor = (key: ColorKey): string => tokens[activeColorKey(key)] as string;
   const getColor = (key: ColorKey): string =>
-    tokens[activeColorKey(key)] as string;
+    resolveColor(getRawColor(key), colorVars, tokens.mode);
 
   const setColor = (key: ColorKey, value: string) => {
     setTokens({ ...tokens, [activeColorKey(key)]: value });
@@ -406,26 +533,47 @@ export function ThemeStudio({
               <Chevron open={open.presets} />
             </button>
             {open.presets && (
-              <div className="px-4 pb-4">
+              <div className="px-4 pb-4 space-y-3">
+                <button
+                  onClick={() => setShowPresetModal(true)}
+                  className="w-full text-[11px] text-accent hover:underline text-left"
+                >
+                  + Save current as preset
+                </button>
                 <div className="grid grid-cols-3 gap-2">
-                  {Object.entries(PRESET_SWATCHES).map(([key, s]) => (
-                    <button
-                      key={key}
-                      onClick={() => applyPreset(key)}
-                      className={cn(
-                        'rounded-md p-2 text-[11px] flex flex-col items-center gap-1 border transition-colors',
-                        activePreset === key
-                          ? 'border-accent ring-2 ring-accent/30'
-                          : 'border-neutral-200 hover:border-accent'
-                      )}
-                    >
-                      <div className="flex gap-0.5">
-                        <span className="w-3 h-3 rounded-sm" style={{ background: s.fg }} />
-                        <span className="w-3 h-3 rounded-sm" style={{ background: s.bg, border: `1px solid ${s.bgBorder ?? '#e4e4e7'}` }} />
+                  {allPresets.map((p) => {
+                    const swatch = PRESET_SWATCHES[p.id as keyof typeof PRESET_SWATCHES];
+                    const fgColor = p.custom ? hslToHex(p.tokens.primary || '0 0% 0%') : swatch?.fg;
+                    const bgColor = p.custom ? hslToHex(p.tokens.background || '0 0% 100%') : swatch?.bg;
+                    const bgBorder = swatch?.bgBorder ?? '#e4e4e7';
+                    return (
+                      <div key={p.id} className="relative group">
+                        <button
+                          onClick={() => applyPreset(p.id, p.custom)}
+                          className={cn(
+                            'rounded-md p-2 text-[11px] flex flex-col items-center gap-1 border transition-colors w-full',
+                            activePreset === p.id
+                              ? 'border-accent ring-2 ring-accent/30'
+                              : 'border-neutral-200 hover:border-accent'
+                          )}
+                        >
+                          <div className="flex gap-0.5">
+                            <span className="w-3 h-3 rounded-sm" style={{ background: fgColor }} />
+                            <span className="w-3 h-3 rounded-sm" style={{ background: bgColor, border: `1px solid ${bgBorder}` }} />
+                          </div>
+                          <span className="truncate">{p.name}</span>
+                        </button>
+                        {p.custom && (
+                          <button
+                            onClick={() => deletePreset(p.id)}
+                            className="absolute -top-1 -right-1 hidden group-hover:block w-4 h-4 rounded-full bg-destructive text-white text-[8px] flex items-center justify-center"
+                          >
+                            ×
+                          </button>
+                        )}
                       </div>
-                      {s.label}
-                    </button>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -441,25 +589,94 @@ export function ThemeStudio({
             </button>
             {open.colors && (
               <div className="px-4 pb-4 space-y-2.5 text-[12px]">
-                {COLOR_KEYS.map((key) => (
-                  <div key={key} className="flex items-center justify-between gap-2">
-                    <label className="mono text-[11px] text-neutral-600">--{key}</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={hslToHex(getColor(key))}
-                        onChange={(e) => setColor(key, hexToHsl(e.target.value))}
-                        className="w-7 h-7 rounded cursor-pointer p-0.5"
-                        style={{ border: '1px solid #e5e5e5' }}
-                      />
-                      <input
-                        className="mono text-[11px] w-20 px-1.5 py-0.5 border border-neutral-200 rounded focus:outline-none focus:border-accent"
-                        value={getColor(key)}
-                        onChange={(e) => setColor(key, e.target.value)}
-                      />
+                {COLOR_KEYS.map((key) => {
+                  const raw = getRawColor(key);
+                  const linked = isVarRef(raw);
+                  const linkedName = linked ? parseVarRef(raw) : null;
+                  const resolved = getColor(key);
+                  return (
+                    <div key={key} className="flex items-center justify-between gap-2">
+                      <label className="mono text-[11px] text-neutral-600 shrink-0">--{key}</label>
+                      <div className="flex items-center gap-1.5">
+                        {/* color swatch — always shows resolved color */}
+                        <span
+                          className="w-7 h-7 rounded shrink-0 border border-neutral-200"
+                          style={{ background: `hsl(${resolved})` }}
+                        />
+
+                        {linked ? (
+                          /* Linked state: show variable name + unlink button */
+                          <div className="flex items-center gap-1 bg-accent/10 border border-accent/30 rounded px-1.5 py-0.5">
+                            <Link2 className="w-3 h-3 text-accent shrink-0" />
+                            <span className="text-[10px] text-accent font-mono truncate max-w-[90px]" title={linkedName ?? ''}>
+                              {linkedName?.split('/').pop()}
+                            </span>
+                            <button
+                              onClick={() => setColor(key, resolved)}
+                              className="text-accent/60 hover:text-accent ml-0.5"
+                              title="Unlink variable"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ) : (
+                          /* Raw state: show HSL text input */
+                          <input
+                            className="mono text-[11px] w-20 px-1.5 py-0.5 border border-neutral-200 rounded focus:outline-none focus:border-accent"
+                            value={raw}
+                            onChange={(e) => setColor(key, e.target.value)}
+                          />
+                        )}
+
+                        {/* Variable picker button */}
+                        {colorVars.length > 0 && (
+                          <div className="relative" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => setVarPickerOpen(varPickerOpen === key ? null : key)}
+                              className={cn(
+                                'w-5 h-5 flex items-center justify-center rounded hover:bg-neutral-100',
+                                linked ? 'text-accent' : 'text-neutral-400 hover:text-neutral-700'
+                              )}
+                              title="Pick from variables"
+                            >
+                              <Link2 className="w-3 h-3" />
+                            </button>
+                            {varPickerOpen === key && (
+                              <div className="absolute right-0 top-6 z-50 w-52 bg-white border border-neutral-200 rounded-lg shadow-lg overflow-hidden">
+                                <div className="px-2 py-1.5 border-b border-neutral-100">
+                                  <p className="text-[10px] uppercase tracking-wider text-neutral-400">Color variables</p>
+                                </div>
+                                <div className="max-h-48 overflow-auto py-1">
+                                  {colorVars.map((v) => {
+                                    const val = resolveVarValue(v, tokens.mode);
+                                    return (
+                                      <button
+                                        key={v.id}
+                                        onClick={() => { setColor(key, makeVarRef(v.name)); setVarPickerOpen(null); }}
+                                        className="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-neutral-50 text-left"
+                                      >
+                                        <span className="w-6 h-6 rounded shrink-0 border border-neutral-200" style={{ background: val.startsWith('#') ? val : `hsl(${val})` }} />
+                                        <span className="text-[11px] text-neutral-700 truncate flex-1">{v.name.split('/').pop()}</span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                                <div className="border-t border-neutral-100 px-2 py-1">
+                                  <button
+                                    onClick={() => setVarPickerOpen(null)}
+                                    className="text-[10px] text-neutral-400 hover:text-neutral-700 w-full text-center py-0.5"
+                                  >
+                                    Close
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -890,6 +1107,41 @@ export function ThemeStudio({
           </div>
         </aside>
       </div>
+
+      {showPresetModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-96 shadow-lg">
+            <h2 className="text-lg font-semibold mb-4">Save as preset</h2>
+            <input
+              type="text"
+              placeholder="Preset name (e.g., 'Brand Blue', 'Editorial')"
+              value={presetName}
+              onChange={(e) => setPresetName(e.target.value)}
+              className="w-full px-3 py-2 border border-neutral-200 rounded-md focus:outline-none focus:border-accent mb-4"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') saveAsPreset();
+                if (e.key === 'Escape') setShowPresetModal(false);
+              }}
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setShowPresetModal(false)}
+                className="px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-100 rounded-md"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveAsPreset}
+                disabled={!presetName.trim() || savingPreset}
+                className="px-3 py-2 text-sm bg-accent text-white rounded-md disabled:opacity-60"
+              >
+                {savingPreset ? 'Saving…' : 'Save preset'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

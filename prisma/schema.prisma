@@ -120,6 +120,73 @@ model Theme {
   createdAt DateTime @default(now())
 }
 
+model Preset {
+  id        String   @id @default(cuid())
+  name      String
+  tokens    String   // JSON design tokens (color subset)
+  createdAt DateTime @default(now())
+}
+
+model VariableCollection {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  label     String
+  mode      String     @default("single") // "single" or "multi" for light/dark variants
+  order     Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  variables Variable[]
+}
+
+model Variable {
+  id           String    @id @default(cuid())
+  collectionId String
+  name         String    // e.g., "colors/primary/base" (with "/" for grouping)
+  type         String    // "color" | "number" | "string" | "boolean" | "dimension"
+  value        String    // JSON: single value or { light: ..., dark: ... }
+  description  String?
+  order        Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  collection VariableCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  @@unique([collectionId, name])
+  @@index([collectionId])
+}
+
+model AssetCategory {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  parentId  String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  parent   AssetCategory?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children AssetCategory[] @relation("CategoryTree")
+  assets   Asset[]
+}
+
+model Asset {
+  id         String   @id @default(cuid())
+  categoryId String?
+  name       String
+  filename   String   @unique
+  url        String
+  mimeType   String
+  size       Int
+  width      Int?
+  height     Int?
+  alt        String?
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  category AssetCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  @@index([categoryId])
+}
+
 model AiAuditLog {
   id         String   @id @default(cuid())
   userId     String?
