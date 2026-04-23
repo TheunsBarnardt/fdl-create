@@ -13,26 +13,7 @@ type Mode = 'light' | 'dark';
 type Tokens = {
   scope: Scope;
   mode: Mode;
-  // Light mode colors
-  background: string;
-  foreground: string;
-  primary: string;
-  secondary: string;
-  accent: string;
-  muted: string;
-  destructive: string;
-  border: string;
-  ring: string;
-  // Dark mode color overrides
-  darkBackground: string;
-  darkForeground: string;
-  darkPrimary: string;
-  darkSecondary: string;
-  darkAccent: string;
-  darkMuted: string;
-  darkDestructive: string;
-  darkBorder: string;
-  darkRing: string;
+  colorBindings: Record<string, { light: string; dark: string }>;
   radius: number;
   fontBindings: Record<string, string>; // { body: 'Inter', display: 'Fraunces', mono: 'JetBrains Mono', … }
   // Dynamic type scale: element → variable group path
@@ -40,7 +21,7 @@ type Tokens = {
 };
 
 type Theme = { id?: string; name: string; tokens: any; isDefault: boolean };
-type Preset = { id: string; name: string; tokens: Partial<Tokens>; custom: boolean };
+type Preset = { id: string; name: string; tokens: any; custom: boolean };
 
 // ── Variable linking ──────────────────────────────────────────────────────────
 type VarItem = { id: string; name: string; type: string; value: string | { light: string; dark: string }; collectionLabel?: string };
@@ -61,40 +42,23 @@ function resolveColor(val: string, vars: VarItem[], mode: 'light' | 'dark'): str
   return found ? resolveVarValue(found, mode) : '0 0% 50%';
 }
 
-const COLOR_KEYS = [
-  'background',
-  'foreground',
-  'primary',
-  'secondary',
-  'accent',
-  'muted',
-  'destructive',
-  'border',
-  'ring'
-] as const;
-type ColorKey = typeof COLOR_KEYS[number];
+
+const DEFAULT_COLOR_BINDINGS: Record<string, { light: string; dark: string }> = {
+  background:  { light: '0 0% 100%',   dark: '222 47% 11%' },
+  foreground:  { light: '222 47% 11%', dark: '210 40% 98%' },
+  primary:     { light: '222 47% 11%', dark: '210 40% 98%' },
+  secondary:   { light: '210 40% 96%', dark: '217 33% 17%' },
+  accent:      { light: '210 40% 96%', dark: '217 33% 17%' },
+  muted:       { light: '210 40% 96%', dark: '217 33% 17%' },
+  destructive: { light: '0 84% 60%',   dark: '0 84% 60%'  },
+  border:      { light: '214 32% 91%', dark: '217 33% 17%' },
+  ring:        { light: '222 47% 11%', dark: '212 27% 84%' },
+};
 
 const DEFAULT_TOKENS: Tokens = {
   scope: 'both',
   mode: 'light',
-  background: '0 0% 100%',
-  foreground: '222 47% 11%',
-  primary: '222 47% 11%',
-  secondary: '210 40% 96%',
-  accent: '210 40% 96%',
-  muted: '210 40% 96%',
-  destructive: '0 84% 60%',
-  border: '214 32% 91%',
-  ring: '222 47% 11%',
-  darkBackground: '222 47% 11%',
-  darkForeground: '210 40% 98%',
-  darkPrimary: '210 40% 98%',
-  darkSecondary: '217 33% 17%',
-  darkAccent: '217 33% 17%',
-  darkMuted: '217 33% 17%',
-  darkDestructive: '0 84% 60%',
-  darkBorder: '217 33% 17%',
-  darkRing: '212 27% 84%',
+  colorBindings: DEFAULT_COLOR_BINDINGS,
   radius: 0.5,
   fontBindings: { body: 'Inter', display: 'Fraunces', mono: 'JetBrains Mono' },
   typeBindings: {},
@@ -145,7 +109,7 @@ function hexToHsl(hex: string): string {
   }
 }
 
-const PRESETS: Record<string, Partial<Tokens>> = {
+const PRESETS: Record<string, Record<string, string>> = {
   slate:    { primary: '222 47% 11%',   secondary: '210 40% 96%',  accent: '210 40% 96%',  muted: '210 40% 96%',  border: '214 32% 91%',  ring: '222 47% 11%' },
   stone:    { primary: '24 10% 10%',    secondary: '60 5% 96%',    accent: '60 5% 96%',    muted: '60 5% 96%',    border: '20 6% 90%',    ring: '24 10% 10%' },
   zinc:     { primary: '240 6% 10%',    secondary: '240 5% 96%',   accent: '240 5% 96%',   muted: '240 5% 96%',   border: '240 6% 90%',   ring: '240 6% 10%' },
@@ -157,7 +121,7 @@ const PRESETS: Record<string, Partial<Tokens>> = {
   otto1890: { primary: '12 84% 40%',    secondary: '40 50% 92%',   accent: '43 74% 52%',   muted: '40 30% 94%',   border: '36 28% 82%',   ring: '12 84% 40%' }
 };
 
-const DARK_PRESETS: Record<string, Partial<Tokens>> = {
+const DARK_PRESETS: Record<string, Record<string, string>> = {
   slate:    { darkBackground: '222 47% 11%', darkForeground: '210 40% 98%', darkPrimary: '210 40% 98%', darkSecondary: '217 33% 17%', darkAccent: '217 33% 17%', darkMuted: '217 33% 17%', darkBorder: '217 33% 17%', darkRing: '212 27% 84%' },
   stone:    { darkBackground: '20 14% 9%',   darkForeground: '60 9% 98%',   darkPrimary: '60 9% 98%',   darkSecondary: '12 6% 15%',   darkAccent: '12 6% 15%',   darkMuted: '12 6% 15%',   darkBorder: '12 6% 15%',   darkRing: '24 6% 83%' },
   zinc:     { darkBackground: '240 10% 4%',  darkForeground: '0 0% 98%',    darkPrimary: '0 0% 98%',    darkSecondary: '240 4% 16%',  darkAccent: '240 4% 16%',  darkMuted: '240 4% 16%',  darkBorder: '240 4% 16%',  darkRing: '240 5% 84%' },
@@ -183,6 +147,16 @@ const PRESET_SWATCHES: Record<string, { label: string; fg: string; bg: string; b
 
 function normalizeTokens(raw: any): Tokens {
   const merged = { ...DEFAULT_TOKENS, ...(raw && typeof raw === 'object' ? raw : {}) };
+  // Migrate flat color fields to colorBindings if missing
+  if (!merged.colorBindings || typeof merged.colorBindings !== 'object') {
+    const cb: Record<string, { light: string; dark: string }> = { ...DEFAULT_COLOR_BINDINGS };
+    for (const role of ['background','foreground','primary','secondary','accent','muted','destructive','border','ring']) {
+      if (raw?.[role] !== undefined) cb[role] = { ...cb[role], light: raw[role] };
+      const dk = `dark${role.charAt(0).toUpperCase()}${role.slice(1)}`;
+      if (raw?.[dk] !== undefined) cb[role] = { ...cb[role], dark: raw[dk] };
+    }
+    merged.colorBindings = cb;
+  }
   if (!merged.typeBindings || typeof merged.typeBindings !== 'object') merged.typeBindings = {};
   if (!merged.fontBindings || typeof merged.fontBindings !== 'object') {
     merged.fontBindings = {
@@ -199,15 +173,27 @@ function normalizeTokens(raw: any): Tokens {
 const COMMON_ELEMENTS = ['h1','h2','h3','h4','h5','h6','p','a','label','small','code','blockquote','caption'];
 
 const ALL_ELEMENTS = [
-  'body','main','section','article','header','footer','nav','aside',
+  // Document structure
+  'body','main','section','article','header','footer','nav','aside','div','span',
+  // Headings
   'h1','h2','h3','h4','h5','h6',
-  'p','a','span','div','li','ul','ol',
-  'label','small','strong','em','b','i','mark','del','ins','sub','sup','s',
-  'code','pre','kbd','samp','var',
-  'blockquote','cite','q','abbr','dfn','address','time',
-  'caption','th','td','figcaption','legend','summary',
-  'button','input','select','textarea',
-  'table','thead','tbody','tr',
+  // Text content
+  'p','a','strong','em','b','i','mark','del','ins','sub','sup','s','u','small',
+  'abbr','acronym','cite','dfn','time','address','bdi','bdo','wbr',
+  // Inline semantic
+  'q','blockquote','pre','code','kbd','samp','var','data',
+  // Lists
+  'ul','ol','li','dl','dt','dd','menu',
+  // Media & figures
+  'figure','figcaption','picture','img','video','audio','canvas','svg',
+  // Forms & inputs
+  'form','fieldset','legend','label','input','textarea','select','option','optgroup','button','datalist','output','progress','meter',
+  // Tables
+  'table','thead','tbody','tfoot','tr','th','td','caption','colgroup','col',
+  // Interactive
+  'details','summary','dialog','iframe','embed','object',
+  // Other semantic
+  'hgroup','search','noscript',
 ];
 
 function ElementSearchInput({ existing, onAdd }: { existing: string[]; onAdd: (el: string) => void }) {
@@ -240,11 +226,11 @@ function ElementSearchInput({ existing, onAdd }: { existing: string[]; onAdd: (e
         }}
       />
       {open && suggestions.length > 0 && (
-        <ul className="absolute z-50 left-0 top-full mt-0.5 bg-white border border-neutral-200 rounded-md shadow-lg max-h-44 overflow-auto py-0.5 min-w-[120px]">
+        <ul className="absolute z-50 left-0 top-full mt-0.5 bg-white border border-neutral-200 rounded-md shadow-lg max-h-52 overflow-auto py-0.5 w-full">
           {suggestions.map(e => (
             <li
               key={e}
-              className="px-3 py-1.5 text-[11px] font-mono cursor-pointer hover:bg-neutral-50"
+              className="px-3 py-1.5 text-[11px] font-mono font-normal cursor-pointer hover:bg-neutral-50"
               onMouseDown={ev => { ev.preventDefault(); pick(e); }}
             >
               {e}
@@ -361,11 +347,11 @@ function FontRoleInput({ existing, onAdd }: { existing: string[]; onAdd: (role: 
         }}
       />
       {open && suggestions.length > 0 && (
-        <ul className="absolute z-50 left-0 top-full mt-0.5 bg-white border border-neutral-200 rounded-md shadow-lg max-h-44 overflow-auto py-0.5 min-w-[140px]">
+        <ul className="absolute z-50 left-0 top-full mt-0.5 bg-white border border-neutral-200 rounded-md shadow-lg max-h-52 overflow-auto py-0.5 w-full">
           {suggestions.map(r => (
             <li
               key={r}
-              className="px-3 py-1.5 text-[11px] font-mono cursor-pointer hover:bg-neutral-50"
+              className="px-3 py-1.5 text-[11px] font-mono font-normal cursor-pointer hover:bg-neutral-50"
               onMouseDown={ev => { ev.preventDefault(); onAdd(r); setQuery(''); setOpen(false); }}
             >
               {r}
@@ -466,6 +452,57 @@ function GroupSelector({ value, onChange, groups, allVars }: {
   );
 }
 
+const ALL_COLOR_ROLES = [
+  'background','foreground','card','card-foreground','popover','popover-foreground',
+  'primary','primary-foreground','secondary','secondary-foreground',
+  'muted','muted-foreground','accent','accent-foreground',
+  'destructive','destructive-foreground','border','input','ring',
+  'success','success-foreground','warning','warning-foreground',
+  'info','info-foreground','surface','surface-foreground',
+  'sidebar','sidebar-border','sidebar-foreground',
+  'chart-1','chart-2','chart-3','chart-4','chart-5',
+];
+
+function ColorRoleInput({ existing, onAdd }: { existing: string[]; onAdd: (role: string) => void }) {
+  const [query, setQuery] = useState('');
+  const [open, setOpen]   = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const suggestions = ALL_COLOR_ROLES.filter(r => !existing.includes(r) && (!query || r.includes(query.toLowerCase())));
+  useEffect(() => {
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+  return (
+    <div ref={ref} className="relative">
+      <input
+        className="text-[11px] font-mono px-2 py-1.5 border border-dashed border-neutral-200 rounded w-full focus:outline-none focus:border-accent placeholder:text-neutral-400"
+        placeholder="Add color role… (card, sidebar, chart-1…)"
+        value={query}
+        onChange={e => { setQuery(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' && query.trim()) { onAdd(query.trim()); setQuery(''); setOpen(false); }
+          if (e.key === 'Escape') setOpen(false);
+        }}
+      />
+      {open && suggestions.length > 0 && (
+        <ul className="absolute z-50 left-0 top-full mt-0.5 bg-white border border-neutral-200 rounded-md shadow-lg max-h-52 overflow-auto py-0.5 w-full">
+          {suggestions.map(r => (
+            <li
+              key={r}
+              className="px-3 py-1.5 text-[11px] font-mono font-normal cursor-pointer hover:bg-neutral-50"
+              onMouseDown={ev => { ev.preventDefault(); onAdd(r); setQuery(''); setOpen(false); }}
+            >
+              {r}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export function ThemeStudio({
   themes, initial
 }: {
@@ -544,18 +581,30 @@ export function ThemeStudio({
     if (isCustom) {
       const preset = presets.find((p) => p.id === key);
       if (!preset) return;
-      setTokens({ ...tokens, ...preset.tokens });
+      setTokens(normalizeTokens({ ...tokens, ...preset.tokens }));
     } else {
-      const p = tokens.mode === 'dark' ? DARK_PRESETS[key] : PRESETS[key];
-      if (!p) return;
-      // Strip any variable references ({...}) before merging — they belong to the previous custom preset
-      const stripped = Object.fromEntries(
-        Object.entries(tokens).map(([k, v]) => [
-          k,
-          typeof v === 'string' && v.startsWith('{') ? DEFAULT_TOKENS[k as keyof Tokens] : v,
-        ])
-      ) as Tokens;
-      setTokens({ ...stripped, ...p });
+      const lp = PRESETS[key] || {};
+      const dp = DARK_PRESETS[key] || {};
+      setTokens(t => {
+        const cur = t.colorBindings || {};
+        const nb: Record<string, { light: string; dark: string }> = {};
+        for (const [role, binding] of Object.entries(cur)) {
+          nb[role] = {
+            light: isVarRef(binding.light) ? (DEFAULT_COLOR_BINDINGS[role]?.light ?? binding.light) : binding.light,
+            dark:  isVarRef(binding.dark)  ? (DEFAULT_COLOR_BINDINGS[role]?.dark  ?? binding.dark)  : binding.dark,
+          };
+        }
+        for (const [role, val] of Object.entries(lp)) {
+          if (typeof val === 'string') nb[role] = { ...(nb[role] || { light: '', dark: '' }), light: val };
+        }
+        for (const [dk, val] of Object.entries(dp)) {
+          if (typeof val === 'string' && dk.startsWith('dark')) {
+            const role = dk.charAt(4).toLowerCase() + dk.slice(5);
+            nb[role] = { ...(nb[role] || { light: '', dark: '' }), dark: val };
+          }
+        }
+        return { ...t, colorBindings: nb };
+      });
     }
     setActivePreset(key);
   };
@@ -580,26 +629,7 @@ export function ThemeStudio({
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           name: presetName,
-          tokens: {
-            background: tokens.background,
-            foreground: tokens.foreground,
-            primary: tokens.primary,
-            secondary: tokens.secondary,
-            accent: tokens.accent,
-            muted: tokens.muted,
-            destructive: tokens.destructive,
-            border: tokens.border,
-            ring: tokens.ring,
-            darkBackground: tokens.darkBackground,
-            darkForeground: tokens.darkForeground,
-            darkPrimary: tokens.darkPrimary,
-            darkSecondary: tokens.darkSecondary,
-            darkAccent: tokens.darkAccent,
-            darkMuted: tokens.darkMuted,
-            darkDestructive: tokens.darkDestructive,
-            darkBorder: tokens.darkBorder,
-            darkRing: tokens.darkRing,
-          }
+          tokens: { colorBindings: tokens.colorBindings }
         })
       });
       if (res.ok) {
@@ -625,68 +655,69 @@ export function ThemeStudio({
     }
   }
 
-  const darkKey = (key: ColorKey) =>
-    `dark${key.charAt(0).toUpperCase()}${key.slice(1)}` as keyof Tokens;
+  const getRawColor = (role: string): string =>
+    (tokens.colorBindings?.[role] as any)?.[tokens.mode === 'dark' ? 'dark' : 'light'] ?? '';
 
-  const activeColorKey = (key: ColorKey): keyof Tokens =>
-    tokens.mode === 'dark' ? darkKey(key) : key;
+  const getColor = (role: string): string =>
+    resolveColor(getRawColor(role), colorVars, tokens.mode);
 
-  const getRawColor = (key: ColorKey): string => tokens[activeColorKey(key)] as string;
-  const getColor = (key: ColorKey): string =>
-    resolveColor(getRawColor(key), colorVars, tokens.mode);
-
-  const setColor = (key: ColorKey, value: string) => {
-    setTokens({ ...tokens, [activeColorKey(key)]: value });
-  };
+  const setColor = (role: string, value: string) =>
+    setTokens(t => ({
+      ...t,
+      colorBindings: {
+        ...t.colorBindings,
+        [role]: { ...(t.colorBindings?.[role] || { light: '', dark: '' }), [t.mode]: value }
+      }
+    }));
 
   const setMode = (mode: Mode) => setTokens({ ...tokens, mode });
   const setScope = (scope: Scope) => setTokens({ ...tokens, scope });
 
   const cssVars = useMemo(() => {
-    const d = tokens.mode === 'dark';
-    const rc = (val: string) => {
-      const resolved = resolveColor(val, colorVars, tokens.mode);
+    const bindings = tokens.colorBindings || {};
+    const m = tokens.mode === 'dark' ? 'dark' : 'light';
+    const rc = (role: string) => {
+      const raw = (bindings[role] as any)?.[m] ?? '';
+      const resolved = resolveColor(raw, colorVars, tokens.mode);
       return resolved.startsWith('#') ? hexToHsl(resolved) : resolved;
     };
     return {
-      '--bg': rc(d ? tokens.darkBackground : tokens.background),
-      '--fg': rc(d ? tokens.darkForeground : tokens.foreground),
-      '--card': rc(d ? tokens.darkBackground : tokens.background),
-      '--card-fg': rc(d ? tokens.darkForeground : tokens.foreground),
-      '--primary': rc(d ? tokens.darkPrimary : tokens.primary),
-      '--primary-fg': rc(d ? tokens.darkBackground : tokens.background),
-      '--secondary': rc(d ? tokens.darkSecondary : tokens.secondary),
-      '--secondary-fg': rc(d ? tokens.darkForeground : tokens.foreground),
-      '--muted': rc(d ? tokens.darkMuted : tokens.muted),
-      '--muted-fg': d ? '215 20% 65%' : '215 16% 47%',
-      '--accent': rc(d ? tokens.darkAccent : tokens.accent),
-      '--accent-fg': rc(d ? tokens.darkForeground : tokens.foreground),
-      '--destructive': rc(d ? tokens.darkDestructive : tokens.destructive),
+      '--bg': rc('background'),
+      '--fg': rc('foreground'),
+      '--card': rc('background'),
+      '--card-fg': rc('foreground'),
+      '--primary': rc('primary'),
+      '--primary-fg': rc('background'),
+      '--secondary': rc('secondary'),
+      '--secondary-fg': rc('foreground'),
+      '--muted': rc('muted'),
+      '--muted-fg': tokens.mode === 'dark' ? '215 20% 65%' : '215 16% 47%',
+      '--accent': rc('accent'),
+      '--accent-fg': rc('foreground'),
+      '--destructive': rc('destructive'),
       '--destructive-fg': '210 40% 98%',
-      '--border': rc(d ? tokens.darkBorder : tokens.border),
-      '--input': rc(d ? tokens.darkBorder : tokens.border),
-      '--ring': rc(d ? tokens.darkRing : tokens.ring),
+      '--border': rc('border'),
+      '--input': rc('border'),
+      '--ring': rc('ring'),
       '--radius': `${tokens.radius}rem`,
       '--theme-font': tokens.fontBindings?.body ?? 'Inter',
     } as CSSProperties;
   }, [tokens, colorVars]);
 
   const cssSource = useMemo(() => {
-    const lines = [
+    const bindings = Object.entries(tokens.colorBindings || {});
+    const lightLines = bindings.map(([role, b]) => `  --${role}: ${b.light};`);
+    const darkLines  = bindings.map(([role, b]) => `  --${role}: ${b.dark};`);
+    return [
       ':root {',
-      `  --background: ${tokens.background};`,
-      `  --foreground: ${tokens.foreground};`,
-      `  --primary: ${tokens.primary};`,
-      `  --secondary: ${tokens.secondary};`,
-      `  --accent: ${tokens.accent};`,
-      `  --muted: ${tokens.muted};`,
-      `  --destructive: ${tokens.destructive};`,
-      `  --border: ${tokens.border};`,
-      `  --ring: ${tokens.ring};`,
+      ...lightLines,
       `  --radius: ${tokens.radius}rem;`,
-      '}'
-    ];
-    return lines.join('\n');
+      '}',
+      '',
+      '.dark {',
+      ...darkLines,
+      '}',
+    ].join('\n');
   }, [tokens]);
 
   async function copyCss() {
@@ -836,8 +867,8 @@ export function ThemeStudio({
                 <div className="grid grid-cols-3 gap-2">
                   {allPresets.filter((p) => !p.custom).map((p) => {
                     const swatch = PRESET_SWATCHES[p.id as keyof typeof PRESET_SWATCHES];
-                    const fgColor = p.custom ? hslToHex(p.tokens.primary || '0 0% 0%') : swatch?.fg;
-                    const bgColor = p.custom ? hslToHex(p.tokens.background || '0 0% 100%') : swatch?.bg;
+                    const fgColor = p.custom ? hslToHex((p.tokens as any).colorBindings?.primary?.light || '0 0% 0%') : swatch?.fg;
+                    const bgColor = p.custom ? hslToHex((p.tokens as any).colorBindings?.background?.light || '0 0% 100%') : swatch?.bg;
                     const bgBorder = swatch?.bgBorder ?? '#e4e4e7';
                     return (
                       <div key={p.id} className="relative group">
@@ -882,24 +913,23 @@ export function ThemeStudio({
             </button>
             {open.colors && (
               <div className="px-4 pb-4 space-y-2.5 text-[12px]">
-                {COLOR_KEYS.map((key) => {
-                  const raw = getRawColor(key);
+                {Object.entries(tokens.colorBindings || {}).map(([role]) => {
+                  const raw = getRawColor(role);
                   const linked = isVarRef(raw);
                   const linkedName = linked ? parseVarRef(raw) : null;
-                  const resolved = getColor(key);
+                  const resolved = getColor(role);
                   return (
-                    <div key={key} className="flex items-center justify-between gap-2">
-                      <label className="mono text-[11px] text-neutral-600 shrink-0">--{key}</label>
+                    <div key={role} className="flex items-center justify-between gap-2">
+                      <label className="mono text-[11px] text-neutral-600 shrink-0">--{role}</label>
                       <div className="flex items-center gap-1.5">
                         {linked ? (
-                          /* Linked state: show variable name + unlink button */
                           <div className="flex items-center gap-1 bg-accent/10 border border-accent/30 rounded px-1.5 py-0.5">
                             <Link2 className="w-3 h-3 text-accent shrink-0" />
                             <span className="text-[10px] text-accent font-mono truncate max-w-[90px]" title={linkedName ?? ''}>
                               {linkedName?.split('/').pop()}
                             </span>
                             <button
-                              onClick={() => setColor(key, resolved)}
+                              onClick={() => setColor(role, resolved)}
                               className="text-accent/60 hover:text-accent ml-0.5"
                               title="Unlink variable"
                             >
@@ -907,25 +937,20 @@ export function ThemeStudio({
                             </button>
                           </div>
                         ) : (
-                          /* Raw state: show HSL text input */
                           <input
                             className="mono text-[11px] w-20 px-1.5 py-0.5 border border-neutral-200 rounded focus:outline-none focus:border-accent"
                             value={raw}
-                            onChange={(e) => setColor(key, e.target.value)}
+                            onChange={(e) => setColor(role, e.target.value)}
                           />
                         )}
-
-                        {/* color swatch */}
                         <span
                           className="w-7 h-7 rounded shrink-0 border border-neutral-200"
                           style={{ background: resolved.startsWith('#') ? resolved : `hsl(${resolved})` }}
                         />
-
-                        {/* Variable picker button */}
                         {colorVars.length > 0 && (
                           <div className="relative">
                             <button
-                              onClick={() => { setVarPickerOpen(varPickerOpen === key ? null : key); setVarSearch(''); }}
+                              onClick={() => { setVarPickerOpen(varPickerOpen === role ? null : role); setVarSearch(''); }}
                               className={cn(
                                 'w-5 h-5 flex items-center justify-center rounded hover:bg-neutral-100',
                                 linked ? 'text-accent' : 'text-neutral-400 hover:text-neutral-700'
@@ -934,73 +959,84 @@ export function ThemeStudio({
                             >
                               <Link2 className="w-3 h-3" />
                             </button>
-                            {varPickerOpen === key && (
+                            {varPickerOpen === role && (
                               <>
-                              <div className="fixed inset-0 z-40" onClick={() => setVarPickerOpen(null)} />
-                              <div className="absolute right-0 top-6 z-50 w-56 bg-white border border-neutral-200 rounded-lg shadow-lg overflow-hidden">
-                                <div className="px-2 py-1.5 border-b border-neutral-100 flex items-center gap-1.5">
-                                  <Search className="w-3 h-3 text-neutral-400 shrink-0" />
-                                  <input
-                                    autoFocus
-                                    placeholder="Search variables…"
-                                    className="flex-1 text-[11px] outline-none bg-transparent"
-                                    value={varSearch}
-                                    onChange={(e) => setVarSearch(e.target.value)}
-                                    onClick={(e) => e.stopPropagation()}
-                                  />
+                                <div className="fixed inset-0 z-40" onClick={() => setVarPickerOpen(null)} />
+                                <div className="absolute right-0 top-6 z-50 w-56 bg-white border border-neutral-200 rounded-lg shadow-lg overflow-hidden">
+                                  <div className="px-2 py-1.5 border-b border-neutral-100 flex items-center gap-1.5">
+                                    <Search className="w-3 h-3 text-neutral-400 shrink-0" />
+                                    <input
+                                      autoFocus
+                                      placeholder="Search variables…"
+                                      className="flex-1 text-[11px] outline-none bg-transparent"
+                                      value={varSearch}
+                                      onChange={(e) => setVarSearch(e.target.value)}
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
+                                  </div>
+                                  <div className="max-h-52 overflow-auto py-1">
+                                    {(() => {
+                                      const q = varSearch.toLowerCase();
+                                      const filtered = colorVars.filter(v => !q || v.name.toLowerCase().includes(q));
+                                      const groups = filtered.reduce<Record<string, VarItem[]>>((acc, v) => {
+                                        const parts = v.name.split('/');
+                                        const g = parts.length > 1
+                                          ? parts[0].replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+                                          : (v.collectionLabel || 'Other');
+                                        (acc[g] ??= []).push(v);
+                                        return acc;
+                                      }, {});
+                                      if (Object.keys(groups).length === 0) return (
+                                        <p className="px-3 py-3 text-[11px] text-neutral-400">No results</p>
+                                      );
+                                      return Object.entries(groups).map(([group, vars]) => (
+                                        <div key={group}>
+                                          <p className="px-2 pt-2 pb-0.5 text-[9px] uppercase tracking-wider text-neutral-400">{group}</p>
+                                          {vars.map((v) => {
+                                            const val = resolveVarValue(v, tokens.mode);
+                                            return (
+                                              <button
+                                                key={v.id}
+                                                onClick={() => { setColor(role, makeVarRef(v.name)); setVarPickerOpen(null); setVarSearch(''); }}
+                                                className="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-neutral-50 text-left"
+                                              >
+                                                <span className="text-[11px] text-neutral-700 truncate flex-1">{v.name.split('/').pop()}</span>
+                                                <span className="w-4 h-4 rounded-sm shrink-0 border border-neutral-200" style={{ background: val.startsWith('#') ? val : `hsl(${val})` }} />
+                                              </button>
+                                            );
+                                          })}
+                                        </div>
+                                      ));
+                                    })()}
+                                  </div>
+                                  <div className="border-t border-neutral-100 px-2 py-1">
+                                    <button
+                                      onClick={() => { setVarPickerOpen(null); setVarSearch(''); }}
+                                      className="text-[10px] text-neutral-400 hover:text-neutral-700 w-full text-center py-0.5"
+                                    >
+                                      Close
+                                    </button>
+                                  </div>
                                 </div>
-                                <div className="max-h-52 overflow-auto py-1">
-                                  {(() => {
-                                    const q = varSearch.toLowerCase();
-                                    const filtered = colorVars.filter(v => !q || v.name.toLowerCase().includes(q));
-                                    const groups = filtered.reduce<Record<string, VarItem[]>>((acc, v) => {
-                                      const parts = v.name.split('/');
-                                      const g = parts.length > 1
-                                        ? parts[0].replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-                                        : (v.collectionLabel || 'Other');
-                                      (acc[g] ??= []).push(v);
-                                      return acc;
-                                    }, {});
-                                    if (Object.keys(groups).length === 0) return (
-                                      <p className="px-3 py-3 text-[11px] text-neutral-400">No results</p>
-                                    );
-                                    return Object.entries(groups).map(([group, vars]) => (
-                                      <div key={group}>
-                                        <p className="px-2 pt-2 pb-0.5 text-[9px] uppercase tracking-wider text-neutral-400">{group}</p>
-                                        {vars.map((v) => {
-                                          const val = resolveVarValue(v, tokens.mode);
-                                          return (
-                                            <button
-                                              key={v.id}
-                                              onClick={() => { setColor(key, makeVarRef(v.name)); setVarPickerOpen(null); setVarSearch(''); }}
-                                              className="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-neutral-50 text-left"
-                                            >
-                                              <span className="text-[11px] text-neutral-700 truncate flex-1">{v.name.split('/').pop()}</span>
-                                              <span className="w-4 h-4 rounded-sm shrink-0 border border-neutral-200" style={{ background: val.startsWith('#') ? val : `hsl(${val})` }} />
-                                            </button>
-                                          );
-                                        })}
-                                      </div>
-                                    ));
-                                  })()}
-                                </div>
-                                <div className="border-t border-neutral-100 px-2 py-1">
-                                  <button
-                                    onClick={() => { setVarPickerOpen(null); setVarSearch(''); }}
-                                    className="text-[10px] text-neutral-400 hover:text-neutral-700 w-full text-center py-0.5"
-                                  >
-                                    Close
-                                  </button>
-                                </div>
-                              </div>
                               </>
                             )}
                           </div>
                         )}
+                        <button
+                          onClick={() => setTokens(t => { const { [role]: _, ...rest } = t.colorBindings || {}; return { ...t, colorBindings: rest }; })}
+                          className="shrink-0 text-neutral-300 hover:text-destructive transition-colors"
+                          title="Remove"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
                       </div>
                     </div>
                   );
                 })}
+                <ColorRoleInput
+                  existing={Object.keys(tokens.colorBindings || {})}
+                  onAdd={role => setTokens(t => ({ ...t, colorBindings: { ...t.colorBindings, [role]: { light: '0 0% 100%', dark: '0 0% 10%' } } }))}
+                />
               </div>
             )}
           </div>
@@ -1238,7 +1274,7 @@ export function ThemeStudio({
 
               <div
                 className="tp-card p-4 mb-6"
-                style={{ borderColor: `hsl(${tokens.destructive})`, background: `hsl(${tokens.destructive} / 0.08)` }}
+                style={{ borderColor: `hsl(${getColor('destructive')})`, background: `hsl(${getColor('destructive')} / 0.08)` }}
               >
                 <div className="flex items-start gap-3">
                   <div
@@ -1246,7 +1282,7 @@ export function ThemeStudio({
                       width: 32,
                       height: 32,
                       borderRadius: `${tokens.radius}rem`,
-                      background: `hsl(${tokens.destructive})`,
+                      background: `hsl(${getColor('destructive')})`,
                       color: 'white',
                       display: 'flex',
                       alignItems: 'center',
@@ -1258,7 +1294,7 @@ export function ThemeStudio({
                     !
                   </div>
                   <div className="flex-1">
-                    <div className="text-sm font-semibold" style={{ color: `hsl(${tokens.destructive})` }}>
+                    <div className="text-sm font-semibold" style={{ color: `hsl(${getColor('destructive')})` }}>
                       Migration requires review
                     </div>
                     <div className="text-xs tp-muted mt-0.5">
@@ -1287,17 +1323,17 @@ export function ThemeStudio({
                     </tr>
                   </thead>
                   <tbody>
-                    <tr style={{ borderTop: `1px solid hsl(${tokens.border})` }}>
+                    <tr style={{ borderTop: `1px solid hsl(${getColor('border')})` }}>
                       <td className="px-4 py-2.5">Linen overshirt</td>
                       <td className="px-4 py-2.5"><span className="tp-badge tp-badge-secondary">active</span></td>
                       <td className="px-4 py-2.5 text-right mono">R 1,450</td>
                     </tr>
-                    <tr style={{ borderTop: `1px solid hsl(${tokens.border})` }}>
+                    <tr style={{ borderTop: `1px solid hsl(${getColor('border')})` }}>
                       <td className="px-4 py-2.5">Wool scarf</td>
                       <td className="px-4 py-2.5"><span className="tp-badge tp-badge-secondary">active</span></td>
                       <td className="px-4 py-2.5 text-right mono">R 880</td>
                     </tr>
-                    <tr style={{ borderTop: `1px solid hsl(${tokens.border})` }}>
+                    <tr style={{ borderTop: `1px solid hsl(${getColor('border')})` }}>
                       <td className="px-4 py-2.5">Leather belt</td>
                       <td className="px-4 py-2.5"><span className="tp-badge tp-badge-destructive">archived</span></td>
                       <td className="px-4 py-2.5 text-right mono">R 620</td>
@@ -1348,8 +1384,8 @@ export function ThemeStudio({
                       )}
                     >
                       <div className="flex gap-0.5">
-                        <span className="w-3 h-3 rounded-sm" style={{ background: hslToHex(tk.primary) }} />
-                        <span className="w-3 h-3 rounded-sm border border-neutral-200" style={{ background: hslToHex(tk.background) }} />
+                        <span className="w-3 h-3 rounded-sm" style={{ background: hslToHex(tk.colorBindings?.primary?.light ?? '0 0% 9%') }} />
+                        <span className="w-3 h-3 rounded-sm border border-neutral-200" style={{ background: hslToHex(tk.colorBindings?.background?.light ?? '0 0% 100%') }} />
                       </div>
                       <span className="truncate w-full text-center">{t.id === activePreset ? name : t.name}</span>
                     </button>
