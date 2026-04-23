@@ -9,6 +9,8 @@ const UpdateSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   alt: z.string().max(500).optional(),
   categoryId: z.string().nullable().optional(),
+  focalX: z.number().min(0).max(100).optional(),
+  focalY: z.number().min(0).max(100).optional(),
 });
 
 export const PATCH = withApi('write:themes', async (req, ctx: { params: { id: string } }) => {

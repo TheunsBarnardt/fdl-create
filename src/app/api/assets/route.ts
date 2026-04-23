@@ -4,6 +4,7 @@ import { withApi } from '@/lib/with-api';
 import { writeFile, mkdir } from 'fs/promises';
 import { join, extname } from 'path';
 import { randomBytes } from 'crypto';
+import sharp from 'sharp';
 
 const UPLOADS_DIR = join(process.cwd(), 'public', 'uploads');
 
@@ -30,10 +31,41 @@ export const POST = withApi('write:themes', async (req) => {
 
   if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 });
 
-  const ext = extname(file.name) || '';
-  const filename = `${randomBytes(12).toString('hex')}${ext}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
+  let buffer = Buffer.from(await file.arrayBuffer());
+  let mimeType = file.type;
+  let finalExt = extname(file.name);
+  let width: number | null = null;
+  let height: number | null = null;
+  let optimizedSize = buffer.length;
 
+  const isImage = mimeType.startsWith('image/');
+  const isSvg = mimeType === 'image/svg+xml';
+
+  if (isImage && !isSvg) {
+    try {
+      const image = sharp(buffer);
+      const metadata = await image.metadata();
+      width = metadata.width || null;
+      height = metadata.height || null;
+
+      const optimized = await image.rotate().webp({ quality: 80 }).toBuffer();
+      buffer = Buffer.from(optimized);
+      mimeType = 'image/webp';
+      finalExt = '.webp';
+      optimizedSize = optimized.length;
+    } catch (err) {
+      return NextResponse.json({ error: 'Failed to process image' }, { status: 400 });
+    }
+  } else if (isImage && isSvg) {
+    try {
+      const metadata = await sharp(buffer).metadata();
+      width = metadata.width || null;
+      height = metadata.height || null;
+    } catch {
+    }
+  }
+
+  const filename = `${randomBytes(12).toString('hex')}${finalExt}`;
   await writeFile(join(UPLOADS_DIR, filename), buffer);
 
   const max = await prisma.asset.findFirst({ orderBy: { order: 'desc' }, select: { order: true } });
@@ -43,8 +75,10 @@ export const POST = withApi('write:themes', async (req) => {
       name: name || file.name.replace(/\.[^.]+$/, ''),
       filename,
       url: `/uploads/${filename}`,
-      mimeType: file.type,
-      size: file.size,
+      mimeType,
+      size: optimizedSize,
+      width,
+      height,
       alt: alt || undefined,
       categoryId: categoryId || undefined,
       order: (max?.order ?? 0) + 1,

@@ -1,0 +1,496 @@
+A1 a Aa
+1
+Your EmSaoil:ld to
+Tropical House Mix vladislavasemernina@yandex.ru
+anne@mail.com
+Choose option:
+t t
+Select option
+SEND SEND
+Anne Snowdon
+HR Manager
+9 9
+SEE PROFILE SEE PROFILE
+Gary Loodwig
+J J
+Aa Aa
+ZOBACZ PROFIL ZOBACZ PROFIL Classic tshirt CLICK ME
++ ADD TO CART + ADD TO CART
+H H
+Health status Search on…
++231,00 120
+Aa Aa
+Fill the form
+Pulse
+Your Email
+Steps
+annes@mail.com
++ DODAJ DO KOSZYKATwoje wydatki Sle+e DpODAJ DO KOSZYKA
+Choose option:
+Michał Malewicz & Diana Malewicz ZOBACZ PORTFEL MichZaOBłA CMZ POaRTlFeELwicz & Diana Malewicz Wybierz opcję…
+Przewodnik po Bali
+Opcje portfela
+Designing User DesignWYŚLIJing UserWYŚLIJ
+Czytaj więcej…
+Interfaces Interfaces
+Table of
+Table of Contents
+1/7
+INTRO
+1. Introduction 3 4. Design and Art 21
+2. Who is this book for? 7 5. What makes UI good? 26
+3. UI vs UX 14 6. Perception 34
+DESIGN BASICS
+7. Screens 47 16. Tables 213
+8. Layout and grid 55 17. Forms 229
+9. Objects 77 18. Modals, popups 261
+10. Colors 94 19. Navigation 280
+11. Gradients 125 20. Animation 299
+12. Typography 139 21. Photos 311
+13. Icons 167 22. Illustration 323
+14. Buttons 178 23. Language 329
+15. Cards 203
+BONUS CONTENT
+24. Design styles 337 28. Developer handoff 394
+25. Design process 351 29. Prototyping 404
+26. Design systems 358 30. Summary 415
+27. UI Audit 373
+2
+Introd
+1/7
+uction
+1.
+InIntrtodrucotiond
+uction
+Introdu
+Introduction
+1/7
+Hello! Michał and Diana here.
+Thank you so much for purchasing “Designing User Interfaces”!
+The idea for this book came to life in December of 2018. While we
+were teaching UI design classes, some of our students have asked us,
+what's the book with all those PDF materials we've been sending
+them one by one after class. Of course, at that time, they were simply
+things we put together to make it easier for the students - nothing
+more.
+We looked around and noticed that a lot of the books on UI are out of
+date, short, vague, and often contradictory. We decided to change this
+and write this book. Nearly all of the knowledge within these pages is
+based on over 500 design projects we completed in the last ten years.
+Now we are sharing all that experience with you!
+4
+!
+HOW DO WE KNOW ALL THIS?
+Starting in 1999, we have designed hundreds of digital products for
+all kinds of devices. That doesn't mean we're all-knowing. We're
+continually learning, teaching (which is also a great learning exercise),
+and testing new methods for building beautiful, usable digital products.
+This book is a summary of our knowledge and our experiences.
+We don't assume that what we say here is the only right way to do
+things. It's the way we do it.
+We want this book to grow and expand over time. That's why we're
+open to your suggestions, feedback, and ideas. If you think something
+is missing, needs an update or an additional explanation - reach out!
+If we use your feedback, we'll add you to the collaborator list at the
+end of this volume.
+Knowledge is there to share it. While writing this ebook, and talking
+to our friends, co-workers, clients, students, and subscribers, we found
+out what are the most common problems people encounter while
+trying to design digital products. Our main goal was to give you all the
+answers to the most common questions, so you don't have to repeat
+the same mistakes we have.
+Enjoy!
+5
+HYPE4
+In 2013 we co-founded HYPE4 - a design-driven software house. Since
+then, we've been working for both small startups and Fortune-500
+companies from all over the world. We were lucky enough to be able
+to work on nearly every product category (from banking, finance,
+advertising, and media to pregnancy tracking).
+We started as a small, design-only studio with three employees.
+We did the designs, and then external software houses handled the
+development. We quickly noticed a huge problem with that approach.
+The execution quality was so low that we were rarely satisfied.
+In some cases, the designs were butchered beyond recognition.
+We decided to take action by starting the development branch of
+the company but strictly following our design-driven approach.
+All of our developers understand the design principles, and our
+designers know a bit how to code. That allows us to achieve a much
+higher front-end development precision and overall quality. That has
+since become our defining feature.
+At HYPE4, we build web and mobile products of all sizes. After hours
+we also work on our internal startups and have a lot of fun doing it.
+If you'd like to learn more, go to:
+h!ps://www.hype4.com
+6
+Who is
+1/7
+This book
+2.
+Who is this
+for who is
+book for?
+this book
+Who is
+Who is this book for?
+HOW TO DESIGN GREAT THINGS?
+Each day we use a countless array of digital products. Some are
+obvious - like mobile apps and websites. But there are interfaces
+everywhere around us now. You interact with ticket machines, payment
+terminals, parking meters, alarm clocks, your TV, or your gaming
+console.
+Most of these products are a result of the work of large groups of
+people. Multiple skillsets merge and intersect to create amazing
+experiences: designers, marketing ninjas, project managers, developers,
+and an occasional genius CEO.
+This book will show you the building blocks and good practices, so you
+can spot them in the products you use, and improve the products you
+make.
+8
+15 years of experience, 15 years of experience,
+and over 500 projects and over 500 projects
+“
+distilled into the best distilled into the best
+design practices. design practices.
+DESIGNERS
+Designers will gain knowledge on how to make better looking and
+more usable products.
+It took us years to learn some of these truths the hard way. We've
+condensed and simplified all that knowledge, so you don't have to
+repeat our mistakes. That will let you grow faster and be better. Good
+practices, quick-and-dirty safe hacks, and intentional rule-bending will
+allow you to bump up readability and aesthetics of what you design.
+Beginners will gain solid ground to improve from, but even experts can
+find this book useful.
+We worked on over 500 different products from almost every
+possible category. From fintech portals, all the way to pregnancy
+trackers. The problems we've encountered and the solutions are
+all within these pages.
+Read on!
+10
+FRONT-END DEVELOPERS
+Front-end developers will learn the basics of design and best practices
+on working with designers to speed up and raise the quality of their
+implementation work. We believe that every designer should
+understand a bit of coding, and every developer should know what
+design is all about.
+A conscious developer gains another level of understanding of what
+he's building, which can quickly bring his work to a whole other level.
+This design-fluency is true, especially for junior developers, as they can
+grow without repeating the mistakes of others.
+margin-left: 44px;
+color: #223;
+color: #EF1818;
+letter-spacing: 0;
+text-align: center;
+letter-spacing: 0;
+line-height: 19px;
+background: #EF3030;
+border-radius: 25px;
+11
+STARTUPS
+Startup founders will understand how even with smaller budgets, you
+can make your MVP shine. After all, a professionally built prototype will
+give you better insights about your Product Market Fit, than something
+resembling a half-done wireframe. Maximize your chances to gain
+user's trust as that leads directly to success.
+Remember - people "buy" into a product or service with their eyes
+first. Make a great first impression, mix it with an excellent value
+proposition, and you've got yourself a hit!
+12
+MARKETING, SOCIAL MEDIA NINJAS
+Marketing and social media ninjas will learn how even the smallest, easy
+to do tweaks can drive conversion and readability up. We all want happy,
+engaged users interacting with what we do. Eliminating the roadblocks
+will help with achieving that.
+We'll show you how to wrap your content visually, so it's easy to
+understand and has that "premium" look & feel people trust.
+Which button do you think will have more conversion?
+CURIOUS TYPES
+All digital product users will learn how to see the difference between
+a good and great product. You'll gain critical thinking and knowledge
+of what to look for in an app or a website. That, in turn, will let you get
+better at all the other aspects of what you do. Even if it has nothing to
+do with pixels displayed on a screen. Precision and aesthetics can go
+beyond that, right into our RealWorld™.
+DESIGN?
+The main ideas behind great products are universal. Planned action,
+precision, and care should go into everything we do in life.
+Let's make GREAT things.
+13
+UI VS UX
+1/7
+UI VS UX
+3.
+UI vs UX
+UI VS UX
+UI VS UX
+UI vs UX
+UI vs UX
+DEFINITIONS
+Where does the humble interface fit inside the trendy industry
+terminology? It's often looked down upon by "real user experience
+specialists" as "painting with crayons." We believe this is the wrong
+approach. What we see is just as important as information architecture
+and business goals.
+Customer experience is a high-level category with UX being a part of it,
+while UI being a part of the UX process. The diagram below shows the
+relation between these elements. To build a great product, you need to
+take care of every little detail with great precision.
+UI UX CX
+15
+USER INTERFACE
+UI or User Interface is the visual representation of a digital product.
+Its obvious use cases are apps and websites. UI is the link between the
+user and the functionality of a product. It helps to achieve the desired
+outcome through a series of human-machine interactions. It's a series
+of text, shapes, graphics, and photographs combined in a way that
+allows for a fluid, natural interaction.
+An interface is a mix of grid, layout, typography, colors, animations, and
+microinteractions. In other words, UI is all that we experience - mostly
+with our eyes. UX defined information architecture is a blueprint for
+UI's refined final look.
+A UI designer is responsible for the final look & feel of the product. The
+job is to define its unique style and make it fit the target market. That
+visual representation should be readable, usable, and devoid of any
+unnecessary, distracting elements.
+Random Soda
+$ 5,00
+Refreshing carbonated soda
+with a mint flavor.
+Random Soda
+$ 5,00
+Refreshing carbonated soda
+with a mint flavor.
++ ADD TO CART + +A DADD DT OT OC ACRATRT + ADD TO CART
+Product Card Component set
+16
+An Interface is like a joke. An Interface is like a joke.
+“
+If you have to explain If you have to explain
+it, it's not that good. it, it's not that good.
+USER EXPERIENCE
+UX or User Experience defines and studies how easy it is to use the
+product. With digital products, that means the interface, navigation
+patterns, and communications. The goal of UX is to allow the largest
+possible group of users the ability to understand and use a product.
+If the role of a UI designer is the look & feel, the role of a UX designer
+is defining how it will work.
+Aside from information architecture planning, UX also covers various
+kinds of research (surveys, A/B tests, focus groups, interviews,
+workshops, and more).
+UI is a part of User Experience because readability and looks are also
+influencing the ease of use and shape our feelings towards a product.
+This book covers the most basic UX principles but focuses heavily on
+the UI perspective of design.
+Favorite
+I'd love an option to add this to
+Photo
+a list so I can consider purchasing
+it at a later date.
+Random Soda
+A short description right on the
+product miniature would be great,
+$ 5,00
+so I can see the flavor right away...
+Refreshing carbonated soda
+with a mint flavor.
+The bu!ons were too small, I o"en
+pressed the wrong one by
+accident...
++ ADD TO CART
+A basic information architecture (wireframe) and user comments to implement.
+18
+CUSTOMER EXPERIENCE
+CX or Customer Experience is often confused as being another name
+for UX. The truth is that CX is a top-level process that defines not only
+how your product works, but how your entire company operates.
+The CX process is the UX of your product, but also your branding,
+marketing, or friendly customer support on the hotline.
+You can design Customer Experience by defining clear, consistent rules
+for your entire brand. Those rules apply to all the real-world
+experiences, as well as UX and UI. They even influence the way you
+write your copy.
+A good example is one of the popular fitness apps. They changed the
+boring "save your workout" message to an "I'm awesome" button.
+Customer engagement went up.
+All of those elements combine for a consistent, coherent vision with
+which our potential customer can quickly identify.
++ ADD TO CART + ADD TO CART Your customer support is great!
+They solved all my issues in
+a ma!er of minutes! Thanks!!!
+BUY NOW BUY NOW
+Ordering in the app, and then
+picking up the order in the store
+was a game-changer!
+MAKE PURCHASE MAKE PURCHASE
+Changing the brand colors to a more positive, green Merging the digital world ideas
+gradient yielded an improvement in user perception with the real world.
+of our brand. We also tested various types of label
+text to see what works best.
+19
+PRODUCT DESIGN
+In the last few years, many of the UX designers started calling
+themselves Product Designers instead. The term merges most UX
+competences with UI and basic research, allowing you to solve
+a wide range of potential problems.
+This new naming convention comes from the fact that UX designer,
+as a title, doesn't show which skills the person has. UX designers are
+often product owners, researchers, wireframe makers, or all of those
+combined.
+A product designer can help with both the business processes,
+choosing the right building approach, and final interface designs.
+It's often the most versatile person in the company that can guide
+the rest of the team, including the developers.
+Some say Product Design is User Experience design 2.0.
+User Interface User Interface
++
+Product
+User Experience User Experience =
+Designer
++
+Basic research Basic research
+20
+Design
+1/7
+and Art D
+4.
+Design
+Art De
+and Art
+Design and
+Design
+Design and Art
+ARE UI DESIGNERS ARTISTS?
+There often is a perceived equal sign between UI designers and graphic
+designers. It's quite an oversimplification that needs clearing. A graphic
+designer is commonly associated with being an artist, while UI design
+is more of a craft, that adheres to a set of strict rules.
+User interfaces are not "painted with pixels," as many people think
+about them. They're a precise, visual blueprint for a working product.
+They're not artworks on a gallery wall, but rather an architectural plan
+- accurate and with very little artistic chaos.
+safe area
+outer margin
+border radius font color, weight, style, shadow
+DOWNLOAD color or DOWNLOAD minimum
+gradient height
+shadow padding or
+inner margin
+Great interface design is pretty rigid in terms of its rules, constraints,
+and regulations. Given too much artistic freedom, it can deviate highly
+from the functional specifications, making the resulting product very
+hard to use.
+22
+UI design UI design
+“
+is definitely is definitely
+NOT art. NOT art.
+ART AND DESIGN
+While it may come in handy, being an illustrator or a painter is not
+necessary for UI design. The best interfaces are often a result of
+manually entering the right numbers into boxes, instead of artistic
+strokes on a graphic tablet. You can be a successful UI designer with
+just using a couple of basic, good practices without ever getting out
+of the comfort zone.
+Readable, useful, and aesthetically pleasing result is the culmination
+of a successful UI design.
+A couple examples of us testing various visual styles, as seen on our Dribbble profile.
+Most of them require additional work to become a truly usable digital product.
+DRIBBBLE
+Dribbble.com designs are probably the closest intersection of art and
+UI design. The main goal of posting a project to Dribbble is to achieve
+the highest possible aesthetic effect - often at the cost of functionality.
+Many of those designs are either impossible to code, unusable, or not
+accessible. Bringing them back towards something that works would
+often require a lot of changes.
+That's why it's good to use them as inspiration for visual ideas while
+being critical and judging the usability of everything you see.
+24
+Dribbble designs Dribbble designs
+often have poor often have poor
+usability, but they're usability, but they're
+“
+a great source of a great source of
+visual inspiration. visual inspiration.
+Good UI
+1/7
+Good UI
+5.
+What makes
+Good UI
+UI good?
+Good UI
+Good
+Good UI?
+WHAT TO LOOK FOR?
+Great UI is a sum of many parts. It is the interplay of colors, typography,
+interactions, layout, and style that requires a lot of work, experience,
+and imagination. If you're starting as a junior designer, try to use the
+tested good practices first. Innovation and your very own style will
+come naturally, with experience.
+A great UI is rarely fully done. In most cases, it's an ongoing process
+with changes and updates coming from user feedback and innovative
+ideas.
+A good place to start is by following the 10 Rules of Good Design by
+Dieter Rams. The original set is often called 10 commandments of great
+design and is framed on walls of many design studios. Those rules,
+however, were meant to initially cover designing real-world objects,
+so we adapted them slightly to fit the UI.
+The original set of rules was established back in the 70's, but they're
+just as relevant today. Precision, attention to detail and careful planning
+are all necessary for a great product to take shape. Safe design
+methods will allow you to learn these things by following rigid
+guidelines. Then, as you get more experience, you can start to bend
+these rules or flat-out break them. Always start with the established
+good practices, however. Remember - good design is as little design
+as possible!
+27
+Good design Good design
+“
+makes a product makes a product
+easy to use. easy to use.
+GOOD DESIGN IS INNOVATIVE
+Innovation is great, but it can't come at the expense of usefullness.
+A good example is the Twitter "Pull to refresh" interaction pattern.
+It was both completely new, yet strangely natural, fun to use way
+to refresh your content. It's nearly invisible, yet it made its way into
+countless other products. Don't innovate for the sake of being
+different - triangular buttons won't replace the classic rectangular
+ones anytime in the near future.
+The most innovative you can get nowadays is with microinteractions.
+Defining how familiar elements affect each other with user input,
+is still open to new, creative ideas.
+GOOD DESIGN MAKES A PRODUCT USEFUL
+Usability is the base of User Experience. UI Usability, however, is
+mostly about clarity. Decorative fonts, lack of grid or eye-watering
+colors decrease the UI's readability, thus decreasing its usability.
+GOOD DESIGN IS AESTHETIC
+Aesthetic is quite subjective and a lot has changed with how we
+perceive it since the 70's. One thing that hasn't changed is that aesthetic
+comes from internal harmony, made by grid, typography, whitespace
+and a well planned layout. All designs that are based on good principles
+(like the Golden Ratio) will be more aesthetically pleasing, than random
+ones.
+29
+GOOD DESIGN IS LONG-LASTING
+If you get your grid and whitespace right, the design will still have
+merit, even after a huge shift in design trends. Maybe the gradients
+or illustrations won't hold up as well, but design precision and clarity
+don't age.
+GOOD DESIGN MAKES A PRODUCT UNDERSTANDABLE
+Understandable UI is a mix of good readability, proper hierarchy and
+the right type of content. Most of these things come from the right
+approach to grids, layouts and overall precision. Once the design part is
+done, you can work on the language part to match.
+GOOD DESIGN IS UNOBTRUSIVE
+With modern design tools it's especially easy to go all the way with
+colors, animations and sugar-coating. Those kinds of designs look well
+on Dribbble portfolios, but often forget that the role of UI is to deliver
+content.
+How the actual Instagram app looks, is less important than the photos
+or videos you can see inside it.
+Try not to fall into the trap of form above function. A great interface
+fades away after a while - we stop noticing it and using it becomes
+natural.
+30

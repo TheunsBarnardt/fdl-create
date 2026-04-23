@@ -1,4 +1,5 @@
 'use client';
+import { Suspense } from 'react';
 import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +8,7 @@ import { Sparkles } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
-export default function SignInPage() {
+function SignInForm() {
   const searchParams = useSearchParams();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -35,6 +36,31 @@ export default function SignInPage() {
   }
 
   return (
+    <form onSubmit={handleSubmit} className="space-y-3">
+      <div className="space-y-1">
+        <label className="text-xs text-muted-foreground">Email</label>
+        <Input name="email" type="email" required autoComplete="email" defaultValue="admin@fdl.local" />
+      </div>
+      <div className="space-y-1">
+        <label className="text-xs text-muted-foreground">Password</label>
+        <Input name="password" type="password" required autoComplete="current-password" defaultValue="admin123" />
+      </div>
+      {error && <p className="text-xs text-destructive">{error}</p>}
+      <Button type="submit" className="w-full" disabled={loading}>
+        {loading ? 'Signing in...' : 'Sign in'}
+      </Button>
+      <p className="text-xs text-center text-muted-foreground pt-2">
+        Demo: <span className="font-mono">admin@fdl.local</span> / <span className="font-mono">admin123</span>
+      </p>
+      <p className="text-xs text-center text-muted-foreground">
+        New here? <a href="/sign-up" className="text-accent hover:underline">Create an account</a>
+      </p>
+    </form>
+  );
+}
+
+export default function SignInPage() {
+  return (
     <div className="min-h-screen flex items-center justify-center p-6">
       <Card className="w-full max-w-sm">
         <CardHeader className="items-center">
@@ -44,26 +70,9 @@ export default function SignInPage() {
           <CardTitle className="text-base">Sign in to FDL-Create</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Email</label>
-              <Input name="email" type="email" required autoComplete="email" defaultValue="admin@fdl.local" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Password</label>
-              <Input name="password" type="password" required autoComplete="current-password" defaultValue="admin123" />
-            </div>
-            {error && <p className="text-xs text-destructive">{error}</p>}
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign in'}
-            </Button>
-            <p className="text-xs text-center text-muted-foreground pt-2">
-              Demo: <span className="font-mono">admin@fdl.local</span> / <span className="font-mono">admin123</span>
-            </p>
-            <p className="text-xs text-center text-muted-foreground">
-              New here? <a href="/sign-up" className="text-accent hover:underline">Create an account</a>
-            </p>
-          </form>
+          <Suspense>
+            <SignInForm />
+          </Suspense>
         </CardContent>
       </Card>
     </div>

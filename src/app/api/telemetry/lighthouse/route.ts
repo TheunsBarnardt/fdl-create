@@ -35,8 +35,8 @@ export async function POST(req: Request) {
 
   let chrome: Awaited<ReturnType<typeof import('chrome-launcher').launch>> | undefined;
   try {
-    const { launch } = await import('chrome-launcher');
-    const lighthouse = (await import('lighthouse')).default;
+    const { launch } = await import(/* webpackIgnore: true */ 'chrome-launcher');
+    const lighthouse = (await import(/* webpackIgnore: true */ 'lighthouse')).default;
 
     chrome = await launch({
       chromeFlags: ['--headless=new', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
@@ -97,7 +97,7 @@ export async function POST(req: Request) {
     const msg = err?.message ?? String(err);
     return NextResponse.json({ ok: false, error: msg }, { status: 500 });
   } finally {
-    if (chrome) await chrome.kill().catch(() => {});
+    if (chrome) chrome.kill();
   }
 }
 

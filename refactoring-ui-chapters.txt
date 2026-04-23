@@ -1,0 +1,195 @@
+
+============================================================
+Starting from Scratch
+============================================================
+Starting from Scratch
+Start with a feature, not a layout
+When you start the design for a new app idea, what do you design first? If it’s
+the navigation bar at the top of the page, you’re making a mistake.
+The easiest way to find yourself frustrated and stuck when working on a new
+design is to start by trying to “design the app.” When most people think
+about “designing the app”, they’re thinking about theshell.
+Should it have a top nav, or a sidebar?
+Should the navigation items be on the left, or on the right?
+Should the page content be in a container, or should it be full-width?
+Where should the logo go?
+The thing is, an “app” is actually a collection offeatures. Before you’ve
+designed a few features, you don’t even have the information you need to
+make a decision about how the navigation should work. No wonder it’s
+frustrating!
+Start with a feature, not a layout 8
+Instead of starting with the shell, start with a piece of actual functionality.
+For example, say you’re building a flight booking service. You could start
+with a feature like “searching for a flight”.
+Your interface will need:
+• A field for the departure city
+• A field for the destination city
+• A field for the departure date
+• A field for the return date
+• A button to perform the search
+Start with that.
+Start with a feature, not a layout 9
+Hell, you might not even need that other stuff anyways — it worked for
+Google.
+Detail comes later
+In the earliest stages of designing a new feature, it’s important that you don’
+
+============================================================
+Hierarchy
+============================================================
+Size isn’t everything 35
+using a lighter weight to de-emphasize some text, use a lighter color or
+smaller font size instead.
+Don’t use grey text on colored
+backgrounds
+Making text a lighter grey is a great way to de-emphasize it on white
+backgrounds, but it doesn’t look so great on colored backgrounds.
+That’s because the effect we’re actually seeing with grey on white isreduced
+contrast.
+Don’t use grey text on colored backgrounds 37
+Making the text closer to the background color is what actually helps create
+hierarchy, not making it light grey.
+You might think that the easiest way to achieve this is to use white text and
+reduce the opacity:
+While thisdoesreduce the contrast, it often results in text that looks dull,
+washed out, and sometimes even disabled.
+Don’t use grey text on colored backgrounds 38
+Even worse, using this approach on top of an image or pattern means the
+background will show through the text:
+A better approach is tohand-pick a new color, based on the background
+color.
+Choose a color with the same hue, and adjust the saturation and lightness
+until it looks right to you:
+Hand-picking a color this way makes it easy to reduce the contrast without
+the text looking faded.
+Emphasize by de-emphasizing
+Sometimes you’ll run into a situation where the main element of an interface
+isn’t standing out enough, but there’s nothing you can add to it to give it the
+emphasis it needs.
+For example, despite trying to make this active nav item “pop” by giving it a
+different color
+
+============================================================
+Layout and Spacing
+============================================================
+Start with too much white space
+One of the easiest ways to clean up a design is to simply give every element
+a little more room to breathe.
+Sounds simple enough, right? So how come we don’t usually do it?
+Start with too much white space 57
+White space should be removed, not added
+When designing for the web, white space is almost alwaysaddedto a design
+— if something looks little too cramped, you add a bit of margin or padding
+until things look better.
+The problem with this approach is that elements are only given the minimum
+amount of breathing room necessary to not lookactively bad. To make
+something actually lookgreat, you usually need more white space.
+Start with too much white space 58
+A better approach is to start by giving somethingway too muchspace, then
+remove it until you’re happy with the result.
+Start with too much white space 59
+You might think you’d end up with too much white space this way, but in
+practice, what might seem like “a little too much” when focused on an
+individual element ends up being closer to “just enough” in the context of a
+complete UI.
+Dense UIs have their place
+While interfaces with a lot of breathing room almost always feel cleaner and
+simpler, there are certainly situations where it makes sense for a design to be
+much more compact.
+For example, if you’re designing some sort of dashboard where a lot of
+information needs to be visible at once, packing that information together so
+it all fits on one screen might be worth making the design feel
+
+============================================================
+Typography
+============================================================
+Relative sizing doesn’t scale 80
+Say you reduce the size of your body copy to 14px on small screens to keep
+the line length in check. Keeping your headlines at 2.5em means a rendered
+font size of 35px — way too big for a small screen!
+A better headline size for small screens might be somewhere between 20px
+and 24px:
+Relative sizing doesn’t scale 81
+That’s only 1.5-1.7x the size of the 14px body copy — a totally different
+relationship than what made sense on desktop screens. That means there
+isn’t any real relationship at all, and that there’s no real benefit in trying to
+define the headline size relative to the body copy size.
+As a general rule, elements that are large on large screens need to shrink
+fasterthan elements that are already fairly small — the difference between
+small elements and large elements should be less extreme at small screen
+sizes.
+Relationships within elements
+The idea that things should scale independently doesn’t just apply to sizing
+elements at different screen sizes; it applies to the properties of a single
+component, too.
+Say you’ve designed a button. It’s got a 16px font size, 16px of horizontal
+padding, and 12px of vertical padding:
+Much like the previous example, it’s tempting to think that the padding
+should be defined in terms of the current font size. That way if you want a
+larger or smaller button, you only need to change the font size and the
+padding will update automatically, right?
+Relative sizing doesn’t scale 82
+This works — the buttonsd
+
+============================================================
+Color
+============================================================
+Line-height is proportional
+You might have heard the advice that a line-height of about 1.5 is a good
+starting point from a readability perspective.
+While that’s not necessarily untrue, choosing the right line-height for your
+text is a bit more complicated than just using the same value across the
+board in all situations.
+Accounting for line length
+The reason we add space between lines of text is to make it easy for the
+reader to find the next line when the text wraps. Have you ever accidentally
+read the same line of text twice, or accidentally skipped a line? The line-
+height was probably too short.
+Line-height is proportional 106
+When lines of text are spaced too tightly, it’s easy to finish reading a line of
+text at the right edge of a page then jump your eyes all the way back to the
+left edge only to be unsure which line is next.
+This problem is magnified when lines of text are long. The further your eyes
+have to jump horizontally to read the next line, the easier it is to lose your
+place.
+That means that your line-height and paragraph width should be
+proportional — narrow content can use a shorter line-height like 1.5, but wide
+content might need a line-height as tall as 2.
+Line-height is proportional 107
+Accounting for font size
+Line length isn’t the only factor in choosing the right line-height — font size
+has a big impact as well.
+When text is small, extra line spacing is important because it makes it a lot
+easier for your eyes to find the next line when the text wrap
+
+============================================================
+Creating Depth
+============================================================
+Creating Depth
+Emulate a light source
+Have you ever noticed how some elements in an interface feel like they’re
+raised off of the page, while others feel like they are inset into the
+background?
+Creating this effect might look complicated at first, but it actually only
+requires you to understand one fundamental rule.
+Emulate a light source 151
+Light comes from above
+Take a look at the panelling on this door:
+Even though you’re just looking at a flat image, it’s still pretty obvious that
+the panels on the door are raised. Why is that?
+Notice how the top edge of the panel is lighter? That’s because it’s angled
+towards the sky and receives more light. Similarly, the bottom edge is darker
+because it’s angledawayfrom the sky, receivinglesslight.
+The only way those edges could possibly be oriented that way is if the panel
+itself is raised, so that’s how our brains perceive it.
+Emulate a light source 152
+Now take a look at the panelling on this cabinet:
+In this case it’s clear that the panels areinsetbecause there’s a shadow at
+the top indicating that the lip above is blocking the light, and the bottom
+edge is lighter, indicating that it’s angled upward.
+To create this same sense of depth in your designs, all you need to do is
+mimic the way light affects things in the real world.
+Emulate a light source 153
+Simulating light in a user interface
+If you want an element to appear raised or inset, first figure out whatprofile
+you want that element to have, then mimic how a light source wo

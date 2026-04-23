@@ -4,6 +4,8 @@ import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { Plus, Trash2, ChevronRight, Upload, Copy, FolderPlus, Pencil, X, Check, Image as ImageIcon, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ConfirmationDialog } from './ui/confirmation-dialog';
+import { FocalPointPicker } from './ui/focal-point-picker';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -27,6 +29,8 @@ type Asset = {
   width: number | null;
   height: number | null;
   alt: string | null;
+  focalX: number;
+  focalY: number;
   order: number;
   createdAt: string;
   category: Category | null;
@@ -429,10 +433,17 @@ export function AssetsPanel() {
   const [catModal, setCatModal] = useState<'new' | Category | null>(null);
   const [showUpload, setShowUpload] = useState(false);
 
+  // delete confirmations
+  const [deleteAssetConfirm, setDeleteAssetConfirm] = useState<Asset | null>(null);
+  const [deleteCategoryConfirm, setDeleteCategoryConfirm] = useState<Category | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   // inspector edits
   const [editName, setEditName] = useState('');
   const [editAlt, setEditAlt] = useState('');
   const [editCat, setEditCat] = useState('');
+  const [editFocalX, setEditFocalX] = useState(50);
+  const [editFocalY, setEditFocalY] = useState(50);
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -461,21 +472,35 @@ export function AssetsPanel() {
       setEditName(selAsset.name);
       setEditAlt(selAsset.alt ?? '');
       setEditCat(selAsset.categoryId ?? '');
+      setEditFocalX(selAsset.focalX ?? 50);
+      setEditFocalY(selAsset.focalY ?? 50);
     }
   }, [selAsset]);
 
-  async function deleteCategory(cat: Category) {
-    if (!confirm(`Delete category "${cat.name}"? Assets will become uncategorized.`)) return;
-    await fetch(`/api/asset-categories/${cat.id}`, { method: 'DELETE' });
-    setActiveCat(null);
-    loadCategories();
+  async function handleDeleteCategory() {
+    if (!deleteCategoryConfirm) return;
+    setDeleting(true);
+    try {
+      await fetch(`/api/asset-categories/${deleteCategoryConfirm.id}`, { method: 'DELETE' });
+      setActiveCat(null);
+      setDeleteCategoryConfirm(null);
+      await loadCategories();
+    } finally {
+      setDeleting(false);
+    }
   }
 
-  async function deleteAsset(asset: Asset) {
-    if (!confirm(`Delete "${asset.name}"?`)) return;
-    await fetch(`/api/assets/${asset.id}`, { method: 'DELETE' });
-    setSelAsset(null);
-    loadAssets();
+  async function handleDeleteAsset() {
+    if (!deleteAssetConfirm) return;
+    setDeleting(true);
+    try {
+      await fetch(`/api/assets/${deleteAssetConfirm.id}`, { method: 'DELETE' });
+      setSelAsset(null);
+      setDeleteAssetConfirm(null);
+      await loadAssets();
+    } finally {
+      setDeleting(false);
+    }
   }
 
   async function saveAsset() {
@@ -484,11 +509,17 @@ export function AssetsPanel() {
     await fetch(`/api/assets/${selAsset.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: editName, alt: editAlt, categoryId: editCat || null }),
+      body: JSON.stringify({
+        name: editName,
+        alt: editAlt,
+        categoryId: editCat || null,
+        focalX: editFocalX,
+        focalY: editFocalY,
+      }),
     });
     setSaving(false);
     await loadAssets();
-    setSelAsset((a) => a ? { ...a, name: editName, alt: editAlt, categoryId: editCat || null } : null);
+    setSelAsset((a) => a ? { ...a, name: editName, alt: editAlt, categoryId: editCat || null, focalX: editFocalX, focalY: editFocalY } : null);
   }
 
   async function copyUrl(url: string) {
@@ -541,7 +572,7 @@ export function AssetsPanel() {
                 active={activeCat}
                 onSelect={(id) => { setActiveCat(id); setSelAsset(null); }}
                 onEdit={(c) => setCatModal(c)}
-                onDelete={deleteCategory}
+                onDelete={(c) => setDeleteCategoryConfirm(c)}
               />
             ))}
           </div>
@@ -604,15 +635,74 @@ export function AssetsPanel() {
               </button>
             </div>
 
-            {/* Preview */}
-            <div className="mx-4 mt-4 rounded-lg border border-neutral-100 bg-neutral-50 aspect-video flex items-center justify-center overflow-hidden">
-              {isImage(selAsset.mimeType) ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={selAsset.url} alt={selAsset.alt ?? selAsset.name} className="max-w-full max-h-full object-contain" />
-              ) : (
-                <FileText className="w-12 h-12 text-neutral-300" />
-              )}
-            </div>
+            {/* Preview with focal point picker for raster images */}
+            {isImage(selAsset.mimeType) && !isSvg(selAsset.mimeType) ? (
+              <div className="mx-4 mt-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] uppercase tracking-wider text-neutral-400">Focal point</p>
+                  <button
+                    onClick={() => { setEditFocalX(50); setEditFocalY(50); }}
+                    className="text-[10px] text-neutral-400 hover:text-neutral-900"
+                  >
+                    Reset
+                  </button>
+                </div>
+                <FocalPointPicker
+                  src={selAsset.url}
+                  alt={selAsset.alt ?? selAsset.name}
+                  focalX={editFocalX}
+                  focalY={editFocalY}
+                  onChange={(x, y) => { setEditFocalX(x); setEditFocalY(y); }}
+                  className="aspect-video"
+                />
+                <p className="text-[10px] text-neutral-400">
+                  Click or drag to set focus — {editFocalX.toFixed(1)}%, {editFocalY.toFixed(1)}%
+                </p>
+
+                {/* Focal point preview in cropped contexts */}
+                <div className="pt-2">
+                  <p className="text-[10px] uppercase tracking-wider text-neutral-400 mb-1.5">Crop preview</p>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <div className="aspect-square rounded border border-neutral-200 bg-neutral-50 overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={selAsset.url}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        style={{ objectPosition: `${editFocalX}% ${editFocalY}%` }}
+                      />
+                    </div>
+                    <div className="aspect-[3/4] rounded border border-neutral-200 bg-neutral-50 overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={selAsset.url}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        style={{ objectPosition: `${editFocalX}% ${editFocalY}%` }}
+                      />
+                    </div>
+                    <div className="aspect-[4/3] rounded border border-neutral-200 bg-neutral-50 overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={selAsset.url}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        style={{ objectPosition: `${editFocalX}% ${editFocalY}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="mx-4 mt-4 rounded-lg border border-neutral-100 bg-neutral-50 aspect-video flex items-center justify-center overflow-hidden">
+                {isImage(selAsset.mimeType) ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={selAsset.url} alt={selAsset.alt ?? selAsset.name} className="max-w-full max-h-full object-contain" />
+                ) : (
+                  <FileText className="w-12 h-12 text-neutral-300" />
+                )}
+              </div>
+            )}
 
             <div className="p-4 space-y-4 flex-1">
               {/* URL copy */}
@@ -665,7 +755,7 @@ export function AssetsPanel() {
 
             <div className="p-4 border-t border-neutral-100 flex gap-2">
               <button
-                onClick={() => deleteAsset(selAsset)}
+                onClick={() => setDeleteAssetConfirm(selAsset)}
                 className="flex-1 px-3 py-2 text-sm text-destructive border border-destructive/30 rounded-md hover:bg-destructive/5 flex items-center justify-center gap-1.5"
               >
                 <Trash2 className="w-3.5 h-3.5" /> Delete
@@ -699,6 +789,28 @@ export function AssetsPanel() {
           onSave={loadAssets}
         />
       )}
+
+      {/* Delete Confirmations */}
+      <ConfirmationDialog
+        isOpen={!!deleteAssetConfirm}
+        onClose={() => setDeleteAssetConfirm(null)}
+        onConfirm={handleDeleteAsset}
+        title="Delete asset"
+        description={`Are you sure you want to delete "${deleteAssetConfirm?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        isDangerous
+        isLoading={deleting}
+      />
+      <ConfirmationDialog
+        isOpen={!!deleteCategoryConfirm}
+        onClose={() => setDeleteCategoryConfirm(null)}
+        onConfirm={handleDeleteCategory}
+        title="Delete category"
+        description={`Are you sure you want to delete "${deleteCategoryConfirm?.name}"? Assets in this category will become uncategorized. This action cannot be undone.`}
+        confirmText="Delete"
+        isDangerous
+        isLoading={deleting}
+      />
     </div>
   );
 }
