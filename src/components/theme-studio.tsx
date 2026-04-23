@@ -937,18 +937,25 @@ export function ThemeStudio({
                             </button>
                           </div>
                         ) : (
-                          <input
-                            className="mono text-[11px] w-20 px-1.5 py-0.5 border border-neutral-200 rounded focus:outline-none focus:border-accent"
-                            value={raw}
-                            onChange={(e) => setColor(role, e.target.value)}
-                          />
+                          <>
+                            <input
+                              type="color"
+                              value={resolved.startsWith('#') ? resolved : (resolved ? hslToHex(resolved) : '#000000')}
+                              onChange={(e) => setColor(role, hexToHsl(e.target.value))}
+                              className="w-7 h-7 rounded cursor-pointer border border-neutral-200 p-0.5 shrink-0"
+                            />
+                            <input
+                              className="mono text-[11px] w-20 px-1.5 py-0.5 border border-neutral-200 rounded focus:outline-none focus:border-accent"
+                              value={raw}
+                              onChange={(e) => setColor(role, e.target.value)}
+                            />
+                          </>
                         )}
                         <span
                           className="w-7 h-7 rounded shrink-0 border border-neutral-200"
                           style={{ background: resolved.startsWith('#') ? resolved : `hsl(${resolved})` }}
                         />
-                        {colorVars.length > 0 && (
-                          <div className="relative">
+                        <div className="relative">
                             <button
                               onClick={() => { setVarPickerOpen(varPickerOpen === role ? null : role); setVarSearch(''); }}
                               className={cn(
@@ -1021,7 +1028,6 @@ export function ThemeStudio({
                               </>
                             )}
                           </div>
-                        )}
                         <button
                           onClick={() => setTokens(t => { const { [role]: _, ...rest } = t.colorBindings || {}; return { ...t, colorBindings: rest }; })}
                           className="shrink-0 text-neutral-300 hover:text-destructive transition-colors"
