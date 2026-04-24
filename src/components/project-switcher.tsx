@@ -43,7 +43,7 @@ export function ProjectSwitcher({
       </button>
 
       {open && (
-        <div className="absolute left-0 right-0 top-full mt-1 z-30 glass rounded-md border border-white/[0.08] shadow-xl overflow-hidden">
+        <div className="absolute left-0 right-0 top-full mt-1 z-30 rounded-md border border-white/[0.08] shadow-xl overflow-hidden bg-[#0b0f1a]">
           <div className="max-h-60 overflow-y-auto scrollbar">
             {projects.map((p) => (
               <button

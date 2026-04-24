@@ -109,14 +109,14 @@ export default async function Home() {
               <button className="px-3 py-1.5 bg-sky-500 hover:bg-sky-400 text-white text-xs rounded-md font-medium shadow-accent-glow transition-colors">Draft</button>
             </div>
             <div className="flex flex-wrap gap-2 mt-4">
-              <Link href="/schema/new" className="chip chip-glass-neutral hover:bg-white/[0.1] transition-colors">
+              <Link href="/schema/new" className="chip chip-glass-neutral !px-3 !py-1 hover:bg-white/[0.1] transition-colors">
                 + new collection
               </Link>
-              <Link href="/pages/new" className="chip chip-glass-neutral hover:bg-white/[0.1] transition-colors">
+              <Link href="/pages/new" className="chip chip-glass-neutral !px-3 !py-1 hover:bg-white/[0.1] transition-colors">
                 + new page
               </Link>
-              <button className="chip chip-glass-neutral hover:bg-white/[0.1] transition-colors">import from CSV</button>
-              <button className="chip chip-glass-neutral hover:bg-white/[0.1] transition-colors">generate seed data</button>
+              <button className="chip chip-glass-neutral !px-3 !py-1 hover:bg-white/[0.1] transition-colors">import from CSV</button>
+              <button className="chip chip-glass-neutral !px-3 !py-1 hover:bg-white/[0.1] transition-colors">generate seed data</button>
             </div>
           </div>
 
