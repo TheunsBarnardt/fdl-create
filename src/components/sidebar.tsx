@@ -68,7 +68,7 @@ function NavGroup({
     <div className="mt-5 first:mt-3 pt-3 first:pt-0 border-t border-white/[0.08] first:border-t-0">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-2 mb-2 group"
+        className="w-full flex items-center justify-between px-2 mb-3 group"
       >
         <span className="text-[9px] font-bold uppercase tracking-widest text-amber-500/60 group-hover:text-amber-400 transition-colors drop-shadow-sm">
           ▶ {label}
@@ -81,9 +81,13 @@ function NavGroup({
           <path d="M6 9l6 6 6-6" />
         </svg>
       </button>
-      {open && items.map((n) => (
-        <NavLink key={n.href} href={n.href} label={n.label} Icon={n.icon} active={isActive(n.href)} />
-      ))}
+      {open && (
+        <div className="btn-grid-container cols-3 gap-2">
+          {items.map((n) => (
+            <NavLink key={n.href} href={n.href} label={n.label} Icon={n.icon} active={isActive(n.href)} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -163,12 +167,12 @@ function NavLink({
     <Link
       href={href}
       className={cn(
-        'w-full text-left px-3 py-2 rounded-md flex items-center gap-2.5 text-white/70 text-xs font-medium transition-all btn-tactical-frame',
-        active && 'active text-white'
+        'btn-grid',
+        active && 'active'
       )}
     >
-      <Icon className="w-4 h-4" />
-      {label}
+      <Icon className="w-5 h-5" />
+      <span className="text-[10px]">{label}</span>
     </Link>
   );
 }
