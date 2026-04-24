@@ -186,7 +186,7 @@ export default async function LogsPage({
                     return (
                       <tr
                         key={key}
-                        className={`border-b border-neutral-100 cursor-pointer ${isSelected ? 'bg-accent-soft' : 'hover:bg-neutral-50'}`}
+                        className={`tilt-row border-b border-white/5 cursor-pointer${isSelected ? ' active' : ''}`}
                       >
                         <LinkCell href={`/logs${buildQs({ ...baseQs, id: key })}`} className="px-4 py-1.5 text-neutral-500">
                           {relativeTime(r.createdAt)}

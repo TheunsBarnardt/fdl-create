@@ -135,7 +135,7 @@ export default async function UsersPage({
                 {users.map((u) => {
                   const isSelf = u.id === meId;
                   return (
-                    <tr key={u.id} className="border-b border-neutral-100 hover:bg-neutral-50">
+                    <tr key={u.id} className="tilt-row border-b border-white/5">
                       <td className="px-4 py-2 mono">{u.email}{isSelf && <span className="ml-2 text-[10px] text-accent">you</span>}</td>
                       <td className="px-2 py-2">{u.name ?? <span className="text-neutral-400">—</span>}</td>
                       <td className="px-2 py-2">

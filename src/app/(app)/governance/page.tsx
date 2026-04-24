@@ -95,7 +95,7 @@ export default async function GovernancePage() {
               </thead>
               <tbody>
                 {audits.map((a) => (
-                  <tr key={a.id} className="border-b border-neutral-100 hover:bg-neutral-50">
+                  <tr key={a.id} className="tilt-row border-b border-white/5">
                     <td className="px-4 py-2 mono text-neutral-600">
                       {a.createdAt.toISOString().slice(0, 19).replace('T', ' ')}
                     </td>

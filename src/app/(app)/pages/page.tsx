@@ -54,7 +54,7 @@ export default async function PagesListPage() {
               </thead>
               <tbody>
                 {pages.map((p) => (
-                  <tr key={p.id} className="border-b border-neutral-100 hover:bg-neutral-50">
+                  <tr key={p.id} className="tilt-row border-b border-white/5">
                     <td className="px-4 py-2">
                       <Link href={`/pages/edit/${p.id}`} className="hover:text-accent font-medium">
                         {p.title}

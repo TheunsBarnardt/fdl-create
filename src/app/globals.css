@@ -359,6 +359,23 @@
     background: rgba(245, 158, 11, 0.9);
     box-shadow: 0 0 8px rgba(245, 158, 11, 0.65);
   }
+  .tilt-row.active,
+  .tilt-row[data-active='true'] {
+    background: rgba(245, 158, 11, 0.95);
+    color: #0b0f1a;
+    box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.7), 0 6px 18px -6px rgba(245, 158, 11, 0.55);
+  }
+  .tilt-row.active::before,
+  .tilt-row[data-active='true']::before {
+    top: 0; bottom: 0;
+    background: #f59e0b;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.85);
+  }
+  .tilt-row.active:hover,
+  .tilt-row[data-active='true']:hover {
+    transform: none;
+    background: rgba(245, 158, 11, 0.95);
+  }
   .glow-ring:hover {
     border-color: rgba(245, 158, 11, 0.28);
     box-shadow:

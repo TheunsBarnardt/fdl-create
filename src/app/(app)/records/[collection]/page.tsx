@@ -48,7 +48,7 @@ export default async function RecordsList({ params }: { params: { collection: st
               {records.map((r) => {
                 const data = JSON.parse(r.data) as Record<string, unknown>;
                 return (
-                  <tr key={r.id} className="border-b border-border hover:bg-secondary/30">
+                  <tr key={r.id} className="tilt-row border-b border-white/5">
                     {schema.fields.slice(0, 5).map((f) => (
                       <td key={f.name} className="px-3 py-2">{String(data[f.name] ?? '')}</td>
                     ))}

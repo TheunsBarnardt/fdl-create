@@ -41,7 +41,7 @@ export default function ApiReferencePage({
                         <Link
                           key={e.id}
                           href={`/api-reference?endpoint=${e.id}`}
-                          className={`flex items-center gap-2 px-4 py-1 text-[12px] hover:bg-neutral-50 ${active ? 'bg-accent-soft border-l-2 border-accent pl-[14px] text-accent' : 'border-l-2 border-transparent text-neutral-700'}`}
+                          className={`tilt-row flex items-center gap-2 px-4 py-1 text-[12px] rounded-sm${active ? ' active' : ' text-white/75'}`}
                         >
                           <MethodPill method={e.method} compact />
                           <span className="truncate">{e.title}</span>

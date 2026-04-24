@@ -55,7 +55,7 @@ export default async function TokensPage() {
                   const statusLabel = t.revokedAt ? 'Revoked' : expired ? 'Expired' : 'Active';
                   const statusTone = t.revokedAt ? 'danger' : expired ? 'warn' : 'ok';
                   return (
-                    <tr key={t.id} className="border-b border-neutral-100 hover:bg-neutral-50">
+                    <tr key={t.id} className="tilt-row border-b border-white/5">
                       <td className="px-4 py-2 font-medium">{t.name}</td>
                       <td className="px-2 py-2 mono text-[11px] text-neutral-600">{t.prefix}…</td>
                       <td className="px-2 py-2">

@@ -150,7 +150,7 @@ export default async function DataOverviewPage() {
                   })();
                   const rels = countRelations(schema.fields);
                   return (
-                    <tr key={c.id} className="border-b border-neutral-100 hover:bg-neutral-50">
+                    <tr key={c.id} className="tilt-row border-b border-white/5">
                       <td className="px-4 py-2 mono text-neutral-800">{c.name}</td>
                       <td className="px-2 py-2">{c.label}</td>
                       <td className="px-2 py-2 text-right mono text-neutral-600">{schema.fields.length}</td>
