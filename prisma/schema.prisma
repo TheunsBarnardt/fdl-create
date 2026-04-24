@@ -305,6 +305,48 @@ model FooterColumn {
   @@index([footerId])
 }
 
+// ---- Stored Procedures ----
+model ProcedureGroup {
+  id        String            @id @default(cuid())
+  name      String            @unique  // display name, e.g. "Accounts"
+  order     Int               @default(0)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  procedures StoredProcedure[]
+}
+
+model StoredProcedure {
+  id        String              @id @default(cuid())
+  groupId   String
+  name      String              // short name, e.g. "Get"
+  signature String              @default("") // e.g. "dbo.Accounts_Get"
+  body      String              @default("") // full CREATE OR ALTER PROCEDURE … body
+  params    String              @default("[]") // JSON: [{ name, sqlType, direction, defaultValue, testValue }]
+  status    String              @default("draft") // "draft" | "saved" | "deployed"
+  boundTo   String?             // Collection.name — data source binding
+  order     Int                 @default(0)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  group     ProcedureGroup      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  revisions ProcedureRevision[]
+
+  @@unique([groupId, name])
+  @@index([groupId])
+}
+
+model ProcedureRevision {
+  id          String   @id @default(cuid())
+  procedureId String
+  body        String
+  params      String
+  createdAt   DateTime @default(now())
+
+  procedure StoredProcedure @relation(fields: [procedureId], references: [id], onDelete: Cascade)
+  @@index([procedureId])
+}
+
 // ---- Platform observability + Management API ----
 model ApiRequestLog {
   id         String   @id @default(cuid())

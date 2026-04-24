@@ -1,4 +1,5 @@
-import { auth, signOut } from '@/auth';
+import { auth } from '@/auth';
+import { signOutAction } from '@/app/actions/auth';
 
 export async function UserChip() {
   const session = await auth();
@@ -12,10 +13,7 @@ export async function UserChip() {
 
   return (
     <form
-      action={async () => {
-        'use server';
-        await signOut({ redirectTo: '/sign-in' });
-      }}
+      action={signOutAction}
       className="flex items-center gap-2"
     >
       <div className="w-7 h-7 rounded-full bg-gradient-to-br from-accent to-purple-500 text-white font-medium flex items-center justify-center text-[11px]">

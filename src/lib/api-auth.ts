@@ -9,6 +9,7 @@ export const SCOPES = [
   'read:pages', 'write:pages',
   'read:blocks', 'write:blocks',
   'read:themes', 'write:themes',
+  'read:procedures', 'write:procedures',
   'admin'
 ] as const;
 export type Scope = typeof SCOPES[number];
