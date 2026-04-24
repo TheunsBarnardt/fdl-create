@@ -110,7 +110,9 @@
       "Bash(curl -sS -o /dev/null -w \"assets %{http_code}\\\\n\" \"http://localhost:58629/assets\" --max-time 60)",
       "Bash(curl -sS -o /dev/null -w \"documents %{http_code}\\\\n\" \"http://localhost:58629/documents\" --max-time 60)",
       "Bash(curl -sS -o /dev/null -w \"theme %{http_code}\\\\n\" \"http://localhost:58629/theme\" --max-time 60)",
-      "Bash(curl -sS -o /dev/null -w \"variables %{http_code}\\\\n\" \"http://localhost:58629/variables\" --max-time 60)"
+      "Bash(curl -sS -o /dev/null -w \"variables %{http_code}\\\\n\" \"http://localhost:58629/variables\" --max-time 60)",
+      "Bash(npx tsx *)",
+      "Bash(git stash *)"
     ]
   }
 }

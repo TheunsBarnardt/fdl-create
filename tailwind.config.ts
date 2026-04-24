@@ -18,23 +18,30 @@ const config: Config = {
         muted: { DEFAULT: 'hsl(var(--muted))', foreground: 'hsl(var(--muted-foreground))' },
         destructive: { DEFAULT: 'hsl(var(--destructive))', foreground: 'hsl(var(--destructive-foreground))' },
         card: { DEFAULT: 'hsl(var(--card))', foreground: 'hsl(var(--card-foreground))' },
-        // Prototype palette (Lattice chrome)
+        // CoD-inspired palette: dark grays + amber
         ink: {
-          950: '#09090b',
-          900: '#18181b',
-          800: '#27272a',
+          950: '#0f0f11',
+          900: '#1a1a1d',
+          800: '#2a2a2e',
           700: '#3f3f46'
+        },
+        charcoal: {
+          950: '#0a0a0c',
+          900: '#111114',
+          800: '#1a1a1d',
+          700: '#2a2a2e',
+          600: '#3f3f46'
         },
         paper: '#ffffff',
         brand: {
-          DEFAULT: '#0ea5e9',
-          soft: '#f0f9ff',
-          foreground: '#0369a1'
+          DEFAULT: '#f59e0b',
+          soft: '#fef3c7',
+          foreground: '#92400e'
         },
-        // shadcn `accent` mapped to the sky accent — so `bg-accent` in the prototype works
+        // shadcn `accent` mapped to amber — so `bg-accent` works with new palette
         accent: {
-          DEFAULT: '#0ea5e9',
-          soft: '#f0f9ff',
+          DEFAULT: '#f59e0b',
+          soft: '#fef3c7',
           foreground: '#ffffff'
         },
         ok: '#10b981',
@@ -44,8 +51,9 @@ const config: Config = {
       borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui'],
-        display: ['Inter', 'ui-sans-serif', 'system-ui'],
-        mono: ['JetBrains Mono', 'ui-monospace', 'monospace']
+        heading: ['Plus Jakarta Sans', 'Inter', 'ui-sans-serif', 'system-ui'],
+        display: ['Plus Jakarta Sans', 'Inter', 'ui-sans-serif', 'system-ui'],
+        mono: ['IBM Plex Mono', 'JetBrains Mono', 'ui-monospace', 'monospace']
       },
       letterSpacing: { display: '-0.028em' },
       boxShadow: {

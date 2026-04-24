@@ -65,13 +65,13 @@ function NavGroup({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="mt-4 first:mt-2">
+    <div className="mt-5 first:mt-3 pt-3 first:pt-0 border-t border-white/[0.08] first:border-t-0">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-2 mb-1 group"
+        className="w-full flex items-center justify-between px-2 mb-2 group"
       >
-        <span className="text-[10px] uppercase tracking-wider text-white/40 group-hover:text-white/60 transition-colors">
-          {label}
+        <span className="text-[9px] font-bold uppercase tracking-widest text-amber-500/60 group-hover:text-amber-400 transition-colors drop-shadow-sm">
+          ▶ {label}
         </span>
         <svg
           width="10" height="10" viewBox="0 0 24 24" fill="none"
@@ -107,7 +107,7 @@ export function Sidebar({
   return (
     <aside className="w-56 shrink-0 glass text-white/90 flex flex-col relative">
       <div className="p-4 border-b border-white/[0.06] flex items-center gap-2.5">
-        <div className="w-7 h-7 rounded-md bg-gradient-to-br from-sky-400 via-sky-500 to-violet-500 flex items-center justify-center shadow-[0_0_20px_rgba(14,165,233,0.45)]">
+        <div className="w-7 h-7 rounded-md bg-gradient-to-br from-amber-400 via-amber-500 to-violet-500 flex items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.45)]">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
             <path d="M3 7l9-4 9 4-9 4z" />
             <path d="M3 12l9 4 9-4" />
