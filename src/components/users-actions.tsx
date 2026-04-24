@@ -19,7 +19,7 @@ export function NewUserButton() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="px-3 py-1.5 text-xs rounded-md bg-ink-950 text-paper hover:bg-ink-900 flex items-center gap-1"
+        className="px-3 py-1.5 text-xs rounded-md bg-sky-500 hover:bg-sky-400 text-white font-medium shadow-accent-glow transition-colors flex items-center gap-1"
       >
         + Invite user
       </button>
@@ -66,14 +66,14 @@ function NewUserModal({ onClose }: { onClose: () => void }) {
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-md shadow-xl border border-neutral-200 w-full max-w-md">
-        <div className="px-5 py-3 border-b border-neutral-200 flex items-center justify-between">
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
+      <div className="glass-card glow-ring shadow-2xl w-full max-w-md">
+        <div className="px-5 py-3 border-b border-white/[0.06] flex items-center justify-between">
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-neutral-400">Admin</div>
-            <div className="display text-base">Invite user</div>
+            <div className="text-[10px] uppercase tracking-wider text-white/45">Admin</div>
+            <div className="display text-base text-white/95">Invite user</div>
           </div>
-          <button onClick={onClose} className="text-neutral-400 hover:text-neutral-700">✕</button>
+          <button onClick={onClose} className="text-white/45 hover:text-white/90">✕</button>
         </div>
         <div className="p-5 space-y-3 text-xs">
           <Field label="Email">
@@ -81,7 +81,7 @@ function NewUserModal({ onClose }: { onClose: () => void }) {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-2.5 py-1.5 border border-neutral-200 rounded-md focus:outline-none focus:border-accent"
+              className="w-full px-2.5 py-1.5 border border-white/[0.08] rounded-md bg-white/[0.03] text-white/90 placeholder-white/30 focus:outline-none focus:border-sky-400/60"
               placeholder="name@acme.com"
               autoFocus
             />
@@ -90,7 +90,7 @@ function NewUserModal({ onClose }: { onClose: () => void }) {
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-2.5 py-1.5 border border-neutral-200 rounded-md focus:outline-none focus:border-accent"
+              className="w-full px-2.5 py-1.5 border border-white/[0.08] rounded-md bg-white/[0.03] text-white/90 placeholder-white/30 focus:outline-none focus:border-sky-400/60"
               placeholder="Alex Example"
             />
           </Field>
@@ -99,10 +99,10 @@ function NewUserModal({ onClose }: { onClose: () => void }) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-2.5 py-1.5 border border-neutral-200 rounded-md focus:outline-none focus:border-accent mono"
+              className="w-full px-2.5 py-1.5 border border-white/[0.08] rounded-md bg-white/[0.03] text-white/90 placeholder-white/30 focus:outline-none focus:border-sky-400/60 mono"
               placeholder="at least 6 characters"
             />
-            <div className="text-[10px] text-neutral-500 mt-1">
+            <div className="text-[10px] text-white/50 mt-1">
               Share this with the user out-of-band. They can change it from their account page.
             </div>
           </Field>
@@ -113,26 +113,26 @@ function NewUserModal({ onClose }: { onClose: () => void }) {
                   key={r}
                   type="button"
                   onClick={() => setRole(r)}
-                  className={`px-2 py-1.5 border rounded text-[11px] capitalize ${role === r ? 'border-accent bg-accent-soft text-accent' : 'border-neutral-200 hover:bg-neutral-50'}`}
+                  className={`px-2 py-1.5 border rounded text-[11px] capitalize ${role === r ? 'border-sky-400/60 bg-sky-500/15 text-sky-200' : 'border-white/[0.08] text-white/70 hover:bg-white/[0.06]'}`}
                 >
                   {r}
                 </button>
               ))}
             </div>
-            <div className="text-[10px] text-neutral-500 mt-1">
+            <div className="text-[10px] text-white/50 mt-1">
               Admins can manage users and tokens. Editors can modify content. Viewers are read-only.
             </div>
           </Field>
           {err && <div className="text-[11px] text-danger">{err}</div>}
         </div>
-        <div className="px-5 py-3 border-t border-neutral-200 flex items-center justify-end gap-2">
-          <button onClick={onClose} className="px-3 py-1.5 text-xs rounded-md hover:bg-neutral-50">
+        <div className="px-5 py-3 border-t border-white/[0.06] flex items-center justify-end gap-2">
+          <button onClick={onClose} className="px-3 py-1.5 text-xs rounded-md text-white/70 hover:bg-white/[0.06] hover:text-white/95 transition-colors">
             Cancel
           </button>
           <button
             onClick={submit}
             disabled={submitting || !email || password.length < 6}
-            className="px-3 py-1.5 text-xs rounded-md bg-ink-950 text-paper hover:bg-ink-900 disabled:opacity-50"
+            className="px-3 py-1.5 text-xs rounded-md bg-sky-500 hover:bg-sky-400 text-white font-medium shadow-accent-glow transition-colors disabled:opacity-50"
           >
             {submitting ? 'Creating…' : 'Create user'}
           </button>
@@ -250,26 +250,26 @@ function EditUserModal({
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-md shadow-xl border border-neutral-200 w-full max-w-lg max-h-[90vh] flex flex-col">
-        <div className="px-5 py-3 border-b border-neutral-200 flex items-center justify-between">
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
+      <div className="glass-card glow-ring shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+        <div className="px-5 py-3 border-b border-white/[0.06] flex items-center justify-between">
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-neutral-400">
+            <div className="text-[10px] uppercase tracking-wider text-white/45">
               {isSelf ? 'Your profile' : 'Edit user'}
             </div>
-            <div className="display text-base">{user.email}</div>
+            <div className="display text-base text-white/95">{user.email}</div>
           </div>
-          <button onClick={onClose} className="text-neutral-400 hover:text-neutral-700">✕</button>
+          <button onClick={onClose} className="text-white/45 hover:text-white/90">✕</button>
         </div>
 
         <div className="flex-1 overflow-auto p-5 space-y-5 text-xs">
           <div className="space-y-3">
-            <div className="text-[10px] uppercase tracking-wider text-neutral-400">Profile</div>
+            <div className="text-[10px] uppercase tracking-wider text-white/45">Profile</div>
             <Field label="Display name">
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-2.5 py-1.5 border border-neutral-200 rounded-md focus:outline-none focus:border-accent"
+                className="w-full px-2.5 py-1.5 border border-white/[0.08] rounded-md bg-white/[0.03] text-white/90 placeholder-white/30 focus:outline-none focus:border-sky-400/60"
               />
             </Field>
             <Field label="Email">
@@ -277,7 +277,7 @@ function EditUserModal({
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-2.5 py-1.5 border border-neutral-200 rounded-md focus:outline-none focus:border-accent mono"
+                className="w-full px-2.5 py-1.5 border border-white/[0.08] rounded-md bg-white/[0.03] text-white/90 placeholder-white/30 focus:outline-none focus:border-sky-400/60 mono"
               />
             </Field>
             {!isSelf && (
@@ -288,7 +288,7 @@ function EditUserModal({
                       key={r}
                       type="button"
                       onClick={() => setRole(r)}
-                      className={`px-2 py-1.5 border rounded text-[11px] capitalize ${role === r ? 'border-accent bg-accent-soft text-accent' : 'border-neutral-200 hover:bg-neutral-50'}`}
+                      className={`px-2 py-1.5 border rounded text-[11px] capitalize ${role === r ? 'border-sky-400/60 bg-sky-500/15 text-sky-200' : 'border-white/[0.08] text-white/70 hover:bg-white/[0.06]'}`}
                     >
                       {r}
                     </button>
@@ -305,17 +305,17 @@ function EditUserModal({
             {err && <div className="text-[11px] text-danger">{err}</div>}
           </div>
 
-          <div className="space-y-3 pt-4 border-t border-neutral-100">
-            <div className="text-[10px] uppercase tracking-wider text-neutral-400">Reset password</div>
+          <div className="space-y-3 pt-4 border-t border-white/[0.04]">
+            <div className="text-[10px] uppercase tracking-wider text-white/45">Reset password</div>
             <Field label={isSelf ? 'New password (you must currently be signed in as this user)' : 'Set new password for this user'}>
               <input
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full px-2.5 py-1.5 border border-neutral-200 rounded-md focus:outline-none focus:border-accent mono"
+                className="w-full px-2.5 py-1.5 border border-white/[0.08] rounded-md bg-white/[0.03] text-white/90 placeholder-white/30 focus:outline-none focus:border-sky-400/60 mono"
                 placeholder="at least 6 characters"
               />
-              <div className="text-[10px] text-neutral-500 mt-1">
+              <div className="text-[10px] text-white/50 mt-1">
                 {isSelf
                   ? 'For self-service change, use the Account page which prompts for your current password.'
                   : 'Admin reset — no current password required. Share the new password out-of-band.'}
@@ -326,14 +326,14 @@ function EditUserModal({
             <button
               onClick={resetPassword}
               disabled={pwSubmitting || newPassword.length < 6 || isSelf}
-              className="px-3 py-1.5 text-xs rounded-md border border-neutral-200 hover:bg-neutral-50 disabled:opacity-50"
+              className="px-3 py-1.5 text-xs rounded-md border border-white/[0.08] text-white/80 hover:bg-white/[0.06] hover:text-white/95 transition-colors disabled:opacity-50"
             >
               {pwSubmitting ? 'Saving…' : 'Reset password'}
             </button>
           </div>
 
           {!isSelf && (
-            <div className="space-y-2 pt-4 border-t border-neutral-100">
+            <div className="space-y-2 pt-4 border-t border-white/[0.04]">
               <div className="text-[10px] uppercase tracking-wider text-danger">Danger zone</div>
               <button
                 onClick={remove}
@@ -345,14 +345,14 @@ function EditUserModal({
           )}
         </div>
 
-        <div className="px-5 py-3 border-t border-neutral-200 flex items-center justify-end gap-2">
-          <button onClick={onClose} className="px-3 py-1.5 text-xs rounded-md hover:bg-neutral-50">
+        <div className="px-5 py-3 border-t border-white/[0.06] flex items-center justify-end gap-2">
+          <button onClick={onClose} className="px-3 py-1.5 text-xs rounded-md text-white/70 hover:bg-white/[0.06] hover:text-white/95 transition-colors">
             Close
           </button>
           <button
             onClick={save}
             disabled={submitting}
-            className="px-3 py-1.5 text-xs rounded-md bg-ink-950 text-paper hover:bg-ink-900 disabled:opacity-50"
+            className="px-3 py-1.5 text-xs rounded-md bg-sky-500 hover:bg-sky-400 text-white font-medium shadow-accent-glow transition-colors disabled:opacity-50"
           >
             {submitting ? 'Saving…' : 'Save changes'}
           </button>
@@ -366,7 +366,7 @@ function EditUserModal({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <div className="text-[10px] uppercase tracking-wider text-neutral-500 mb-1">{label}</div>
+      <div className="text-[10px] uppercase tracking-wider text-white/45 mb-1">{label}</div>
       {children}
     </label>
   );

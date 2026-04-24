@@ -76,15 +76,15 @@ export default async function NavFooterPage() {
   ]);
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
+    <section className="flex-1 flex flex-col overflow-hidden">
       <ScreenHeader title="Navigation & Footer" />
-      <main className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto scrollbar">
         <NavFooterBuilder
           navigation={navigation}
           footer={footer}
           pages={pages}
         />
-      </main>
-    </div>
+      </div>
+    </section>
   );
 }

@@ -90,8 +90,8 @@ model Project {
 // ---- Schema-as-data (Lattice runtime) ----
 model Collection {
   id          String   @id @default(cuid())
-  projectId   String?
-  name        String   @unique
+  projectId   String
+  name        String
   label       String
   description String?
   schema      String   // JSON: { fields: [{name,type,required,unique,default,...}] }
@@ -100,8 +100,9 @@ model Collection {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   records Record[]
+  @@unique([projectId, name])
   @@index([projectId])
 }
 
@@ -118,8 +119,8 @@ model Record {
 
 model Page {
   id                String   @id @default(cuid())
-  projectId         String?
-  slug              String   @unique
+  projectId         String
+  slug              String
   title             String
   tree              String   // JSON block tree
   published         Boolean  @default(false)
@@ -132,9 +133,10 @@ model Page {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  project      Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project      Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   navItems     NavItem[]
   dependencies PageDependency[]
+  @@unique([projectId, slug])
   @@index([projectId])
 }
 
@@ -154,8 +156,8 @@ model PageDependency {
 
 model CustomBlock {
   id          String   @id @default(cuid())
-  projectId   String?
-  name        String   @unique
+  projectId   String?  // nullable: built-in seed blocks are global
+  name        String
   title       String?
   description String?
   source      String   // pasted JSX/HTML — template (kind='template') or full TSX module (kind='component')
@@ -168,18 +170,20 @@ model CustomBlock {
   createdAt   DateTime @default(now())
 
   project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  @@unique([projectId, name])
   @@index([projectId])
 }
 
 model Theme {
   id        String   @id @default(cuid())
-  projectId String?
-  name      String   @unique
+  projectId String
+  name      String
   tokens    String   // JSON design tokens
   isDefault Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  @@unique([projectId, name])
   @@index([projectId])
 }
 
@@ -192,15 +196,16 @@ model Preset {
 
 model VariableCollection {
   id        String     @id @default(cuid())
-  projectId String?
-  name      String     @unique
+  projectId String
+  name      String
   label     String
   order     Int        @default(0)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
-  project   Project?   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
   variables Variable[]
+  @@unique([projectId, name])
   @@index([projectId])
 }
 
@@ -222,26 +227,27 @@ model Variable {
 
 model AssetCategory {
   id        String   @id @default(cuid())
-  projectId String?
+  projectId String
   name      String
-  slug      String   @unique
+  slug      String
   parentId  String?
   order     Int      @default(0)
   createdAt DateTime @default(now())
 
-  project  Project?        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project  Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
   parent   AssetCategory?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
   children AssetCategory[] @relation("CategoryTree")
   assets   Asset[]
+  @@unique([projectId, slug])
   @@index([projectId])
 }
 
 model Asset {
   id         String   @id @default(cuid())
-  projectId  String?
+  projectId  String
   categoryId String?
   name       String
-  filename   String   @unique
+  filename   String
   url        String
   mimeType   String
   size       Int
@@ -254,34 +260,36 @@ model Asset {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  project  Project?       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project  Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
   category AssetCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  @@unique([projectId, filename])
   @@index([categoryId])
   @@index([projectId])
 }
 
 model DocumentCategory {
   id        String   @id @default(cuid())
-  projectId String?
+  projectId String
   name      String
-  slug      String   @unique
+  slug      String
   parentId  String?
   order     Int      @default(0)
   createdAt DateTime @default(now())
 
-  project   Project?           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project   Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
   parent    DocumentCategory?  @relation("DocumentCategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
   children  DocumentCategory[] @relation("DocumentCategoryTree")
   documents Document[]
+  @@unique([projectId, slug])
   @@index([projectId])
 }
 
 model Document {
   id          String   @id @default(cuid())
-  projectId   String?
+  projectId   String
   categoryId  String?
   name        String
-  filename    String   @unique
+  filename    String
   url         String
   mimeType    String
   size        Int
@@ -290,8 +298,9 @@ model Document {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  project  Project?          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project  Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
   category DocumentCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  @@unique([projectId, filename])
   @@index([categoryId])
   @@index([projectId])
 }
@@ -314,12 +323,12 @@ model AiAuditLog {
 // ---- Navigation & Footer ----
 model Navigation {
   id        String   @id @default(cuid())
-  projectId String?
+  projectId String
   items     NavItem[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   @@index([projectId])
 }
 
@@ -349,13 +358,13 @@ model NavItem {
 
 model Footer {
   id        String        @id @default(cuid())
-  projectId String?
+  projectId String
   type      String        @default("simple")  // "simple" | "columns"
   columns   FooterColumn[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 
-  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   @@index([projectId])
 }
 
@@ -375,14 +384,15 @@ model FooterColumn {
 // ---- Stored Procedures ----
 model ProcedureGroup {
   id        String            @id @default(cuid())
-  projectId String?
-  name      String            @unique  // display name, e.g. "Accounts"
+  projectId String
+  name      String            // display name, e.g. "Accounts"
   order     Int               @default(0)
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
 
-  project    Project?          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project    Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
   procedures StoredProcedure[]
+  @@unique([projectId, name])
   @@index([projectId])
 }
 

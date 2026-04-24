@@ -15,7 +15,7 @@ export function CodeViewer({ value, language, maxLines = 24, minLines = 3 }: Pro
   const height = lineCount * 18 + 16;
 
   return (
-    <div className="rounded-md overflow-hidden border border-ink-900 bg-ink-950">
+    <div className="rounded-md overflow-hidden border border-white/[0.08] bg-[#1e1e1e]">
       <MonacoEditor
         height={`${height}px`}
         language={language}
@@ -36,7 +36,7 @@ export function CodeViewer({ value, language, maxLines = 24, minLines = 3 }: Pro
           lineDecorationsWidth: 0,
           lineNumbersMinChars: 0,
           renderLineHighlight: 'none',
-          padding: { top: 8, bottom: 8 },
+          padding: { top: 12, bottom: 12 },
           scrollbar: { vertical: 'auto', horizontal: 'auto', verticalScrollbarSize: 8, horizontalScrollbarSize: 8 },
           overviewRulerLanes: 0,
           hideCursorInOverviewRuler: true,

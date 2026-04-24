@@ -9,6 +9,7 @@ import {
   type TimeRange
 } from '@/lib/logs';
 import { formatBytes } from '@/lib/analytics-fixtures';
+import { CountryGeoChart } from './country-geo-chart';
 
 function logsHref(params: Record<string, string | undefined>): string {
   const u = new URLSearchParams();
@@ -107,25 +108,28 @@ export async function TrafficTab({ range }: { range: TimeRange }) {
         {topCountries.length === 0 ? (
           <div className="text-xs text-neutral-400 py-2">No page views in this range yet. Navigate around the app to populate.</div>
         ) : (
-          <div className="space-y-1">
-            {topCountries.map(([country, v]) => {
-              const pct = (v.requests / maxCountry) * 100;
-              return (
-                <div
-                  key={country}
-                  className="grid grid-cols-[1fr_auto_auto] items-center gap-3 text-[11px] px-1 -mx-1 py-0.5"
-                >
-                  <div className="truncate">{country}</div>
-                  <div className="w-32 h-1.5 bg-neutral-100 rounded overflow-hidden">
-                    <div className="h-full bg-accent" style={{ width: `${pct}%` }} />
+          <div className="grid grid-cols-1 md:grid-cols-[1.2fr_1fr] gap-6 items-start">
+            <CountryGeoChart rows={topCountries.map(([c, v]) => [c, v.requests])} />
+            <div className="space-y-1">
+              {topCountries.map(([country, v]) => {
+                const pct = (v.requests / maxCountry) * 100;
+                return (
+                  <div
+                    key={country}
+                    className="grid grid-cols-[1fr_auto_auto] items-center gap-3 text-[11px] px-1 -mx-1 py-0.5"
+                  >
+                    <div className="truncate">{country}</div>
+                    <div className="w-24 h-1.5 bg-neutral-100 rounded overflow-hidden">
+                      <div className="h-full bg-accent" style={{ width: `${pct}%` }} />
+                    </div>
+                    <div className="flex items-center gap-3 tabular-nums text-neutral-600">
+                      <span className="w-12 text-right mono">{v.requests.toLocaleString()}</span>
+                      <span className="w-16 text-right mono text-neutral-400">{formatBytes(v.bytes)}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3 tabular-nums text-neutral-600">
-                    <span className="w-14 text-right mono">{v.requests.toLocaleString()}</span>
-                    <span className="w-16 text-right mono text-neutral-400">{formatBytes(v.bytes)}</span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         )}
       </Card>
@@ -341,23 +345,44 @@ function Sparkline({ data, max, compact }: { data: number[]; max: number; compac
   const h = compact ? 32 : 80;
   const n = data.length;
   if (n === 0) return <div className="h-20 flex items-center justify-center text-xs text-neutral-400">No data</div>;
-  const barW = w / n;
+  const pad = 2;
+  const innerH = h - pad * 2;
+  const step = n > 1 ? w / (n - 1) : w;
+
+  const pts = data.map((v, i) => {
+    const x = n > 1 ? i * step : w / 2;
+    const y = h - pad - (v / max) * innerH;
+    return [x, y] as const;
+  });
+
+  // Smooth catmull-rom → cubic bezier
+  const line: string[] = [];
+  for (let i = 0; i < pts.length; i++) {
+    const [x, y] = pts[i];
+    if (i === 0) { line.push(`M ${x} ${y}`); continue; }
+    const [px, py] = pts[i - 1];
+    const [nx, ny] = pts[Math.min(i + 1, pts.length - 1)];
+    const [ppx, ppy] = pts[Math.max(i - 2, 0)];
+    const c1x = px + (x - ppx) / 6;
+    const c1y = py + (y - ppy) / 6;
+    const c2x = x - (nx - px) / 6;
+    const c2y = y - (ny - py) / 6;
+    line.push(`C ${c1x} ${c1y}, ${c2x} ${c2y}, ${x} ${y}`);
+  }
+  const linePath = line.join(' ');
+  const areaPath = `${linePath} L ${pts[pts.length - 1][0]} ${h} L ${pts[0][0]} ${h} Z`;
+  const gid = `spark-fill-${compact ? 'c' : 'f'}`;
+
   return (
     <svg viewBox={`0 0 ${w} ${h}`} className={`w-full ${compact ? 'h-8' : 'h-20'}`} preserveAspectRatio="none">
-      {data.map((v, i) => {
-        const barH = (v / max) * (h - 4);
-        return (
-          <rect
-            key={i}
-            x={i * barW + 1}
-            y={h - barH}
-            width={Math.max(1, barW - 2)}
-            height={barH}
-            className="fill-accent"
-            opacity={v === 0 ? 0.15 : 1}
-          />
-        );
-      })}
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="rgb(56,189,248)" stopOpacity="0.45" />
+          <stop offset="100%" stopColor="rgb(56,189,248)" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={areaPath} fill={`url(#${gid})`} />
+      <path d={linePath} fill="none" stroke="rgb(56,189,248)" strokeWidth={compact ? 1.25 : 1.5} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }

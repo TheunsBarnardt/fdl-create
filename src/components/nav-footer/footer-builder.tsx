@@ -48,14 +48,14 @@ export function FooterBuilder({
   return (
     <div className="max-w-2xl p-6 space-y-6">
       <div>
-        <h2 className="text-lg font-semibold mb-4">Footer Configuration</h2>
+        <h2 className="text-lg font-semibold mb-4 text-white/95">Footer Configuration</h2>
 
         <div className="space-y-4">
           {/* Footer Type Selection */}
           <div>
-            <label className="text-sm font-medium block mb-2">Footer Type</label>
+            <label className="text-sm font-medium block mb-2 text-white/85">Footer Type</label>
             <div className="flex gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label className="flex items-center gap-2 cursor-pointer text-white/80">
                 <input
                   type="radio"
                   name="footerType"
@@ -63,10 +63,11 @@ export function FooterBuilder({
                   checked={footerType === 'simple'}
                   onChange={(e) => handleTypeChange('simple')}
                   disabled={saving}
+                  className="accent-sky-500"
                 />
                 <span className="text-sm">Simple (single list)</span>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label className="flex items-center gap-2 cursor-pointer text-white/80">
                 <input
                   type="radio"
                   name="footerType"
@@ -74,6 +75,7 @@ export function FooterBuilder({
                   checked={footerType === 'columns'}
                   onChange={(e) => handleTypeChange('columns')}
                   disabled={saving}
+                  className="accent-sky-500"
                 />
                 <span className="text-sm">Columns</span>
               </label>
@@ -91,7 +93,7 @@ export function FooterBuilder({
 
           {/* Simple Footer Items */}
           {footerType === 'simple' && (
-            <div className="p-4 bg-muted rounded-md text-sm text-muted-foreground">
+            <div className="p-4 glass-card text-sm text-white/55">
               Simple footer configuration will be added in the next phase.
             </div>
           )}

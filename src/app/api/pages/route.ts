@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { withApi } from '@/lib/with-api';
+import { getActiveProject } from '@/lib/active-project';
 
 const CreatePage = z.object({
   slug: z.string().regex(/^[a-z0-9-/]+$/),
@@ -15,7 +16,8 @@ const CreatePage = z.object({
 });
 
 export const GET = withApi('read:pages', async () => {
-  const pages = await prisma.page.findMany({ orderBy: { updatedAt: 'desc' } });
+  const project = await getActiveProject();
+  const pages = await prisma.page.findMany({ where: { projectId: project.id }, orderBy: { updatedAt: 'desc' } });
   return NextResponse.json(pages.map((p) => ({
     id: p.id, slug: p.slug, title: p.title, published: p.published,
     updatedAt: p.updatedAt
@@ -25,6 +27,7 @@ export const GET = withApi('read:pages', async () => {
 export const POST = withApi('write:pages', async (req) => {
   const body = CreatePage.safeParse(await req.json());
   if (!body.success) return NextResponse.json({ error: body.error.flatten() }, { status: 400 });
+  const project = await getActiveProject();
   const created = await prisma.page.create({
     data: {
       slug: body.data.slug,
@@ -34,6 +37,7 @@ export const POST = withApi('write:pages', async (req) => {
       themeId: body.data.themeId ?? null,
       params: body.data.params ?? null,
       seo: body.data.seo ? JSON.stringify(body.data.seo) : null,
+      projectId: project.id,
     }
   });
   if (body.data.defaultCollection !== undefined) {

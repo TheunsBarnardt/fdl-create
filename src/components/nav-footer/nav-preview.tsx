@@ -45,10 +45,10 @@ export function NavPreview({
   if (level === 0) {
     return (
       <div className="space-y-4">
-        <div className="text-xs text-muted-foreground">
+        <div className="text-xs text-white/45">
           Flat Layout:
         </div>
-        <div className="flex flex-wrap gap-2 p-3 border border-border rounded-md bg-card">
+        <div className="flex flex-wrap gap-2 p-3 border border-white/[0.08] rounded-md bg-white/[0.03]">
           {items.map(item => (
             <div key={item.id}>
               <NavItemPreview
@@ -61,23 +61,23 @@ export function NavPreview({
           ))}
         </div>
 
-        <div className="text-xs text-muted-foreground mt-6">
+        <div className="text-xs text-white/45 mt-6">
           Items with dropdowns:
         </div>
-        <div className="space-y-2 p-3 border border-border rounded-md bg-card">
+        <div className="space-y-2 p-3 border border-white/[0.08] rounded-md bg-white/[0.03]">
           {items.map(item => {
             if (item.children?.length === 0 || item.navType === 'flat') {
               return null;
             }
             return (
               <div key={item.id} className="text-sm">
-                <div className="flex items-center gap-1 font-medium">
+                <div className="flex items-center gap-1 font-medium text-white/90">
                   {item.label}
                   <ChevronDown size={14} />
                 </div>
                 <div className="ml-4 space-y-1">
                   {item.children?.map((child: any) => (
-                    <div key={child.id} className="text-xs">
+                    <div key={child.id} className="text-xs text-white/60">
                       {child.label}
                     </div>
                   ))}
@@ -113,8 +113,8 @@ function NavItemPreview({
   return (
     <div className={`text-xs px-2 py-1 rounded ${
       isActive
-        ? 'bg-accent text-white font-medium'
-        : 'hover:bg-muted'
+        ? 'bg-sky-500 text-white font-medium'
+        : 'text-white/80 hover:bg-white/[0.06]'
     } ${hasChildren && item.navType !== 'flat' ? 'cursor-pointer' : ''}`}>
       <div className="flex items-center gap-1">
         {item.label}

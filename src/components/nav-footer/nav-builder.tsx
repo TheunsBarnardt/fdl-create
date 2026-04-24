@@ -57,17 +57,17 @@ export function NavBuilder({
   return (
     <div className="flex h-full gap-4">
       {/* Left: Tree Editor */}
-      <div className="flex-1 overflow-auto p-6 border-r border-border">
+      <div className="flex-1 overflow-auto scrollbar p-6 border-r border-white/[0.06]">
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-lg font-semibold">Navigation Items</h2>
+            <h2 className="text-lg font-semibold text-white/95">Navigation Items</h2>
             <Button onClick={handleAddItem} variant="default" size="sm">
               + Add Item
             </Button>
           </div>
 
           {navigation.items.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-8 text-white/45 text-sm">
               No navigation items yet. Click "Add Item" to get started.
             </div>
           ) : (
@@ -85,9 +85,9 @@ export function NavBuilder({
       </div>
 
       {/* Right: Preview */}
-      <div className="w-80 overflow-auto p-6 border-l border-border">
+      <div className="w-80 overflow-auto scrollbar p-6 border-l border-white/[0.06] bg-white/[0.02]">
         <div className="space-y-4">
-          <h3 className="text-sm font-semibold">Preview</h3>
+          <h3 className="text-sm font-semibold text-white/95">Preview</h3>
           <NavPreview items={navigation.items} pages={pages} />
         </div>
       </div>

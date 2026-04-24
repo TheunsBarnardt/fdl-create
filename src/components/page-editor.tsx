@@ -255,82 +255,82 @@ export function PageEditor({
     <DragCtx.Provider value={{ dragging, setDragging }}>
     <section className="flex-1 flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="h-14 border-b border-neutral-200 bg-white/60 backdrop-blur px-6 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3 min-w-0 text-sm">
-          <Link href="/pages" className="text-xs text-neutral-400 hover:text-neutral-700">
+      <header className="h-14 glass-header px-6 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-3 min-w-0 text-sm text-white/85">
+          <Link href="/pages" className="text-xs text-white/45 hover:text-white/80 transition-colors">
             Pages
           </Link>
-          <span className="text-xs text-neutral-400">/</span>
+          <span className="text-xs text-white/25">/</span>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder={mode === 'create' ? 'Untitled page' : ''}
-            className="display text-lg bg-transparent focus:outline-none focus:ring-0 min-w-[140px] max-w-[280px]"
+            className="display text-lg bg-transparent focus:outline-none focus:ring-0 min-w-[140px] max-w-[280px] text-white/95 placeholder-white/30"
           />
           {published ? (
-            <span className="chip bg-ok/10 text-ok">Published</span>
+            <span className="chip chip-glass-ok">Published</span>
           ) : (
-            <span className="chip bg-warn/10 text-warn">Draft</span>
+            <span className="chip chip-glass-warn">Draft</span>
           )}
-          <div className="flex items-center gap-1 text-xs text-neutral-500">
+          <div className="flex items-center gap-1 text-xs text-white/55">
             <span>/pages/</span>
             <input
               value={slug}
               onChange={(e) => setSlug(e.target.value)}
               placeholder="slug"
-              className="mono bg-transparent focus:outline-none text-neutral-500 w-28"
+              className="mono bg-transparent focus:outline-none text-white/70 w-28 placeholder-white/25"
             />
           </div>
           {themes.length > 0 && (
-            <div className="flex items-center gap-1 text-xs text-neutral-500">
-              <span className="text-neutral-400">Theme:</span>
+            <div className="flex items-center gap-1 text-xs text-white/55">
+              <span className="text-white/40">Theme:</span>
               <select
                 value={pageTheme}
                 onChange={(e) => setPageTheme(e.target.value)}
-                className="bg-transparent focus:outline-none text-neutral-600 text-xs border-none py-0"
+                className="bg-transparent focus:outline-none text-white/70 text-xs border-none py-0"
               >
-                <option value="">Default</option>
+                <option value="" className="bg-[#0b0f1a]">Default</option>
                 {themes.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
+                  <option key={t.id} value={t.id} className="bg-[#0b0f1a]">{t.name}</option>
                 ))}
               </select>
             </div>
           )}
-          <div className="flex items-center gap-1 text-xs text-neutral-500">
-            <span className="text-neutral-400">Params:</span>
+          <div className="flex items-center gap-1 text-xs text-white/55">
+            <span className="text-white/40">Params:</span>
             <input
               value={pageParams}
               onChange={(e) => setPageParams(e.target.value)}
               placeholder="id,type"
-              className="mono bg-transparent focus:outline-none text-neutral-500 w-20"
+              className="mono bg-transparent focus:outline-none text-white/70 w-20 placeholder-white/25"
               title="Comma-separated URL params (e.g. id,type)"
             />
           </div>
-          <div className="flex items-center gap-1 text-xs text-neutral-500" title="Default collection — blocks on this page bind to this collection or one related to it">
-            <span className="text-neutral-400">Collection:</span>
+          <div className="flex items-center gap-1 text-xs text-white/55" title="Default collection — blocks on this page bind to this collection or one related to it">
+            <span className="text-white/40">Collection:</span>
             <select
               value={defaultCollection}
               onChange={(e) => setDefaultCollection(e.target.value)}
-              className="bg-transparent focus:outline-none text-neutral-600 text-xs border-none py-0"
+              className="bg-transparent focus:outline-none text-white/70 text-xs border-none py-0"
             >
-              <option value="">— none (static) —</option>
+              <option value="" className="bg-[#0b0f1a]">— none (static) —</option>
               {collections.map((c) => (
-                <option key={c.name} value={c.name}>{c.label}</option>
+                <option key={c.name} value={c.name} className="bg-[#0b0f1a]">{c.label}</option>
               ))}
             </select>
           </div>
-          <div className="flex items-center gap-1 text-xs text-neutral-500" title="Dynamic pages render per-request. Static pages are pre-rendered at publish time and invalidated via the dependency graph.">
-            <span className="text-neutral-400">Render:</span>
+          <div className="flex items-center gap-1 text-xs text-white/55" title="Dynamic pages render per-request. Static pages are pre-rendered at publish time and invalidated via the dependency graph.">
+            <span className="text-white/40">Render:</span>
             <select
               value={renderMode}
               onChange={(e) => setRenderMode(e.target.value as 'dynamic' | 'static')}
-              className="bg-transparent focus:outline-none text-neutral-600 text-xs border-none py-0"
+              className="bg-transparent focus:outline-none text-white/70 text-xs border-none py-0"
             >
-              <option value="dynamic">Dynamic</option>
-              <option value="static">Static</option>
+              <option value="dynamic" className="bg-[#0b0f1a]">Dynamic</option>
+              <option value="static" className="bg-[#0b0f1a]">Static</option>
             </select>
             {renderMode === 'static' && initial.lastBuiltAt && (
-              <span className="text-neutral-400 mono ml-1" title={`Last built ${new Date(initial.lastBuiltAt).toLocaleString()}`}>
+              <span className="text-white/40 mono ml-1" title={`Last built ${new Date(initial.lastBuiltAt).toLocaleString()}`}>
                 · built {new Date(initial.lastBuiltAt).toLocaleDateString()}
               </span>
             )}
@@ -339,8 +339,8 @@ export function PageEditor({
 
         <div className="flex items-center gap-2 text-xs">
           <ViewportSwitch viewport={viewport} onChange={setViewport} />
-          <span className="text-neutral-400 mono hidden xl:inline">{VP_LABELS[viewport]}</span>
-          <span className="w-px h-5 bg-neutral-200" />
+          <span className="text-white/40 mono hidden xl:inline">{VP_LABELS[viewport]}</span>
+          <span className="w-px h-5 bg-white/[0.08]" />
 
           {/* Preview */}
           {slug ? (
@@ -348,13 +348,13 @@ export function PageEditor({
               href={published ? `/pages/${slug}` : `/pages/${slug}?preview=1`}
               target="_blank"
               rel="noreferrer"
-              className="px-2.5 py-1 border border-neutral-200 rounded-md hover:bg-neutral-50 flex items-center gap-1.5 text-neutral-600"
+              className="px-2.5 py-1 border border-white/[0.08] rounded-md hover:bg-white/[0.06] flex items-center gap-1.5 text-white/70 transition-colors"
             >
               <Eye className="h-3.5 w-3.5" />
               Preview
             </a>
           ) : (
-            <span className="px-2.5 py-1 border border-neutral-200 rounded-md text-neutral-300 flex items-center gap-1.5 cursor-not-allowed">
+            <span className="px-2.5 py-1 border border-white/[0.08] rounded-md text-white/25 flex items-center gap-1.5 cursor-not-allowed">
               <Eye className="h-3.5 w-3.5" />
               Preview
             </span>
@@ -384,7 +384,7 @@ export function PageEditor({
           {/* Close */}
           <Link
             href="/pages"
-            className="p-1.5 text-neutral-400 hover:text-neutral-700 rounded hover:bg-neutral-100 transition-colors"
+            className="p-1.5 text-white/45 hover:text-white/90 rounded hover:bg-white/[0.06] transition-colors"
             title="Close editor"
           >
             <X className="h-3.5 w-3.5" />
@@ -410,9 +410,9 @@ export function PageEditor({
 
             <div className="flex-1 flex overflow-hidden">
               {/* Left — tabbed sidebar */}
-              <aside className="w-64 border-r border-neutral-200 bg-white/60 flex flex-col shrink-0 overflow-hidden">
+              <aside className="w-64 border-r border-white/[0.06] bg-white/[0.02] flex flex-col shrink-0 overflow-hidden">
                 {/* Tab bar */}
-                <div className="flex border-b border-neutral-200 shrink-0">
+                <div className="flex border-b border-white/[0.06] shrink-0">
                   {(['blocks', 'library', 'pages'] as SideTab[]).map((tab) => {
                     const label = tab === 'blocks' ? 'Blocks' : tab === 'pages' ? 'Outline' : 'Library';
                     return (
@@ -423,8 +423,8 @@ export function PageEditor({
                         className={cn(
                           'flex-1 py-2 text-[11px] font-medium border-b-2 -mb-px transition-colors',
                           sideTab === tab
-                            ? 'border-ink-950 text-ink-950'
-                            : 'border-transparent text-neutral-400 hover:text-neutral-700'
+                            ? 'border-sky-400 text-white/95'
+                            : 'border-transparent text-white/45 hover:text-white/80'
                         )}
                       >
                         {label}
@@ -436,12 +436,12 @@ export function PageEditor({
                 {/* Search — hidden on Outline tab */}
                 {sideTab !== 'pages' && (
                   <div className="relative px-3 pt-3 pb-2 shrink-0">
-                    <Search className="h-3.5 w-3.5 absolute left-5.5 top-1/2 translate-y-[-25%] text-neutral-400" />
+                    <Search className="h-3.5 w-3.5 absolute left-5.5 top-1/2 translate-y-[-25%] text-white/35" />
                     <input
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       placeholder="Search blocks…"
-                      className="w-full pl-8 pr-2 py-1.5 text-[12px] border border-neutral-200 rounded-md bg-white focus:outline-none focus:border-accent"
+                      className="w-full pl-8 pr-2 py-1.5 text-[12px] border border-white/[0.08] rounded-md bg-white/[0.03] text-white/90 placeholder-white/30 focus:outline-none focus:border-sky-400/60"
                     />
                   </div>
                 )}
@@ -465,8 +465,8 @@ export function PageEditor({
               <CanvasArea viewport={viewport} draggedPresetRef={draggedPresetRef} draggedShadcnRef={draggedShadcnRef} themeStyle={canvasThemeStyle} />
 
               {/* Right — Properties / SEO */}
-              <aside className="w-80 border-l border-neutral-200 bg-white flex flex-col overflow-hidden shrink-0">
-                <div className="flex border-b border-neutral-200 shrink-0">
+              <aside className="w-80 border-l border-white/[0.06] bg-white/[0.02] flex flex-col overflow-hidden shrink-0">
+                <div className="flex border-b border-white/[0.06] shrink-0">
                   {(['props', 'seo'] as RightTab[]).map((tab) => (
                     <button
                       key={tab}
@@ -475,8 +475,8 @@ export function PageEditor({
                       className={cn(
                         'flex-1 py-2 text-[11px] font-medium border-b-2 -mb-px transition-colors',
                         rightTab === tab
-                          ? 'border-ink-950 text-ink-950'
-                          : 'border-transparent text-neutral-400 hover:text-neutral-700'
+                          ? 'border-sky-400 text-white/95'
+                          : 'border-transparent text-white/45 hover:text-white/80'
                       )}
                     >
                       {tab === 'props' ? 'Properties' : 'SEO'}

@@ -50,9 +50,9 @@ const SAMPLE_QUERIES = [
 ];
 
 const toneCls: Record<string, string> = {
-  slow: 'text-red-600 bg-red-50',
-  warn: 'text-amber-600 bg-amber-50',
-  ok: 'text-emerald-600 bg-emerald-50',
+  slow: 'text-red-300 bg-red-500/15 border border-red-500/30',
+  warn: 'text-amber-300 bg-amber-500/15 border border-amber-500/30',
+  ok: 'text-emerald-300 bg-emerald-500/15 border border-emerald-500/30',
 };
 
 export default function SqlProfilerPage() {
@@ -64,8 +64,8 @@ export default function SqlProfilerPage() {
       <ScreenHeader
         title={
           <div className="flex items-center gap-2">
-            <Link href="/analytics" className="text-neutral-400 hover:text-neutral-700">Run</Link>
-            <span className="text-neutral-300">/</span>
+            <Link href="/analytics" className="text-white/45 hover:text-white/80 transition-colors">Run</Link>
+            <span className="text-white/25">/</span>
             <span>SQL Profiler</span>
           </div>
         }
@@ -78,12 +78,13 @@ export default function SqlProfilerPage() {
         }
       />
 
-      <div className="flex-1 overflow-auto scrollbar bg-paper p-6 space-y-6">
+      <div className="flex-1 overflow-auto scrollbar p-8 space-y-6">
 
         {/* Concept callout */}
-        <div className="bg-sky-50 border border-sky-200 rounded-md p-4 text-sm text-sky-800 space-y-1">
-          <div className="font-semibold">SQL Profiler</div>
-          <p className="text-[12px] leading-relaxed text-sky-700">
+        <div className="relative rounded-xl p-4 overflow-hidden border border-white/[0.08] space-y-1" style={{ background: 'linear-gradient(135deg, rgba(14,165,233,0.14), rgba(139,92,246,0.14))' }}>
+          <div className="absolute inset-0 backdrop-blur-xl -z-10" />
+          <div className="display text-base text-white">SQL Profiler</div>
+          <p className="text-[12px] leading-relaxed text-white/70">
             Captures every query executed through the runtime, highlights slow ones, and shows
             the MSSQL execution plan so you can add the right index without opening SSMS.
             Threshold, retention, and alerting rules are configurable per workspace.
@@ -106,28 +107,28 @@ export default function SqlProfilerPage() {
               desc: 'Export captured queries as a .sql workload file for SSMS Tuning Advisor, or set alert rules in Governance.',
             },
           ].map((f) => (
-            <div key={f.title} className="bg-white border border-neutral-200 rounded-md p-4 opacity-60">
-              <div className="text-xs font-semibold mb-1">{f.title}</div>
-              <div className="text-[11px] text-neutral-500 leading-relaxed">{f.desc}</div>
-              <div className="mt-3 inline-block text-[10px] px-2 py-0.5 rounded bg-neutral-100 text-neutral-400 uppercase tracking-wide">Planned</div>
+            <div key={f.title} className="glass-card p-4 opacity-70">
+              <div className="text-xs font-semibold mb-1 text-white/95">{f.title}</div>
+              <div className="text-[11px] text-white/55 leading-relaxed">{f.desc}</div>
+              <div className="mt-3 inline-block text-[10px] px-2 py-0.5 rounded bg-white/[0.06] text-white/45 uppercase tracking-wide border border-white/[0.08]">Planned</div>
             </div>
           ))}
         </div>
 
         {/* Sample query table */}
-        <div className="bg-white border border-neutral-200 rounded-md overflow-hidden">
-          <div className="px-4 py-2 flex items-center justify-between bg-neutral-50 border-b border-neutral-200">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
+        <div className="glass-card overflow-hidden">
+          <div className="px-4 py-2 flex items-center justify-between bg-white/[0.03] border-b border-white/[0.06]">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-white/55">
               Recent queries — sample data
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] text-neutral-400">threshold: 200 ms</span>
-              <button disabled className="text-[11px] px-2 py-1 rounded bg-neutral-100 text-neutral-400 cursor-not-allowed">▶ Start capture</button>
+              <span className="text-[10px] text-white/40">threshold: 200 ms</span>
+              <button disabled className="text-[11px] px-2 py-1 rounded bg-white/[0.06] text-white/40 border border-white/[0.08] cursor-not-allowed">▶ Start capture</button>
             </div>
           </div>
           <table className="w-full text-xs">
             <thead>
-              <tr className="text-[10px] uppercase tracking-wider text-neutral-500 border-b border-neutral-200">
+              <tr className="text-[10px] uppercase tracking-wider text-white/45 border-b border-white/[0.06]">
                 <th className="text-left font-semibold px-4 py-2">Status</th>
                 <th className="text-left font-semibold px-2 py-2">Query</th>
                 <th className="text-left font-semibold px-2 py-2">Caller</th>
@@ -138,17 +139,17 @@ export default function SqlProfilerPage() {
             </thead>
             <tbody>
               {SAMPLE_QUERIES.map((q) => (
-                <tr key={q.id} className="border-b border-neutral-100 hover:bg-neutral-50">
+                <tr key={q.id} className="border-b border-white/[0.04] hover:bg-white/[0.03]">
                   <td className="px-4 py-2">
                     <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${toneCls[q.status]}`}>
                       {q.status}
                     </span>
                   </td>
-                  <td className="px-2 py-2 mono text-[11px] text-neutral-700 max-w-xs truncate">{q.query}</td>
-                  <td className="px-2 py-2 mono text-[11px] text-neutral-500">{q.caller}</td>
-                  <td className="px-2 py-2 text-right mono font-medium">{q.duration} ms</td>
-                  <td className="px-2 py-2 text-right mono">{q.rows}</td>
-                  <td className="px-4 py-2 text-right mono">{q.scans}</td>
+                  <td className="px-2 py-2 mono text-[11px] text-white/85 max-w-xs truncate">{q.query}</td>
+                  <td className="px-2 py-2 mono text-[11px] text-white/55">{q.caller}</td>
+                  <td className="px-2 py-2 text-right mono font-medium text-white/90">{q.duration} ms</td>
+                  <td className="px-2 py-2 text-right mono text-white/75">{q.rows}</td>
+                  <td className="px-4 py-2 text-right mono text-white/75">{q.scans}</td>
                 </tr>
               ))}
             </tbody>

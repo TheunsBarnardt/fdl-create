@@ -97,8 +97,8 @@ export default async function VisualizerPage() {
       <ScreenHeader
         title={
           <div className="flex items-center gap-2">
-            <Link href="/data" className="text-neutral-400 hover:text-neutral-700">Data</Link>
-            <span className="text-neutral-300">/</span>
+            <Link href="/data" className="text-white/45 hover:text-white/80 transition-colors">Data</Link>
+            <span className="text-white/25">/</span>
             <span>Visualizer</span>
           </div>
         }
@@ -109,19 +109,19 @@ export default async function VisualizerPage() {
           </>
         }
         actions={
-          <Link href="/schema" className="px-2.5 py-1 text-xs rounded-md border border-neutral-200 hover:bg-neutral-50">
+          <Link href="/schema" className="px-2.5 py-1 text-xs rounded-md border border-white/[0.08] text-white/70 hover:bg-white/[0.06] hover:text-white/90 transition-colors">
             Edit schema
           </Link>
         }
       />
 
-      <div className="flex-1 overflow-auto scrollbar bg-neutral-50 p-6">
+      <div className="flex-1 overflow-auto scrollbar p-8">
         {boxes.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-sm text-neutral-500">
-            No tables yet. <Link href="/schema" className="text-accent hover:underline ml-1">Create your first collection</Link>.
+          <div className="h-full flex items-center justify-center text-sm text-white/55">
+            No tables yet. <Link href="/schema" className="text-sky-400 hover:text-sky-300 hover:underline ml-1">Create your first collection</Link>.
           </div>
         ) : (
-          <div className="bg-white border border-neutral-200 rounded-md overflow-auto">
+          <div className="glass-card overflow-auto">
             <svg
               viewBox={`0 0 ${svgW} ${svgH}`}
               width={svgW}
@@ -130,10 +130,10 @@ export default async function VisualizerPage() {
             >
               <defs>
                 <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                  <path d="M0,0 L10,5 L0,10 z" fill="#64748b" />
+                  <path d="M0,0 L10,5 L0,10 z" fill="rgba(255,255,255,0.35)" />
                 </marker>
                 <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-                  <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#f1f5f9" strokeWidth="1" />
+                  <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
                 </pattern>
               </defs>
               <rect width={svgW} height={svgH} fill="url(#grid)" />
@@ -154,12 +154,12 @@ export default async function VisualizerPage() {
                       y1={y1}
                       x2={x2}
                       y2={y2}
-                      stroke="#94a3b8"
+                      stroke="rgba(255,255,255,0.25)"
                       strokeWidth={1.5}
                       markerEnd="url(#arrow)"
                     />
-                    <rect x={mx - 36} y={my - 9} width={72} height={18} rx={9} fill="white" stroke="#e2e8f0" />
-                    <text x={mx} y={my + 3} textAnchor="middle" fontSize="10" fill="#475569" fontFamily="ui-monospace, monospace">
+                    <rect x={mx - 36} y={my - 9} width={72} height={18} rx={9} fill="rgba(11,15,26,0.95)" stroke="rgba(255,255,255,0.12)" />
+                    <text x={mx} y={my + 3} textAnchor="middle" fontSize="10" fill="rgba(255,255,255,0.75)" fontFamily="ui-monospace, monospace">
                       {e.cardinality}
                     </text>
                   </g>
@@ -174,9 +174,9 @@ export default async function VisualizerPage() {
                       y={b.y}
                       width={b.w}
                       height={b.h}
-                      rx={6}
-                      fill="white"
-                      stroke="#cbd5e1"
+                      rx={8}
+                      fill="rgba(255,255,255,0.04)"
+                      stroke="rgba(255,255,255,0.1)"
                       strokeWidth={1}
                     />
                     <rect
@@ -184,20 +184,20 @@ export default async function VisualizerPage() {
                       y={b.y}
                       width={b.w}
                       height={headerH}
-                      rx={6}
-                      fill="#0f172a"
+                      rx={8}
+                      fill="rgba(14,165,233,0.18)"
                     />
                     <rect
                       x={b.x}
                       y={b.y + headerH - 6}
                       width={b.w}
                       height={6}
-                      fill="#0f172a"
+                      fill="rgba(14,165,233,0.18)"
                     />
-                    <text x={b.x + 12} y={b.y + 18} fontSize="12" fontWeight="600" fill="white" fontFamily="ui-monospace, monospace">
+                    <text x={b.x + 12} y={b.y + 18} fontSize="12" fontWeight="600" fill="rgba(255,255,255,0.95)" fontFamily="ui-monospace, monospace">
                       {b.name}
                     </text>
-                    <text x={b.x + 12} y={b.y + 32} fontSize="10" fill="rgba(255,255,255,0.6)">
+                    <text x={b.x + 12} y={b.y + 32} fontSize="10" fill="rgba(255,255,255,0.5)">
                       {b.rows.toLocaleString()} rows · {b.fields.length} fields
                     </text>
                   </a>
@@ -209,7 +209,7 @@ export default async function VisualizerPage() {
                           x={b.x + 12}
                           y={b.y + headerH + 4 + rowH * (i + 1) - 6}
                           fontSize="11"
-                          fill={rel ? '#0ea5e9' : '#334155'}
+                          fill={rel ? 'rgb(56,189,248)' : 'rgba(255,255,255,0.8)'}
                           fontFamily="ui-monospace, monospace"
                         >
                           {f.name}
@@ -218,7 +218,7 @@ export default async function VisualizerPage() {
                           x={b.x + b.w - 12}
                           y={b.y + headerH + 4 + rowH * (i + 1) - 6}
                           fontSize="10"
-                          fill="#94a3b8"
+                          fill="rgba(255,255,255,0.4)"
                           textAnchor="end"
                           fontFamily="ui-monospace, monospace"
                         >
@@ -228,7 +228,7 @@ export default async function VisualizerPage() {
                     );
                   })}
                   {b.fields.length > 10 && (
-                    <text x={b.x + 12} y={b.y + b.h - 8} fontSize="10" fill="#94a3b8">
+                    <text x={b.x + 12} y={b.y + b.h - 8} fontSize="10" fill="rgba(255,255,255,0.4)">
                       +{b.fields.length - 10} more
                     </text>
                   )}
@@ -239,30 +239,30 @@ export default async function VisualizerPage() {
         )}
 
         <div className="mt-6 grid grid-cols-2 gap-4 text-[12px]">
-          <div className="bg-white border border-neutral-200 rounded-md p-4">
-            <div className="text-sm font-semibold mb-2">Tables ({boxes.length})</div>
+          <div className="glass-card p-4">
+            <div className="text-sm font-semibold mb-2 text-white/95">Tables ({boxes.length})</div>
             <div className="space-y-1">
               {boxes.map((b) => (
-                <Link key={b.id} href={`/records/${b.name}`} className="flex justify-between py-0.5 hover:text-accent">
+                <Link key={b.id} href={`/records/${b.name}`} className="flex justify-between py-0.5 text-white/80 hover:text-sky-400 transition-colors">
                   <span className="mono">{b.name}</span>
-                  <span className="text-neutral-400 mono">{b.rows.toLocaleString()} rows · {b.fields.length} fields</span>
+                  <span className="text-white/40 mono">{b.rows.toLocaleString()} rows · {b.fields.length} fields</span>
                 </Link>
               ))}
-              {boxes.length === 0 && <div className="text-neutral-400">—</div>}
+              {boxes.length === 0 && <div className="text-white/40">—</div>}
             </div>
           </div>
-          <div className="bg-white border border-neutral-200 rounded-md p-4">
-            <div className="text-sm font-semibold mb-2">Relations ({edges.length})</div>
+          <div className="glass-card p-4">
+            <div className="text-sm font-semibold mb-2 text-white/95">Relations ({edges.length})</div>
             <div className="space-y-1">
               {edges.map((e, i) => (
                 <div key={i} className="flex justify-between py-0.5">
-                  <span className="mono text-neutral-700">{e.from}.{e.label} → {e.to}</span>
-                  <span className="text-neutral-400 mono">{e.cardinality}</span>
+                  <span className="mono text-white/85">{e.from}.{e.label} → {e.to}</span>
+                  <span className="text-white/40 mono">{e.cardinality}</span>
                 </div>
               ))}
               {edges.length === 0 && (
-                <div className="text-neutral-400">
-                  No relations yet. In the schema designer, add a field with label like <span className="mono">→ customers (many-to-one)</span>.
+                <div className="text-white/45">
+                  No relations yet. In the schema designer, add a field with label like <span className="mono text-white/70">→ customers (many-to-one)</span>.
                 </div>
               )}
             </div>

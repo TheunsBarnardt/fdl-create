@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { withApi } from '@/lib/with-api';
+import { getActiveProject } from '@/lib/active-project';
 
 const CreateTheme = z.object({
   name: z.string().min(1),

@@ -23,24 +23,24 @@ export function NavFooterBuilder({
   return (
     <div className="flex h-full">
       {/* Sidebar with tabs */}
-      <nav className="w-48 border-r border-border bg-card">
-        <div className="p-4 space-y-2">
+      <nav className="w-48 border-r border-white/[0.06] bg-white/[0.02]">
+        <div className="p-4 space-y-1">
           <button
             onClick={() => setActiveTab('nav')}
-            className={`w-full text-left px-3 py-2 rounded-md transition ${
+            className={`w-full text-left px-3 py-2 rounded-md transition-colors ${
               activeTab === 'nav'
-                ? 'bg-accent text-white'
-                : 'hover:bg-muted'
+                ? 'bg-sky-500 text-white shadow-accent-glow'
+                : 'text-white/70 hover:text-white/95 hover:bg-white/[0.05]'
             }`}
           >
             <span className="text-sm font-medium">Navigation</span>
           </button>
           <button
             onClick={() => setActiveTab('footer')}
-            className={`w-full text-left px-3 py-2 rounded-md transition ${
+            className={`w-full text-left px-3 py-2 rounded-md transition-colors ${
               activeTab === 'footer'
-                ? 'bg-accent text-white'
-                : 'hover:bg-muted'
+                ? 'bg-sky-500 text-white shadow-accent-glow'
+                : 'text-white/70 hover:text-white/95 hover:bg-white/[0.05]'
             }`}
           >
             <span className="text-sm font-medium">Footer</span>
