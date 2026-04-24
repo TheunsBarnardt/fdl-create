@@ -3,10 +3,12 @@ import { prisma } from '@/lib/db';
 import { ScreenHeader, Chip } from '@/components/screen-header';
 import { parseCollectionSchema } from '@/lib/schema-types';
 import { relativeTime } from '@/lib/logs';
+import { getActiveProject } from '@/lib/active-project';
 
 export default async function RecordsOverviewPage() {
+  const project = await getActiveProject();
   const collections = await prisma.collection
-    .findMany({ orderBy: { name: 'asc' } })
+    .findMany({ where: { projectId: project.id }, orderBy: { name: 'asc' } })
     .catch(() => []);
 
   const counts = await Promise.all(

@@ -3,15 +3,17 @@ import { PageEditor } from '@/components/page-editor';
 import { getCollectionFieldMap } from '@/lib/collections';
 import { ensureBuiltInBlocks } from '@/lib/seed-blocks';
 import { getRelatedCollections, type RelationRef } from '@/lib/collection-relations';
+import { getActiveProject } from '@/lib/active-project';
 
 export default async function NewPagePage() {
   await ensureBuiltInBlocks();
+  const project = await getActiveProject();
   const [collections, pages, fieldMap, blocks, themes] = await Promise.all([
-    prisma.collection.findMany({ orderBy: { label: 'asc' } }).catch(() => []),
-    prisma.page.findMany({ orderBy: { updatedAt: 'desc' } }).catch(() => []),
+    prisma.collection.findMany({ where: { projectId: project.id }, orderBy: { label: 'asc' } }).catch(() => []),
+    prisma.page.findMany({ where: { projectId: project.id }, orderBy: { updatedAt: 'desc' } }).catch(() => []),
     getCollectionFieldMap().catch(() => ({})),
-    prisma.$queryRaw<any[]>`SELECT id, name, title, description, category, source, shape, slotSchema FROM "CustomBlock" ORDER BY category ASC, title ASC`.catch(() => []),
-    prisma.theme.findMany({ orderBy: { name: 'asc' } }).catch(() => []),
+    prisma.$queryRaw<any[]>`SELECT id, name, title, description, category, source, shape, slotSchema FROM "CustomBlock" WHERE projectId = ${project.id} OR projectId IS NULL ORDER BY category ASC, title ASC`.catch(() => []),
+    prisma.theme.findMany({ where: { projectId: project.id }, orderBy: { name: 'asc' } }).catch(() => []),
   ]);
 
   const allNames = collections.map((c) => c.name);

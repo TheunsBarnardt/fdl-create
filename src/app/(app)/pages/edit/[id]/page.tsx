@@ -4,17 +4,19 @@ import { PageEditor } from '@/components/page-editor';
 import { getCollectionFieldMap } from '@/lib/collections';
 import { ensureBuiltInBlocks } from '@/lib/seed-blocks';
 import { getRelatedCollections, type RelationRef } from '@/lib/collection-relations';
+import { getActiveProject } from '@/lib/active-project';
 
 export default async function EditPagePage({ params }: { params: { id: string } }) {
   await ensureBuiltInBlocks();
+  const project = await getActiveProject();
 
   const [pageRows, collections, pages, fieldMap, blocks, themes] = await Promise.all([
     prisma.$queryRaw<any[]>`SELECT * FROM "Page" WHERE id = ${params.id} LIMIT 1`,
-    prisma.collection.findMany({ orderBy: { label: 'asc' } }),
-    prisma.page.findMany({ orderBy: { updatedAt: 'desc' } }),
+    prisma.collection.findMany({ where: { projectId: project.id }, orderBy: { label: 'asc' } }),
+    prisma.page.findMany({ where: { projectId: project.id }, orderBy: { updatedAt: 'desc' } }),
     getCollectionFieldMap().catch(() => ({})),
-    prisma.$queryRaw<any[]>`SELECT id, name, title, description, category, source, kind, shape, slotSchema FROM "CustomBlock" ORDER BY category ASC, title ASC`.catch(() => []),
-    prisma.theme.findMany({ orderBy: { name: 'asc' } }).catch(() => []),
+    prisma.$queryRaw<any[]>`SELECT id, name, title, description, category, source, kind, shape, slotSchema FROM "CustomBlock" WHERE projectId = ${project.id} OR projectId IS NULL ORDER BY category ASC, title ASC`.catch(() => []),
+    prisma.theme.findMany({ where: { projectId: project.id }, orderBy: { name: 'asc' } }).catch(() => []),
   ]);
   const page = pageRows[0];
   if (!page) notFound();

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { withApi } from '@/lib/with-api';
+import { getActiveProject } from '@/lib/active-project';
 import {
   CreateVariableCollectionSchema,
   parseVariablePath,
@@ -8,7 +9,9 @@ import {
 } from '@/lib/variable-types';
 
 export const GET = withApi('read:themes', async () => {
+  const project = await getActiveProject();
   const collections = await prisma.variableCollection.findMany({
+    where: { projectId: project.id },
     include: {
       variables: {
         orderBy: { order: 'asc' },
@@ -49,8 +52,10 @@ export const POST = withApi('write:themes', async (req) => {
     return NextResponse.json({ error: body.error.flatten() }, { status: 400 });
   }
 
+  const project = await getActiveProject();
   const maxOrder = await prisma.variableCollection
     .findFirst({
+      where: { projectId: project.id },
       orderBy: { order: 'desc' },
       select: { order: true },
     });
@@ -60,6 +65,7 @@ export const POST = withApi('write:themes', async (req) => {
       name: body.data.name,
       label: body.data.label,
       order: (maxOrder?.order ?? 0) + 1,
+      projectId: project.id,
     },
     include: {
       variables: true,

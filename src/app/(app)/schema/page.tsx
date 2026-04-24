@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { ScreenHeader, Chip } from '@/components/screen-header';
 import { parseCollectionSchema } from '@/lib/schema-types';
 import { SchemaToolbarActions } from '@/components/schema-toolbar-actions';
+import { getActiveProject } from '@/lib/active-project';
 
 type EntCollection = {
   name: string;
@@ -38,8 +39,10 @@ export default async function SchemaDesignerPage({
 }: {
   searchParams: { c?: string };
 }) {
+  const project = await getActiveProject();
   const rows = await prisma.collection
     .findMany({
+      where: { projectId: project.id },
       orderBy: { name: 'asc' },
       include: { _count: { select: { records: true } } }
     })

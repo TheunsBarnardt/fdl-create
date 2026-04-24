@@ -1,10 +1,13 @@
 import { prisma } from '@/lib/db';
 import { ScreenHeader } from '@/components/screen-header';
 import { NavFooterBuilder } from '@/components/nav-footer/nav-footer-builder';
+import { getActiveProject } from '@/lib/active-project';
 
 export default async function NavFooterPage() {
+  const project = await getActiveProject();
   const [navigation, footer, pages] = await Promise.all([
     prisma.navigation.findFirst({
+      where: { projectId: project.id },
       include: {
         items: {
           where: { parentId: null },
@@ -24,7 +27,7 @@ export default async function NavFooterPage() {
     }).then(async nav => {
       if (!nav) {
         return await prisma.navigation.create({
-          data: {},
+          data: { projectId: project.id },
           include: {
             items: {
               where: { parentId: null },
@@ -46,6 +49,7 @@ export default async function NavFooterPage() {
       return nav;
     }),
     prisma.footer.findFirst({
+      where: { projectId: project.id },
       include: {
         columns: {
           orderBy: { order: 'asc' }
@@ -54,7 +58,7 @@ export default async function NavFooterPage() {
     }).then(async footer => {
       if (!footer) {
         return await prisma.footer.create({
-          data: { type: 'simple' },
+          data: { type: 'simple', projectId: project.id },
           include: {
             columns: {
               orderBy: { order: 'asc' }
@@ -65,6 +69,7 @@ export default async function NavFooterPage() {
       return footer;
     }),
     prisma.page.findMany({
+      where: { projectId: project.id },
       select: { id: true, slug: true, title: true },
       orderBy: { title: 'asc' }
     })

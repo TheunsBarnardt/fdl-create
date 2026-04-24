@@ -1,8 +1,10 @@
 import { prisma } from '@/lib/db';
 import { ThemeStudio } from '@/components/theme-studio';
+import { getActiveProject } from '@/lib/active-project';
 
 export default async function ThemePage() {
-  const themes = await prisma.theme.findMany({ orderBy: { createdAt: 'desc' } }).catch(() => []);
+  const project = await getActiveProject();
+  const themes = await prisma.theme.findMany({ where: { projectId: project.id }, orderBy: { createdAt: 'desc' } }).catch(() => []);
   const active = themes.find((t) => t.isDefault) ?? themes[0];
   const parsed = themes.map((t) => ({
     id: t.id,

@@ -21,9 +21,16 @@ async function main() {
     ]
   };
 
+  const defaultProject = await prisma.project.upsert({
+    where: { slug: 'default' },
+    create: { slug: 'default', name: 'Default', description: 'Default project.' },
+    update: {}
+  });
+
   const customers = await prisma.collection.upsert({
     where: { name: 'customers' },
     create: {
+      projectId: defaultProject.id,
       name: 'customers',
       label: 'Customers',
       description: 'Core customer records. AI-disabled by default (POPIA).',

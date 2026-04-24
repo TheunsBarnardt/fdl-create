@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { CATEGORY_META, CATEGORY_ORDER, type PresetCategory } from '@/lib/block-presets';
 import { ScreenHeader, Chip } from '@/components/screen-header';
 import { ensureBuiltInBlocks } from '@/lib/seed-blocks';
+import { getActiveProject } from '@/lib/active-project';
 
 const SLOT_RE = /\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g;
 function detectSlots(source: string) {
@@ -15,7 +16,8 @@ export default async function BlocksListPage({ searchParams }: { searchParams: P
   await ensureBuiltInBlocks();
 
   const sp = await searchParams;
-  const allBlocks = await prisma.$queryRaw<any[]>`SELECT * FROM "CustomBlock" ORDER BY createdAt ASC`.catch(() => []);
+  const project = await getActiveProject();
+  const allBlocks = await prisma.$queryRaw<any[]>`SELECT * FROM "CustomBlock" WHERE projectId = ${project.id} OR projectId IS NULL ORDER BY createdAt ASC`.catch(() => []);
 
   // Group by category; uncategorised → 'other'
   const byCategory: Record<string, any[]> = {};

@@ -3,14 +3,16 @@ import { prisma } from '@/lib/db';
 import { ScreenHeader, Chip } from '@/components/screen-header';
 import { parseCollectionSchema } from '@/lib/schema-types';
 import { relativeTime, bucketize, rangeToSince } from '@/lib/logs';
+import { getActiveProject } from '@/lib/active-project';
 
 function countRelations(fields: { label?: string }[]): number {
   return fields.filter((f) => (f.label ?? '').startsWith('→')).length;
 }
 
 export default async function DataOverviewPage() {
+  const project = await getActiveProject();
   const [collections, recentLogs, aiOptIn, totalRecords] = await Promise.all([
-    prisma.collection.findMany({ orderBy: { name: 'asc' } }).catch(() => []),
+    prisma.collection.findMany({ where: { projectId: project.id }, orderBy: { name: 'asc' } }).catch(() => []),
     prisma.apiRequestLog
       .findMany({
         where: {
@@ -20,8 +22,8 @@ export default async function DataOverviewPage() {
         orderBy: { createdAt: 'desc' }
       })
       .catch(() => []),
-    prisma.collection.count({ where: { aiOptIn: true } }).catch(() => 0),
-    prisma.record.count().catch(() => 0)
+    prisma.collection.count({ where: { projectId: project.id, aiOptIn: true } }).catch(() => 0),
+    prisma.record.count({ where: { collection: { projectId: project.id } } }).catch(() => 0)
   ]);
 
   const recordCounts = await Promise.all(

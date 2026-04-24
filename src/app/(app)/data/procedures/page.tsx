@@ -3,8 +3,10 @@ import { auth } from '@/auth';
 import { ProceduresClient, type ProcGroup, type CollectionMeta } from './ProceduresClient';
 import { ScreenHeader, Chip } from '@/components/screen-header';
 import Link from 'next/link';
+import { getActiveProject } from '@/lib/active-project';
 
 export default async function ProceduresPage() {
+  const project = await getActiveProject();
   const session = await auth();
   const email = session?.user?.email ?? '';
   const userInitials = email
@@ -21,10 +23,11 @@ export default async function ProceduresPage() {
   try {
     const [rawGroups, rawCollections] = await Promise.all([
       (prisma as any).procedureGroup.findMany({
+        where: { projectId: project.id },
         orderBy: { order: 'asc' },
         include: { procedures: { orderBy: { order: 'asc' } } },
       }),
-      prisma.collection.findMany({ orderBy: { name: 'asc' } }),
+      prisma.collection.findMany({ where: { projectId: project.id }, orderBy: { name: 'asc' } }),
     ]);
 
     groups = rawGroups.map((g: any) => ({

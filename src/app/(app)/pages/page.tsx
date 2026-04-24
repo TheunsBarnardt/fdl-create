@@ -2,9 +2,11 @@ import Link from 'next/link';
 import { prisma } from '@/lib/db';
 import { ScreenHeader, Chip } from '@/components/screen-header';
 import { relativeTime } from '@/lib/logs';
+import { getActiveProject } from '@/lib/active-project';
 
 export default async function PagesListPage() {
-  const pages = await prisma.page.findMany({ orderBy: { updatedAt: 'desc' } }).catch(() => []);
+  const project = await getActiveProject();
+  const pages = await prisma.page.findMany({ where: { projectId: project.id }, orderBy: { updatedAt: 'desc' } }).catch(() => []);
 
   const publishedCount = pages.filter((p) => p.published).length;
   const draftCount = pages.length - publishedCount;

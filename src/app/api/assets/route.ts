@@ -5,15 +5,17 @@ import { writeFile, mkdir } from 'fs/promises';
 import { join, extname } from 'path';
 import { randomBytes } from 'crypto';
 import sharp from 'sharp';
+import { getActiveProject } from '@/lib/active-project';
 
 const UPLOADS_DIR = join(process.cwd(), 'public', 'uploads');
 
 export const GET = withApi('read:themes', async (req) => {
   const url = new URL(req.url);
   const categoryId = url.searchParams.get('categoryId') || undefined;
+  const project = await getActiveProject();
 
   const assets = await prisma.asset.findMany({
-    where: categoryId ? { categoryId } : undefined,
+    where: { projectId: project.id, ...(categoryId ? { categoryId } : {}) },
     include: { category: true },
     orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
   });
@@ -68,7 +70,8 @@ export const POST = withApi('write:themes', async (req) => {
   const filename = `${randomBytes(12).toString('hex')}${finalExt}`;
   await writeFile(join(UPLOADS_DIR, filename), buffer);
 
-  const max = await prisma.asset.findFirst({ orderBy: { order: 'desc' }, select: { order: true } });
+  const project = await getActiveProject();
+  const max = await prisma.asset.findFirst({ where: { projectId: project.id }, orderBy: { order: 'desc' }, select: { order: true } });
 
   const asset = await prisma.asset.create({
     data: {
@@ -82,6 +85,7 @@ export const POST = withApi('write:themes', async (req) => {
       alt: alt || undefined,
       categoryId: categoryId || undefined,
       order: (max?.order ?? 0) + 1,
+      projectId: project.id,
     },
     include: { category: true },
   });

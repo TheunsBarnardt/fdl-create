@@ -62,9 +62,35 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+// ---- Projects (workspace can hold multiple isolated sites) ----
+model Project {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  collections         Collection[]
+  pages               Page[]
+  themes              Theme[]
+  customBlocks        CustomBlock[]
+  variableCollections VariableCollection[]
+  assetCategories     AssetCategory[]
+  assets              Asset[]
+  documentCategories  DocumentCategory[]
+  documents           Document[]
+  navigations         Navigation[]
+  footers             Footer[]
+  procedureGroups     ProcedureGroup[]
+  auditLogs           AiAuditLog[]
+  pageViews           PageView[]
+}
+
 // ---- Schema-as-data (Lattice runtime) ----
 model Collection {
   id          String   @id @default(cuid())
+  projectId   String?
   name        String   @unique
   label       String
   description String?
@@ -74,7 +100,9 @@ model Collection {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
   records Record[]
+  @@index([projectId])
 }
 
 model Record {
@@ -90,6 +118,7 @@ model Record {
 
 model Page {
   id                String   @id @default(cuid())
+  projectId         String?
   slug              String   @unique
   title             String
   tree              String   // JSON block tree
@@ -103,8 +132,10 @@ model Page {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
+  project      Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
   navItems     NavItem[]
   dependencies PageDependency[]
+  @@index([projectId])
 }
 
 // Populated by the publish pass for static pages.
@@ -123,6 +154,7 @@ model PageDependency {
 
 model CustomBlock {
   id          String   @id @default(cuid())
+  projectId   String?
   name        String   @unique
   title       String?
   description String?
@@ -134,14 +166,21 @@ model CustomBlock {
   category    String?
   themeId     String?  // optional — preset/theme applied for typography bindings
   createdAt   DateTime @default(now())
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  @@index([projectId])
 }
 
 model Theme {
   id        String   @id @default(cuid())
+  projectId String?
   name      String   @unique
   tokens    String   // JSON design tokens
   isDefault Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  @@index([projectId])
 }
 
 model Preset {
@@ -153,13 +192,16 @@ model Preset {
 
 model VariableCollection {
   id        String     @id @default(cuid())
+  projectId String?
   name      String     @unique
   label     String
   order     Int        @default(0)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
+  project   Project?   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   variables Variable[]
+  @@index([projectId])
 }
 
 model Variable {
@@ -180,19 +222,23 @@ model Variable {
 
 model AssetCategory {
   id        String   @id @default(cuid())
+  projectId String?
   name      String
   slug      String   @unique
   parentId  String?
   order     Int      @default(0)
   createdAt DateTime @default(now())
 
+  project  Project?        @relation(fields: [projectId], references: [id], onDelete: Cascade)
   parent   AssetCategory?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
   children AssetCategory[] @relation("CategoryTree")
   assets   Asset[]
+  @@index([projectId])
 }
 
 model Asset {
   id         String   @id @default(cuid())
+  projectId  String?
   categoryId String?
   name       String
   filename   String   @unique
@@ -208,25 +254,31 @@ model Asset {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
+  project  Project?       @relation(fields: [projectId], references: [id], onDelete: Cascade)
   category AssetCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   @@index([categoryId])
+  @@index([projectId])
 }
 
 model DocumentCategory {
   id        String   @id @default(cuid())
+  projectId String?
   name      String
   slug      String   @unique
   parentId  String?
   order     Int      @default(0)
   createdAt DateTime @default(now())
 
+  project   Project?           @relation(fields: [projectId], references: [id], onDelete: Cascade)
   parent    DocumentCategory?  @relation("DocumentCategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
   children  DocumentCategory[] @relation("DocumentCategoryTree")
   documents Document[]
+  @@index([projectId])
 }
 
 model Document {
   id          String   @id @default(cuid())
+  projectId   String?
   categoryId  String?
   name        String
   filename    String   @unique
@@ -238,28 +290,37 @@ model Document {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  project  Project?          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   category DocumentCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   @@index([categoryId])
+  @@index([projectId])
 }
 
 model AiAuditLog {
   id         String   @id @default(cuid())
   userId     String?
+  projectId  String?
   collection String?
   action     String   // read | write | suggest
   scope      String   // JSON: fields touched, redaction summary
   createdAt  DateTime @default(now())
 
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
   @@index([collection])
+  @@index([projectId])
 }
 
 // ---- Navigation & Footer ----
 model Navigation {
   id        String   @id @default(cuid())
+  projectId String?
   items     NavItem[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  @@index([projectId])
 }
 
 model NavItem {
@@ -288,10 +349,14 @@ model NavItem {
 
 model Footer {
   id        String        @id @default(cuid())
+  projectId String?
   type      String        @default("simple")  // "simple" | "columns"
   columns   FooterColumn[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  @@index([projectId])
 }
 
 model FooterColumn {
@@ -310,12 +375,15 @@ model FooterColumn {
 // ---- Stored Procedures ----
 model ProcedureGroup {
   id        String            @id @default(cuid())
+  projectId String?
   name      String            @unique  // display name, e.g. "Accounts"
   order     Int               @default(0)
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
 
+  project    Project?          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   procedures StoredProcedure[]
+  @@index([projectId])
 }
 
 model StoredProcedure {
@@ -369,6 +437,7 @@ model ApiRequestLog {
 
 model PageView {
   id          String   @id @default(cuid())
+  projectId   String?
   path        String
   referer     String?
   country     String?  // best-effort from cf-ipcountry / x-vercel-ip-country header
@@ -382,9 +451,11 @@ model PageView {
   sessionId   String?  // rotated per workspace salt
   createdAt   DateTime @default(now())
 
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
   @@index([createdAt])
   @@index([path])
   @@index([country])
+  @@index([projectId])
 }
 
 model VitalsEvent {

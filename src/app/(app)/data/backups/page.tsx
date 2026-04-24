@@ -2,11 +2,13 @@ import Link from 'next/link';
 import { prisma } from '@/lib/db';
 import { ScreenHeader, Chip } from '@/components/screen-header';
 import { BackupsImport } from '@/components/backups-import';
+import { getActiveProject } from '@/lib/active-project';
 
 export default async function BackupsPage() {
+  const project = await getActiveProject();
   const [collections, totalRecords] = await Promise.all([
-    prisma.collection.findMany({ orderBy: { name: 'asc' } }).catch(() => []),
-    prisma.record.count().catch(() => 0)
+    prisma.collection.findMany({ where: { projectId: project.id }, orderBy: { name: 'asc' } }).catch(() => []),
+    prisma.record.count({ where: { collection: { projectId: project.id } } }).catch(() => 0)
   ]);
 
   const counts = await Promise.all(

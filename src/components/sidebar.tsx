@@ -3,9 +3,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { ProjectSwitcher } from '@/components/project-switcher';
 
 const buildNav = [
-  { href: '/', label: 'Workspace', icon: HomeIcon },
+  { href: '/dashboard', label: 'Dashboard', icon: HomeIcon },
   { href: '/variables', label: 'Variables', icon: VariablesIcon },
   { href: '/assets', label: 'Assets', icon: AssetsIcon },
   { href: '/documents', label: 'Documents', icon: DocumentsIcon },
@@ -87,12 +88,21 @@ function NavGroup({
   );
 }
 
-export function Sidebar({ role = 'viewer' }: { role?: Role }) {
+export function Sidebar({
+  role = 'viewer',
+  activeProject,
+  projects
+}: {
+  role?: Role;
+  activeProject?: { id: string; slug: string; name: string };
+  projects?: { id: string; slug: string; name: string }[];
+}) {
   const pathname = usePathname();
   const isActive = (href: string) =>
     pathname === href || (href !== '/' && pathname.startsWith(href + '/'));
 
   const hasActive = (items: NavItem[]) => items.some((n) => isActive(n.href));
+  const onPicker = pathname === '/';
 
   return (
     <aside className="w-56 shrink-0 glass text-white/90 flex flex-col relative">
@@ -109,6 +119,12 @@ export function Sidebar({ role = 'viewer' }: { role?: Role }) {
           <div className="text-[10px] text-white/45 mt-1 tracking-wide">FDL Create Studio</div>
         </div>
       </div>
+
+      {activeProject && projects && !onPicker && (
+        <div className="px-3 pt-3">
+          <ProjectSwitcher active={activeProject} projects={projects} />
+        </div>
+      )}
 
       <nav className="flex-1 py-3 px-2 overflow-y-auto scrollbar text-sm">
         <NavGroup label="Build" items={buildNav} isActive={isActive} defaultOpen={hasActive(buildNav)} />

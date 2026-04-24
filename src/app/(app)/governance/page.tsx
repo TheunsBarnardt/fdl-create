@@ -2,10 +2,16 @@ import { prisma } from '@/lib/db';
 import { parseCollectionSchema } from '@/lib/schema-types';
 import { ScreenHeader, Chip } from '@/components/screen-header';
 import { GovernanceRow } from '@/components/governance-row';
+import { getActiveProject } from '@/lib/active-project';
 
 export default async function GovernancePage() {
-  const collections = await prisma.collection.findMany({ orderBy: { name: 'asc' } }).catch(() => []);
-  const audits = await prisma.aiAuditLog.findMany({ orderBy: { createdAt: 'desc' }, take: 30 }).catch(() => []);
+  const project = await getActiveProject();
+  const collections = await prisma.collection.findMany({ where: { projectId: project.id }, orderBy: { name: 'asc' } }).catch(() => []);
+  const audits = await prisma.aiAuditLog.findMany({
+    where: { OR: [{ projectId: project.id }, { projectId: null }] },
+    orderBy: { createdAt: 'desc' },
+    take: 30
+  }).catch(() => []);
 
   const optInCount = collections.filter((c) => c.aiOptIn).length;
 
