@@ -95,7 +95,7 @@ export default async function Home() {
 
           <div className="glass-card glow-ring p-5">
             <div className="flex items-center gap-2 mb-3 text-xs text-white/55">
-              <span className="w-5 h-5 rounded-md bg-gradient-to-br from-sky-400 to-violet-500 text-white flex items-center justify-center text-[10px] font-bold shadow-[0_0_12px_rgba(14,165,233,0.4)]">
+              <span className="w-5 h-5 rounded-sm bg-gradient-to-br from-amber-400 to-violet-500 text-white flex items-center justify-center text-[10px] font-bold shadow-[0_0_12px_rgba(245,158,11,0.4)]">
                 C
               </span>
               Ask Claude
@@ -106,7 +106,7 @@ export default async function Home() {
                 placeholder='e.g. "add a Subscriptions collection linked to Customers"'
               />
               <span className="kbd" style={{ background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)' }}>⌘K</span>
-              <button className="px-3 py-1.5 bg-sky-500 hover:bg-sky-400 text-white text-xs rounded-md font-medium shadow-accent-glow transition-colors">Draft</button>
+              <button className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-white text-xs rounded-sm font-medium shadow-accent-glow transition-colors">Draft</button>
             </div>
             <div className="flex flex-wrap gap-2 mt-4">
               <Link href="/schema/new" className="chip chip-glass-neutral !px-3 !py-1 hover:bg-white/[0.1] transition-colors">
@@ -123,7 +123,7 @@ export default async function Home() {
           <div>
             <div className="flex items-baseline justify-between mb-3">
               <h2 className="text-[11px] font-semibold text-white/45 uppercase tracking-wider">Collections</h2>
-              <Link href="/schema" className="text-xs text-sky-400 hover:text-sky-300 transition-colors">
+              <Link href="/schema" className="text-xs text-amber-400 hover:text-amber-300 transition-colors">
                 View all →
               </Link>
             </div>
@@ -151,7 +151,7 @@ export default async function Home() {
               })}
               <Link
                 href="/schema/new"
-                className="rounded-xl border border-dashed border-white/15 p-3.5 flex items-center justify-center text-xs text-white/45 hover:text-sky-400 hover:border-sky-500/40 cursor-pointer transition-colors"
+                className="rounded-sm border border-dashed border-white/15 p-3.5 flex items-center justify-center text-xs text-white/45 hover:text-amber-400 hover:border-amber-500/40 cursor-pointer transition-colors"
               >
                 + New collection
               </Link>
@@ -171,20 +171,20 @@ export default async function Home() {
                 {recentAudits.map((a) => {
                   const dot =
                     a.action === 'write'
-                      ? 'bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.7)]'
+                      ? 'bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.7)]'
                       : a.action === 'suggest'
                         ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]'
                         : 'bg-white/25';
                   const actor = a.user?.name || a.user?.email?.split('@')[0] || 'Claude';
                   return (
-                    <li key={a.id} className="flex gap-2">
+                    <li key={a.id} className="tilt-row flex gap-2 rounded-sm px-2 py-1 -mx-2">
                       <span className={`w-1.5 h-1.5 rounded-full ${dot} mt-1.5 shrink-0`} />
                       <div>
                         <b className="text-white/95 font-medium">{actor}</b> {a.action}
                         {a.collection && (
                           <>
                             {' on '}
-                            <code className="mono text-[11px] text-sky-300">{a.collection}</code>
+                            <code className="mono text-[11px] text-amber-300">{a.collection}</code>
                           </>
                         )}{' '}
                         · <span className="text-white/35">{relativeTime(a.createdAt)}</span>
@@ -196,17 +196,17 @@ export default async function Home() {
             )}
           </div>
 
-          <div className="relative rounded-xl p-4 overflow-hidden border border-white/[0.08]" style={{ background: 'linear-gradient(135deg, rgba(14,165,233,0.14), rgba(139,92,246,0.14))' }}>
+          <div className="relative rounded-sm p-4 overflow-hidden border border-white/[0.08]" style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.14), rgba(139,92,246,0.14))' }}>
             <div className="absolute inset-0 backdrop-blur-xl -z-10" />
             <div className="display text-base mb-1 text-white">Schema change waiting</div>
             <p className="text-xs text-white/65 mb-3 leading-relaxed">
               Claude will draft new collections from meeting transcripts once{' '}
-              <Link href="/governance" className="text-sky-300 underline underline-offset-2 hover:text-sky-200">AI is opted in</Link>.
+              <Link href="/governance" className="text-amber-300 underline underline-offset-2 hover:text-amber-200">AI is opted in</Link>.
             </p>
             <div className="flex gap-2">
               <Link
                 href="/schema"
-                className="px-2.5 py-1.5 bg-sky-500 hover:bg-sky-400 text-white text-xs rounded-md font-medium shadow-accent-glow transition-colors"
+                className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-white text-xs rounded-sm font-medium shadow-accent-glow transition-colors"
               >
                 Open schema
               </Link>

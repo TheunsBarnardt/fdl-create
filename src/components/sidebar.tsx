@@ -82,7 +82,7 @@ function NavGroup({
         </svg>
       </button>
       {open && (
-        <div className="btn-grid-container cols-3 gap-2">
+        <div className="btn-grid-container cols-1 gap-1.5">
           {items.map((n) => (
             <NavLink key={n.href} href={n.href} label={n.label} Icon={n.icon} active={isActive(n.href)} />
           ))}
@@ -171,8 +171,8 @@ function NavLink({
         active && 'active'
       )}
     >
-      <Icon className="w-5 h-5" />
-      <span className="text-[10px]">{label}</span>
+      <Icon className="w-[18px] h-[18px]" />
+      <span className="text-[9px] leading-tight">{label}</span>
     </Link>
   );
 }

@@ -23,10 +23,10 @@ export function ProjectSwitcher({
         onClick={() => setOpen((o) => !o)}
         className={cn(
           'w-full flex items-center gap-2 px-2.5 py-2 rounded-md bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] transition-colors text-left',
-          open && 'border-sky-500/40'
+          open && 'border-amber-500/40'
         )}
       >
-        <div className="w-6 h-6 rounded-md bg-gradient-to-br from-sky-400 to-violet-500 flex items-center justify-center text-[10px] font-bold text-white shrink-0">
+        <div className="w-6 h-6 rounded-md bg-gradient-to-br from-amber-400 to-violet-500 flex items-center justify-center text-[10px] font-bold text-white shrink-0">
           {active.name.slice(0, 1).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
@@ -69,7 +69,7 @@ export function ProjectSwitcher({
                   <div className="text-[10px] text-white/40 mono truncate">{p.slug}</div>
                 </div>
                 {p.id === active.id && (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-sky-400 shrink-0">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-amber-400 shrink-0">
                     <path d="M5 13l4 4L19 7" />
                   </svg>
                 )}
@@ -80,7 +80,7 @@ export function ProjectSwitcher({
             <Link
               href="/"
               onClick={() => setOpen(false)}
-              className="block w-full px-3 py-2 text-[12px] text-sky-400 hover:text-sky-300 hover:bg-white/[0.03] transition-colors"
+              className="block w-full px-3 py-2 text-[12px] text-amber-400 hover:text-amber-300 hover:bg-white/[0.03] transition-colors"
             >
               ← All projects
             </Link>

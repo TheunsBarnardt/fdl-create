@@ -108,7 +108,7 @@ export async function TrafficTab({ range }: { range: TimeRange }) {
         {topCountries.length === 0 ? (
           <div className="text-xs text-neutral-400 py-2">No page views in this range yet. Navigate around the app to populate.</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-[1.2fr_1fr] gap-6 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-6 items-start">
             <CountryGeoChart rows={topCountries.map(([c, v]) => [c, v.requests])} />
             <div className="space-y-1">
               {topCountries.map(([country, v]) => {
@@ -293,10 +293,10 @@ function EdgeCard({ label, value, spark, max }: { label: string; value: string; 
 
 function Card({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white border border-neutral-200 rounded-md p-4">
+    <div className="glass-card p-4">
       <div className="flex items-baseline justify-between mb-2">
-        <div className="text-sm font-semibold">{title}</div>
-        {subtitle && <div className="text-[11px] text-neutral-400 mono">{subtitle}</div>}
+        <div className="text-sm font-semibold text-white/95">{title}</div>
+        {subtitle && <div className="text-[11px] text-white/45 mono">{subtitle}</div>}
       </div>
       {children}
     </div>
@@ -398,9 +398,9 @@ function RankedList({
   tone?: 'danger';
   baseQs: Record<string, string | undefined>;
 }) {
-  if (rows.length === 0) return <div className="text-xs text-neutral-400 py-2">No data</div>;
+  if (rows.length === 0) return <div className="text-xs text-white/45 py-2">No data</div>;
   return (
-    <div className="space-y-1">
+    <div className="space-y-0.5">
       {rows.map(([label, count]) => {
         const pct = (count / total) * 100;
         const { method, path } = splitMethodPath(label);
@@ -409,14 +409,14 @@ function RankedList({
           <Link
             key={label}
             href={href}
-            className="grid grid-cols-[1fr_auto] items-center gap-3 text-[11px] rounded hover:bg-neutral-50 px-1 -mx-1 py-0.5"
+            className="tilt-row grid grid-cols-[1fr_auto] items-center gap-3 text-[11px] rounded-sm px-2 py-1 text-white/80"
           >
             <div className="mono truncate">{label}</div>
             <div className="flex items-center gap-2">
-              <div className="w-24 h-1.5 bg-neutral-100 rounded overflow-hidden">
-                <div className={`h-full ${tone === 'danger' ? 'bg-danger' : 'bg-accent'}`} style={{ width: `${pct}%` }} />
+              <div className="w-24 h-1.5 bg-white/[0.06] rounded-sm overflow-hidden">
+                <div className={`h-full ${tone === 'danger' ? 'bg-danger' : 'bg-amber-500'}`} style={{ width: `${pct}%` }} />
               </div>
-              <span className="w-8 text-right text-neutral-600 mono">{count}</span>
+              <span className="w-8 text-right text-white/80 mono">{count}</span>
             </div>
           </Link>
         );

@@ -58,9 +58,9 @@ export function CountryGeoChart({ rows }: { rows: [string, number][] }) {
       ]);
       const options = {
         backgroundColor: { fill: 'transparent', stroke: 'none' },
-        datalessRegionColor: '#1a1f2e',
-        defaultColor: '#1a1f2e',
-        colorAxis: { colors: ['#0b2a40', '#38bdf8'], minValue: 0 },
+        datalessRegionColor: '#261a0a',
+        defaultColor: '#261a0a',
+        colorAxis: { colors: ['#6b4a0e', '#f59e0b'], minValue: 0 },
         legend: 'none',
         tooltip: { textStyle: { color: '#0b0f1a' } },
         keepAspectRatio: true,
@@ -90,5 +90,5 @@ export function CountryGeoChart({ rows }: { rows: [string, number][] }) {
   if (err) {
     return <div className="text-[11px] text-red-300/80 py-2">Map failed to load ({err}).</div>;
   }
-  return <div ref={ref} className="w-full h-[260px]" />;
+  return <div ref={ref} className="w-full h-[440px]" />;
 }
