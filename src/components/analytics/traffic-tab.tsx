@@ -264,26 +264,26 @@ function StatLink({
   tone?: 'ok' | 'danger';
   href: string;
 }) {
-  const colorCls = tone === 'danger' ? 'text-danger' : tone === 'ok' ? 'text-ok' : 'text-neutral-900';
+  const colorCls = tone === 'danger' ? 'text-red-300' : tone === 'ok' ? 'text-emerald-300' : 'text-white/95';
   return (
     <Link
       href={href}
-      className="bg-white border border-neutral-200 rounded-md p-4 hover:border-accent transition-colors group"
+      className="glass-card p-4 group"
     >
       <div className="flex items-center justify-between">
-        <div className="text-[10px] uppercase tracking-wider text-neutral-400">{label}</div>
-        <span className="text-[10px] text-neutral-300 group-hover:text-accent">view logs →</span>
+        <div className="text-[10px] uppercase tracking-wider text-white/45">{label}</div>
+        <span className="text-[10px] text-white/30 group-hover:text-amber-400">view logs →</span>
       </div>
-      <div className={`display text-2xl mt-1 ${colorCls}`}>{value}</div>
+      <div className={`display text-2xl mt-1 ${colorCls}`}><span className="pulse-on-hover">{value}</span></div>
     </Link>
   );
 }
 
 function EdgeCard({ label, value, spark, max }: { label: string; value: string; spark: number[]; max: number }) {
   return (
-    <div className="bg-white border border-neutral-200 rounded-md p-4">
-      <div className="text-[10px] uppercase tracking-wider text-neutral-400">{label}</div>
-      <div className="display text-2xl mt-1">{value}</div>
+    <div className="glass-card p-4 pulse-host">
+      <div className="text-[10px] uppercase tracking-wider text-white/45">{label}</div>
+      <div className="display text-2xl mt-1 text-white/95"><span className="pulse-on-hover">{value}</span></div>
       <div className="mt-2">
         <Sparkline data={spark} max={max} compact />
       </div>

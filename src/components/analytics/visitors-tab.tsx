@@ -110,16 +110,16 @@ function VitalCard({ metric, values }: { metric: MetricKey; values: number[] }) 
   const tone = ratingTone[rating];
 
   return (
-    <div className="bg-white border border-neutral-200 rounded-md p-4">
+    <div className="glass-card p-4 pulse-host">
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-1.5">
-            <span className="mono text-[10px] text-neutral-500">{metric}</span>
+            <span className="mono text-[10px] text-white/55">{metric}</span>
             {hasData && <span className={`w-1.5 h-1.5 rounded-full ${tone.dot}`} />}
             {hasData && <span className={`text-[10px] ${tone.text}`}>{tone.label}</span>}
             {!hasData && <span className="text-[10px] text-neutral-400">no data</span>}
           </div>
-          <div className="display text-2xl mt-1">{hasData ? formatValue(p75, metric) : '—'}</div>
+          <div className="display text-2xl mt-1"><span className="pulse-on-hover">{hasData ? formatValue(p75, metric) : '—'}</span></div>
           <div className="text-[10px] text-neutral-400 mt-0.5">{meta.label}</div>
         </div>
       </div>
