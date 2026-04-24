@@ -6,6 +6,7 @@ import { Plus, Trash2, ChevronDown, Palette, Pencil, Wind, ALargeSmall, Copy, Ch
 import { getTwSuggestions, getTwHint } from '@/lib/tailwind-classes';
 import { loadGoogleFont, getFontImport, searchFonts, getCategoryLabel, POPULAR_FONTS } from '@/lib/google-fonts-list';
 import { cn } from '@/lib/utils';
+import { ScreenHeader, Chip } from './screen-header';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -731,14 +732,17 @@ export function VariableCollectionsPanel() {
 
   const tree = active ? buildTree(active.variables) : null;
 
+  const totalVars = cols.reduce((s, c) => s + c.variables.length, 0);
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-      {/* Header */}
-      <header className="h-14 shrink-0 border-b border-neutral-200 bg-white/60 backdrop-blur px-6 flex items-center gap-3">
-        <Link href="/" className="text-xs text-neutral-500 hover:text-neutral-900">Workspace</Link>
-        <span className="text-xs text-neutral-300">›</span>
-        <span className="display text-lg">Design Variables</span>
-      </header>
+      <ScreenHeader
+        title="Design variables"
+        chips={<>
+          <Chip tone="accent">{cols.length} collection{cols.length === 1 ? '' : 's'}</Chip>
+          <Chip tone="accent">{totalVars} variable{totalVars === 1 ? '' : 's'}</Chip>
+        </>}
+      />
+
 
       <div className="flex flex-1 overflow-hidden">
         {/* ── Left: collections ── */}
@@ -906,16 +910,16 @@ export function VariableCollectionsPanel() {
                 </div>
               )}
 
-              <div className="flex gap-2 pt-4 border-t border-neutral-200">
+              <div className="flex gap-2 pt-4 border-t border-white/10">
                 <button
                   onClick={() => setVarModal('edit')}
-                  className="flex-1 px-3 py-2 text-sm bg-neutral-900 text-white rounded-md hover:bg-neutral-800"
+                  className="flex-1 px-3 py-2 text-sm bg-sky-500 hover:bg-sky-400 text-white rounded-md font-medium shadow-accent-glow transition-colors"
                 >
                   Edit
                 </button>
                 <button
                   onClick={() => deleteVar(selVar.id)}
-                  className="px-3 py-2 text-sm border border-neutral-200 text-destructive rounded-md hover:bg-destructive/5"
+                  className="px-3 py-2 text-sm rounded-md bg-rose-500/10 text-rose-300 border border-rose-500/20 hover:bg-rose-500/20 hover:text-rose-200 transition-colors"
                 >
                   Delete
                 </button>

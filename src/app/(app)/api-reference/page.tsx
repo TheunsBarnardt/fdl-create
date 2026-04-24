@@ -18,7 +18,7 @@ export default function ApiReferencePage({
         chips={
           <>
             <Chip tone="accent">{API_ENDPOINTS.length} endpoints</Chip>
-            <Chip tone="neutral">Bearer auth</Chip>
+            <Chip tone="accent">Bearer auth</Chip>
           </>
         }
       />

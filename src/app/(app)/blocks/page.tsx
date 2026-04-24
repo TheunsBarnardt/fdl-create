@@ -38,7 +38,7 @@ export default async function BlocksListPage({ searchParams }: { searchParams: P
     <section className="flex-1 flex flex-col overflow-hidden">
       <ScreenHeader
         title="Block studio"
-        chips={<Chip tone="neutral">{allBlocks.length} block{allBlocks.length === 1 ? '' : 's'}</Chip>}
+        chips={<Chip tone="accent">{allBlocks.length} block{allBlocks.length === 1 ? '' : 's'}</Chip>}
         actions={
           <Link href="/blocks/new" className="px-2.5 py-1 text-xs rounded-md bg-ink-950 text-paper hover:bg-ink-900">
             + New block
@@ -66,8 +66,8 @@ export default async function BlocksListPage({ searchParams }: { searchParams: P
                   key={t.key}
                   href={`/blocks?cat=${t.key}`}
                   className={[
-                    'px-3 py-2 text-xs border-b-2 -mb-px',
-                    active ? 'border-ink-950 text-ink-950 font-medium' : 'border-transparent text-neutral-500 hover:text-ink-950'
+                    'px-3 py-2 text-xs border-b-2 -mb-px transition-colors',
+                    active ? 'border-sky-400 text-white font-medium' : 'border-transparent text-white/50 hover:text-white/90'
                   ].join(' ')}
                 >
                   {t.label}
@@ -99,12 +99,21 @@ export default async function BlocksListPage({ searchParams }: { searchParams: P
 
 function BlockCard({ block: b }: { block: any }) {
   const slotMap = b.slotMap ? JSON.parse(b.slotMap) : {};
-  const detectedSlots = detectSlots(b.source);
+  const isComponent = b.kind === 'component';
+  const schema = b.slotSchema ? (() => { try { return JSON.parse(b.slotSchema); } catch { return {}; } })() : {};
+  const detectedSlots = isComponent ? Object.keys(schema) : detectSlots(b.source);
   return (
     <div className="bg-white border border-neutral-200 rounded-md p-4 flex flex-col gap-3">
       <div>
         <div className="flex items-center justify-between gap-2">
-          <div className="font-semibold text-sm">{b.title || b.name}</div>
+          <div className="font-semibold text-sm flex items-center gap-1.5">
+            {b.title || b.name}
+            {isComponent && (
+              <span className="text-[9px] uppercase tracking-wider bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded">
+                Component
+              </span>
+            )}
+          </div>
           <span className="text-[10px] mono text-neutral-400">{b.name}</span>
         </div>
         <div className="text-[11px] text-neutral-500 mt-0.5">
@@ -118,12 +127,20 @@ function BlockCard({ block: b }: { block: any }) {
         </div>
       </div>
       <div className="h-32 overflow-hidden rounded border border-neutral-100 relative bg-white">
-        <div
-          className="absolute inset-0 origin-top-left scale-[0.4] w-[250%] h-[250%] pointer-events-none"
-          dangerouslySetInnerHTML={{ __html: b.source.replace(/className=/g, 'class=') }}
-          suppressHydrationWarning
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white/80" />
+        {isComponent ? (
+          <div className="absolute inset-0 flex items-center justify-center text-[11px] text-neutral-400 mono bg-gradient-to-br from-emerald-50/40 to-transparent">
+            &lt;{b.name} /&gt;
+          </div>
+        ) : (
+          <>
+            <div
+              className="absolute inset-0 origin-top-left scale-[0.4] w-[250%] h-[250%] pointer-events-none"
+              dangerouslySetInnerHTML={{ __html: b.source.replace(/className=/g, 'class=') }}
+              suppressHydrationWarning
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white/80" />
+          </>
+        )}
       </div>
       {detectedSlots.length > 0 && (
         <div className="flex flex-wrap gap-1">

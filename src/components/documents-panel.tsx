@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Trash2, ChevronRight, Upload, Copy, FolderPlus, Pencil, X, Check, FileText, File as FileIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ConfirmationDialog } from './ui/confirmation-dialog';
+import { ScreenHeader, Chip } from './screen-header';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -521,12 +522,11 @@ export function DocumentsPanel() {
 
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-      {/* Header */}
-      <header className="h-14 shrink-0 border-b border-neutral-200 bg-white/60 backdrop-blur px-6 flex items-center gap-3">
-        <Link href="/" className="text-xs text-neutral-500 hover:text-neutral-900">Workspace</Link>
-        <span className="text-xs text-neutral-300">›</span>
-        <span className="display text-lg">Documents</span>
-      </header>
+      <ScreenHeader
+        title="Documents"
+        chips={<Chip tone="accent">{documents.length} document{documents.length === 1 ? '' : 's'}</Chip>}
+      />
+
 
       <div className="flex flex-1 overflow-hidden">
         {/* ── Left: categories ── */}

@@ -125,7 +125,7 @@ export default async function LogsPage({
               <Link
                 key={r.key}
                 href={`/logs${buildQs({ ...baseQs, range: r.key, id: searchParams.id })}`}
-                className={`px-2.5 py-1 border rounded-md ${range === r.key ? 'border-accent bg-accent-soft text-accent' : 'border-neutral-200 hover:bg-neutral-50'}`}
+                className={`chip ${range === r.key ? 'chip-glass-accent' : 'chip-glass-neutral hover:bg-white/[0.14]'} transition-colors`}
               >
                 {r.label}
               </Link>
@@ -334,7 +334,7 @@ function FilterGroup({
           <Link
             key={opt}
             href={`/logs${buildQs(nextBase)}`}
-            className={`px-2 py-0.5 rounded border text-[11px] mono ${active ? 'border-accent bg-accent-soft text-accent' : 'border-neutral-200 hover:bg-neutral-50'}`}
+            className={`chip mono ${active ? 'chip-glass-accent' : 'chip-glass-neutral hover:bg-white/[0.14]'} transition-colors`}
           >
             {opt}
           </Link>

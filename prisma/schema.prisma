@@ -126,7 +126,9 @@ model CustomBlock {
   name        String   @unique
   title       String?
   description String?
-  source      String   // pasted JSX/HTML — pure template with {{slot}} placeholders
+  source      String   // pasted JSX/HTML — template (kind='template') or full TSX module (kind='component')
+  kind        String   @default("template") // 'template' | 'component'
+  compiled    String?  // JS output of TSX compile — set when kind='component'
   shape       String   @default("single") // 'single' | 'list' — list blocks use {{#each rows}}...{{/each}}
   slotSchema  String?  // JSON: { [slotName]: { type: 'string'|'number'|'date'|'boolean'|'link'|'image'|'richtext', format?, fallback? } }
   category    String?

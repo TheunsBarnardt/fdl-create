@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { prisma } from '@/lib/db';
 import { jsxToHtml } from '@/lib/editor/jsx-to-html';
 import { applyThemeTypography, type VarItem } from '@/lib/theme-typography';
-import { formatSlot, resolveLinkTarget, type SlotSchema, type SlotTypeDef, type LinkTarget } from '@/lib/slots';
+import { formatSlot, resolveLinkTarget, resolvePropValues, type SlotSchema, type SlotTypeDef, type LinkTarget } from '@/lib/slots';
+import { BlockHydrator } from '@/lib/block-hydrator';
 
 // Server-side renderer for Lexical page trees → HTML.
 // Keep this in sync with the decorator node types in src/lib/editor/nodes.tsx.
@@ -12,7 +13,11 @@ type SlotBinding =
   | { kind: 'literal'; value: string }
   | { kind: 'field'; template?: string; fields?: string[]; separator?: string; field?: string }
   | { kind: 'link'; target: LinkTarget };
-type BlockMeta = { slotSchema: SlotSchema };
+type BlockMeta = {
+  slotSchema: SlotSchema;
+  kind?: 'template' | 'component';
+  compiled?: string | null;
+};
 type PageRef = { id: string; slug: string; title?: string };
 
 export type RenderCtx = {
@@ -55,20 +60,37 @@ export async function renderPageTree(
     loadPages(),
   ]);
 
-  return <>{children.map((n, i) => renderNode(n, `${i}`, collectionData, blockThemes, currentRecord, ctx, blockMeta, pages))}</>;
+  // Collect compiled component blocks in use so the hydrator can find them.
+  const componentBlocks: Record<string, string> = {};
+  for (const id of presetIds) {
+    const m = blockMeta[id];
+    if (m?.kind === 'component' && m.compiled) componentBlocks[id] = m.compiled;
+  }
+  const hasComponentBlocks = Object.keys(componentBlocks).length > 0;
+
+  return (
+    <>
+      {children.map((n, i) => renderNode(n, `${i}`, collectionData, blockThemes, currentRecord, ctx, blockMeta, pages))}
+      {hasComponentBlocks && <BlockHydrator blocks={componentBlocks} />}
+    </>
+  );
 }
 
 async function loadBlockMeta(blockIds: string[]): Promise<Record<string, BlockMeta>> {
   if (blockIds.length === 0) return {};
-  const rows = await prisma.$queryRawUnsafe<Array<{ id: string; slotSchema: string | null }>>(
-    `SELECT id, slotSchema FROM "CustomBlock" WHERE id IN (${blockIds.map(() => '?').join(',')})`,
+  const rows = await prisma.$queryRawUnsafe<Array<{ id: string; slotSchema: string | null; kind: string | null; compiled: string | null }>>(
+    `SELECT id, slotSchema, kind, compiled FROM "CustomBlock" WHERE id IN (${blockIds.map(() => '?').join(',')})`,
     ...blockIds
-  ).catch(() => [] as Array<{ id: string; slotSchema: string | null }>);
+  ).catch(() => [] as Array<{ id: string; slotSchema: string | null; kind: string | null; compiled: string | null }>);
   const out: Record<string, BlockMeta> = {};
   for (const r of rows) {
     let schema: SlotSchema = {};
     if (r.slotSchema) { try { schema = JSON.parse(r.slotSchema); } catch {} }
-    out[r.id] = { slotSchema: schema };
+    out[r.id] = {
+      slotSchema: schema,
+      kind: r.kind === 'component' ? 'component' : 'template',
+      compiled: r.compiled,
+    };
   }
   return out;
 }
@@ -269,6 +291,14 @@ function renderPresetBlock(
   blockMeta: Record<string, BlockMeta>,
   pages: PageRef[]
 ): string {
+  const meta = n.presetId ? blockMeta[n.presetId as string] : undefined;
+  const isComponent = meta?.kind === 'component';
+
+  // Component blocks emit placeholder divs — hydrated client-side.
+  if (isComponent) {
+    return renderComponentPlaceholders(n, data, currentRecord, meta, pages);
+  }
+
   const rawSource: string = n.source ?? '';
   if (!rawSource) return '';
   const templateHtml = jsxToHtml(rawSource);
@@ -276,12 +306,10 @@ function renderPresetBlock(
   const resolved = resolveRecords(n, data, currentRecord);
   const slotMap = n.slotMap as Record<string, SlotBinding> | undefined;
   const legacy = n.slots as Record<string, string> | undefined;
-  const schema = (n.presetId && blockMeta[n.presetId as string]?.slotSchema) || {};
+  const schema = meta?.slotSchema || {};
 
   let rendered: string;
   if (resolved.mode === 'list') {
-    // Split the template at `{{#each rows}} … {{/each}}`. If none, the whole
-    // template is treated as the row template and repeated.
     const m = templateHtml.match(/\{\{#each\s+rows\}\}([\s\S]*?)\{\{\/each\}\}/);
     if (m) {
       const [full, inner] = m;
@@ -293,12 +321,45 @@ function renderPresetBlock(
   } else if (resolved.mode === 'single') {
     rendered = fillSlots(templateHtml, resolveSlotValues(slotMap, legacy, resolved.records[0] ?? null, schema, pages));
   } else {
-    // literal / unbound
     rendered = fillSlots(templateHtml, resolveSlotValues(slotMap, legacy, null, schema, pages));
   }
 
   const theme = n.presetId ? blockThemes[n.presetId as string] : undefined;
   return theme ? applyThemeTypography(rendered, theme.typeBindings, theme.vars) : rendered;
+}
+
+function renderComponentPlaceholders(
+  n: LexNode,
+  data: Record<string, { label: string; records: any[] }>,
+  currentRecord: any | null,
+  meta: BlockMeta,
+  pages: PageRef[]
+): string {
+  const presetId = n.presetId as string;
+  const slotMap = n.slotMap as Record<string, SlotBinding> | undefined;
+  const schema = meta.slotSchema || {};
+  const resolved = resolveRecords(n, data, currentRecord);
+
+  const emit = (props: Record<string, unknown>) => {
+    const json = JSON.stringify(props).replace(/</g, '\\u003c');
+    // Encode as base64 to survive attribute parsing.
+    const encoded = Buffer.from(json, 'utf8').toString('base64');
+    return `<div data-fdl-block="${escapeAttr(presetId)}" data-fdl-props="${encoded}"></div>`;
+  };
+
+  if (resolved.mode === 'list') {
+    return resolved.records
+      .map((rec) => emit(resolvePropValues(slotMap, rec, schema, pages)))
+      .join('');
+  }
+  if (resolved.mode === 'single') {
+    return emit(resolvePropValues(slotMap, resolved.records[0] ?? null, schema, pages));
+  }
+  return emit(resolvePropValues(slotMap, null, schema, pages));
+}
+
+function escapeAttr(s: string): string {
+  return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 }
 
 function renderNode(

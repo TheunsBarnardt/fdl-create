@@ -203,3 +203,68 @@ export function resolveLinkTarget(
       return { href: `#${target.id}`, newTab: false };
   }
 }
+
+// ---- Typed sibling of resolveSlotValues --------------------------------------
+// For component blocks, props are passed as real values — numbers stay numeric,
+// image/document fields pass through as objects, links as { href, newTab }.
+// Single-field templates return the raw value so the component can format itself.
+// Multi-field templates collapse to a string.
+
+type SlotBindingShape =
+  | { kind: 'literal'; value: string }
+  | { kind: 'field'; template?: string; fields?: string[]; separator?: string; field?: string }
+  | { kind: 'link'; target: LinkTarget };
+
+export function resolvePropValues(
+  slotMap: Record<string, SlotBindingShape> | undefined,
+  record: any | null,
+  schema: SlotSchema,
+  pages: Array<{ id: string; slug: string; title?: string }>
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  if (!slotMap || typeof slotMap !== 'object') return out;
+
+  for (const [slot, b] of Object.entries(slotMap)) {
+    if (!b) continue;
+    const def = schema[slot];
+
+    if (b.kind === 'literal') {
+      out[slot] = coerceLiteral(b.value, def);
+    } else if (b.kind === 'field') {
+      let template = b.template;
+      if (typeof template !== 'string') {
+        if (Array.isArray(b.fields)) template = b.fields.map((f) => `{${f}}`).join(b.separator ?? ' ');
+        else if (b.field) template = `{${b.field}}`;
+        else template = '';
+      }
+      if (!record || !template) {
+        out[slot] = coerceLiteral(template ?? '', def);
+        continue;
+      }
+      const single = template.match(/^\{([a-zA-Z_][a-zA-Z0-9_]*)\}$/);
+      if (single) {
+        out[slot] = record[single[1]] ?? null;
+      } else {
+        out[slot] = template.replace(/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g, (_, name) => String(record[name] ?? ''));
+      }
+    } else if (b.kind === 'link') {
+      out[slot] = resolveLinkTarget(b.target, pages);
+    }
+  }
+  return out;
+}
+
+function coerceLiteral(raw: string, def: SlotTypeDef | undefined): unknown {
+  const t = def?.type ?? 'string';
+  if (raw === '' || raw == null) return def?.fallback ?? '';
+  switch (t) {
+    case 'number': {
+      const n = Number(raw);
+      return Number.isFinite(n) ? n : def?.fallback ?? 0;
+    }
+    case 'boolean':
+      return raw === 'true' || raw === '1' || raw === 'yes';
+    default:
+      return raw;
+  }
+}

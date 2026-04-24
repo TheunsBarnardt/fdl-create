@@ -102,7 +102,15 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" --max-time 90 http://localhost:55021/api/documents)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" --max-time 3 http://localhost:54384/sign-in)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" --max-time 5 http://localhost:54384/sign-in)",
-      "Bash(xargs grep *)"
+      "Bash(xargs grep *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:58629/blocks/new -m 30)",
+      "Bash(curl -sS -o /dev/null -w \"HTTP %{http_code} - final: %{url_effective}\\\\n\" -L http://localhost:58629/ --max-time 30)",
+      "Bash(curl -sS -o /tmp/signin.html -w \"HTTP %{http_code}\\\\n\" \"http://localhost:58629/sign-in\" --max-time 30)",
+      "Bash(curl -sS -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"http://localhost:58629/\" --max-time 60)",
+      "Bash(curl -sS -o /dev/null -w \"assets %{http_code}\\\\n\" \"http://localhost:58629/assets\" --max-time 60)",
+      "Bash(curl -sS -o /dev/null -w \"documents %{http_code}\\\\n\" \"http://localhost:58629/documents\" --max-time 60)",
+      "Bash(curl -sS -o /dev/null -w \"theme %{http_code}\\\\n\" \"http://localhost:58629/theme\" --max-time 60)",
+      "Bash(curl -sS -o /dev/null -w \"variables %{http_code}\\\\n\" \"http://localhost:58629/variables\" --max-time 60)"
     ]
   }
 }

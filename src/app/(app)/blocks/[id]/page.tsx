@@ -16,6 +16,7 @@ export default async function EditBlockPage({ params }: { params: { id: string }
         title: block.title ?? '',
         description: block.description ?? '',
         source: block.source,
+        kind: block.kind === 'component' ? 'component' : 'template',
         shape: block.shape === 'list' ? 'list' : 'single',
         slotSchema: block.slotSchema ? JSON.parse(block.slotSchema) : null,
         category: block.category ?? '',

@@ -715,8 +715,8 @@ export function ProceduresClient({
               <span>Procedures</span>
             </div>
           </div>
-          <Chip tone="neutral">{groups.length} groups</Chip>
-          <Chip tone="neutral">{totalProcs} procedures</Chip>
+          <Chip tone="accent">{groups.length} groups</Chip>
+          <Chip tone="accent">{totalProcs} procedures</Chip>
         </div>
         <div className="flex items-center gap-3 text-xs">
           {selectedId && (

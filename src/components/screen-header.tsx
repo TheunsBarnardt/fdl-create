@@ -11,16 +11,17 @@ export function ScreenHeader({
   actions?: React.ReactNode;
 }) {
   return (
-    <header className="h-14 border-b border-neutral-200 bg-white/60 backdrop-blur px-6 flex items-center justify-between shrink-0">
+    <header className="h-14 glass-header px-6 flex items-center justify-between shrink-0 relative">
       <div className="flex items-center gap-3">
-        <div className="display text-lg">{title}</div>
+        <div className="display text-lg heading-gradient">{title}</div>
         {chips}
       </div>
-      <div className="flex items-center gap-3 text-xs">
+      <div className="flex items-center gap-3 text-xs text-white/60">
         {actions}
-        {actions && <span className="w-px h-5 bg-neutral-200" />}
+        {actions && <span className="w-px h-5 bg-white/10" />}
         <UserChip />
       </div>
+      <div className="hairline-soft absolute left-0 right-0 bottom-0" />
     </header>
   );
 }

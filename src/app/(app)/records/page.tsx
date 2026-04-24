@@ -30,7 +30,7 @@ export default async function RecordsOverviewPage() {
         chips={
           <>
             <Chip tone="accent">{collections.length} collections</Chip>
-            <Chip tone="neutral">{totalRecords.toLocaleString()} records</Chip>
+            <Chip tone="accent">{totalRecords.toLocaleString()} records</Chip>
           </>
         }
         actions={

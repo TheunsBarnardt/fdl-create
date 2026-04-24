@@ -76,7 +76,7 @@ export default async function SchemaDesignerPage({
         title="Schema designer"
         chips={
           ents.length === 0 ? (
-            <Chip tone="neutral">No collections yet</Chip>
+            <Chip tone="accent">No collections yet</Chip>
           ) : (
             <Chip tone="accent">{ents.length} collections</Chip>
           )

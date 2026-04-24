@@ -6,6 +6,7 @@ import { Plus, Trash2, ChevronRight, Upload, Copy, FolderPlus, Pencil, X, Check,
 import { cn } from '@/lib/utils';
 import { ConfirmationDialog } from './ui/confirmation-dialog';
 import { FocalPointPicker } from './ui/focal-point-picker';
+import { ScreenHeader, Chip } from './screen-header';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -532,12 +533,11 @@ export function AssetsPanel() {
 
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-      {/* Header */}
-      <header className="h-14 shrink-0 border-b border-neutral-200 bg-white/60 backdrop-blur px-6 flex items-center gap-3">
-        <Link href="/" className="text-xs text-neutral-500 hover:text-neutral-900">Workspace</Link>
-        <span className="text-xs text-neutral-300">›</span>
-        <span className="display text-lg">Assets</span>
-      </header>
+      <ScreenHeader
+        title="Assets"
+        chips={<Chip tone="accent">{assets.length} asset{assets.length === 1 ? '' : 's'}</Chip>}
+      />
+
 
       <div className="flex flex-1 overflow-hidden">
         {/* ── Left: categories ── */}

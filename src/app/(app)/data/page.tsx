@@ -65,9 +65,9 @@ export default async function DataOverviewPage() {
         chips={
           <>
             <Chip tone="accent">{collections.length} tables</Chip>
-            <Chip tone="neutral">{totalRecords.toLocaleString()} rows</Chip>
-            <Chip tone="neutral">{totalFields} fields</Chip>
-            <Chip tone="neutral">{totalRelations} relations</Chip>
+            <Chip tone="accent">{totalRecords.toLocaleString()} rows</Chip>
+            <Chip tone="accent">{totalFields} fields</Chip>
+            <Chip tone="accent">{totalRelations} relations</Chip>
             {aiOptIn > 0 && <Chip tone="warn">{aiOptIn} AI-enabled</Chip>}
           </>
         }

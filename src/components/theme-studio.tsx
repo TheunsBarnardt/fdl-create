@@ -6,6 +6,7 @@ import { Copy, Save, Sun, Moon, Sparkles, Link2, Search, ChevronDown, Trash2, Pl
 import { cn } from '@/lib/utils';
 import { getTwHint } from '@/lib/tailwind-classes';
 import { loadGoogleFont } from '@/lib/google-fonts-list';
+import { ScreenHeader, Chip } from './screen-header';
 
 type Scope = 'both' | 'admin' | 'published';
 type Mode = 'light' | 'dark';
@@ -780,73 +781,74 @@ export function ThemeStudio({
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <header className="h-14 border-b border-neutral-200 bg-white/60 backdrop-blur px-6 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3 min-w-0 overflow-hidden">
-          <Link href="/" className="text-xs text-neutral-500 hover:text-neutral-900 shrink-0">Workspace</Link>
-          <span className="text-xs text-neutral-400 shrink-0">›</span>
-          <div className="display text-lg shrink-0">Theme studio</div>
-          <span className="text-xs text-neutral-400 shrink-0">›</span>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onBlur={saveName}
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.currentTarget.blur(); } }}
-            className="text-sm bg-transparent outline-none focus:bg-neutral-100 px-1.5 py-0.5 rounded min-w-0 max-w-[160px]"
-          />
-          <span className="chip bg-accent-soft text-accent">System-wide</span>
-        </div>
-        <div className="flex items-center gap-3 text-xs">
-          <div className="inline-flex items-center bg-neutral-100 rounded-md p-0.5">
-            {(['both', 'admin', 'published'] as Scope[]).map((s) => (
+      <ScreenHeader
+        title="Theme studio"
+        chips={
+          <>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={saveName}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.currentTarget.blur(); } }}
+              className="text-sm bg-transparent outline-none focus:bg-white/[0.06] px-1.5 py-0.5 rounded min-w-0 max-w-[180px] border border-transparent focus:border-white/10 text-white/90"
+            />
+            <Chip tone="accent">System-wide</Chip>
+          </>
+        }
+        actions={
+          <>
+            <div className="inline-flex items-center rounded-md p-0.5" style={{ background: 'rgba(255,255,255,0.06)' }}>
+              {(['both', 'admin', 'published'] as Scope[]).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setScope(s)}
+                  className={cn(
+                    'px-2.5 py-1 rounded transition-colors',
+                    tokens.scope === s ? 'bg-white/10 text-white shadow-sm' : 'text-white/55 hover:text-white'
+                  )}
+                >
+                  {s === 'both' ? 'Both surfaces' : s === 'admin' ? 'Admin UI' : 'Published pages'}
+                </button>
+              ))}
+            </div>
+            <span className="w-px h-5 bg-white/10" />
+            <div className="inline-flex items-center rounded-md p-0.5" style={{ background: 'rgba(255,255,255,0.06)' }}>
               <button
-                key={s}
-                onClick={() => setScope(s)}
+                onClick={() => setMode('light')}
                 className={cn(
-                  'px-2.5 py-1 rounded transition-colors',
-                  tokens.scope === s ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500 hover:text-neutral-900'
+                  'px-2.5 py-1 rounded flex items-center gap-1.5 transition-colors',
+                  tokens.mode === 'light' ? 'bg-white/10 text-white shadow-sm' : 'text-white/55'
                 )}
               >
-                {s === 'both' ? 'Both surfaces' : s === 'admin' ? 'Admin UI' : 'Published pages'}
+                <Sun className="w-3 h-3" /> Light
               </button>
-            ))}
-          </div>
-          <span className="w-px h-5 bg-neutral-200" />
-          <div className="inline-flex items-center bg-neutral-100 rounded-md p-0.5">
+              <button
+                onClick={() => setMode('dark')}
+                className={cn(
+                  'px-2.5 py-1 rounded flex items-center gap-1.5 transition-colors',
+                  tokens.mode === 'dark' ? 'bg-white/10 text-white shadow-sm' : 'text-white/55'
+                )}
+              >
+                <Moon className="w-3 h-3" /> Dark
+              </button>
+            </div>
+            <span className="w-px h-5 bg-white/10" />
             <button
-              onClick={() => setMode('light')}
-              className={cn(
-                'px-2.5 py-1 rounded flex items-center gap-1.5 transition-colors',
-                tokens.mode === 'light' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'
-              )}
+              onClick={copyCss}
+              className="px-2.5 py-1 rounded-md flex items-center gap-1.5 border border-white/10 hover:border-white/20 text-white/80"
             >
-              <Sun className="w-3 h-3" /> Light
+              <Copy className="w-3 h-3" /> {copyState === 'copied' ? 'Copied' : 'Copy CSS'}
             </button>
             <button
-              onClick={() => setMode('dark')}
-              className={cn(
-                'px-2.5 py-1 rounded flex items-center gap-1.5 transition-colors',
-                tokens.mode === 'dark' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'
-              )}
+              onClick={save}
+              disabled={saving || !name}
+              className="px-2.5 py-1 bg-sky-500 hover:bg-sky-400 text-white rounded-md flex items-center gap-1.5 disabled:opacity-60 shrink-0 shadow-accent-glow transition-colors"
             >
-              <Moon className="w-3 h-3" /> Dark
+              <Save className="w-3 h-3" /> {saving ? 'Saving…' : 'Save theme'}
             </button>
-          </div>
-          <span className="w-px h-5 bg-neutral-200" />
-          <button
-            onClick={copyCss}
-            className="px-2.5 py-1 border border-neutral-200 rounded-md flex items-center gap-1.5 hover:border-neutral-300"
-          >
-            <Copy className="w-3 h-3" /> {copyState === 'copied' ? 'Copied' : 'Copy CSS'}
-          </button>
-          <button
-            onClick={save}
-            disabled={saving || !name}
-            className="px-2.5 py-1 bg-neutral-900 text-white rounded-md flex items-center gap-1.5 disabled:opacity-60 shrink-0"
-          >
-            <Save className="w-3 h-3" /> {saving ? 'Saving…' : 'Save theme'}
-          </button>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <div className="flex-1 flex overflow-hidden min-h-0">
         <aside className="w-80 border-r border-neutral-200 bg-white overflow-auto scrollbar shrink-0">

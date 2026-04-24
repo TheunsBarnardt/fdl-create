@@ -1,25 +1,16 @@
-import { auth } from '@/auth';
+'use client';
 import { signOutAction } from '@/app/actions/auth';
+import { useSessionChip } from './session-context';
 
-export async function UserChip() {
-  const session = await auth();
-  const email = session?.user?.email ?? '';
-  const initials = email
-    .split('@')[0]
-    .split(/[._-]/)
-    .slice(0, 2)
-    .map((s) => s[0]?.toUpperCase() ?? '')
-    .join('');
+export function UserChip() {
+  const { initials } = useSessionChip();
 
   return (
-    <form
-      action={signOutAction}
-      className="flex items-center gap-2"
-    >
-      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-accent to-purple-500 text-white font-medium flex items-center justify-center text-[11px]">
+    <form action={signOutAction} className="flex items-center gap-2">
+      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-sky-400 to-violet-500 text-white font-medium flex items-center justify-center text-[11px] shadow-[0_0_14px_rgba(14,165,233,0.4)]">
         {initials || '??'}
       </div>
-      <button type="submit" className="text-[11px] text-neutral-500 hover:text-neutral-900">
+      <button type="submit" className="text-[11px] text-white/50 hover:text-white/90 transition-colors">
         Sign out
       </button>
     </form>

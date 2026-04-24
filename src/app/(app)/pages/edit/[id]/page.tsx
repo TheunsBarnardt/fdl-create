@@ -13,7 +13,7 @@ export default async function EditPagePage({ params }: { params: { id: string } 
     prisma.collection.findMany({ orderBy: { label: 'asc' } }),
     prisma.page.findMany({ orderBy: { updatedAt: 'desc' } }),
     getCollectionFieldMap().catch(() => ({})),
-    prisma.$queryRaw<any[]>`SELECT id, name, title, description, category, source, shape, slotSchema FROM "CustomBlock" ORDER BY category ASC, title ASC`.catch(() => []),
+    prisma.$queryRaw<any[]>`SELECT id, name, title, description, category, source, kind, shape, slotSchema FROM "CustomBlock" ORDER BY category ASC, title ASC`.catch(() => []),
     prisma.theme.findMany({ orderBy: { name: 'asc' } }).catch(() => []),
   ]);
   const page = pageRows[0];

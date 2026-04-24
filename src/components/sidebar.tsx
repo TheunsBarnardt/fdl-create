@@ -95,9 +95,9 @@ export function Sidebar({ role = 'viewer' }: { role?: Role }) {
   const hasActive = (items: NavItem[]) => items.some((n) => isActive(n.href));
 
   return (
-    <aside className="w-56 shrink-0 bg-ink-950 text-paper flex flex-col border-r border-ink-900">
-      <div className="p-4 border-b border-ink-800 flex items-center gap-2">
-        <div className="w-7 h-7 rounded-md bg-accent flex items-center justify-center">
+    <aside className="w-56 shrink-0 glass text-white/90 flex flex-col relative">
+      <div className="p-4 border-b border-white/[0.06] flex items-center gap-2.5">
+        <div className="w-7 h-7 rounded-md bg-gradient-to-br from-sky-400 via-sky-500 to-violet-500 flex items-center justify-center shadow-[0_0_20px_rgba(14,165,233,0.45)]">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
             <path d="M3 7l9-4 9 4-9 4z" />
             <path d="M3 12l9 4 9-4" />
@@ -105,8 +105,8 @@ export function Sidebar({ role = 'viewer' }: { role?: Role }) {
           </svg>
         </div>
         <div>
-          <div className="display text-[15px] font-semibold leading-none">FDL-Create</div>
-          <div className="text-[10px] text-white/50 mt-0.5">Acme Studio · SaaS</div>
+          <div className="display text-[15px] font-semibold leading-none heading-gradient">FDL-Create</div>
+          <div className="text-[10px] text-white/45 mt-1 tracking-wide">FDL Create Studio</div>
         </div>
       </div>
 
@@ -121,12 +121,12 @@ export function Sidebar({ role = 'viewer' }: { role?: Role }) {
         <NavGroup label="You" items={accountNav} isActive={isActive} defaultOpen={hasActive(accountNav)} />
       </nav>
 
-      <div className="p-3 border-t border-ink-800 text-[11px] text-white/40 leading-relaxed">
+      <div className="p-3 border-t border-white/[0.06] text-[11px] text-white/45 leading-relaxed">
         <div className="flex items-center gap-1.5 mb-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-ok" />
-          Data plane: eu-west-2
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]" />
+          <span className="text-white/70">Data plane:</span> eu-west-2
         </div>
-        <div>Control plane: healthy</div>
+        <div><span className="text-white/70">Control plane:</span> healthy</div>
       </div>
     </aside>
   );
@@ -147,8 +147,8 @@ function NavLink({
     <Link
       href={href}
       className={cn(
-        'w-full text-left px-2 py-1.5 rounded flex items-center gap-2 hover:bg-ink-900',
-        active && 'bg-ink-900 text-paper'
+        'w-full text-left px-2.5 py-1.5 rounded-md flex items-center gap-2 text-white/60 hover:text-white hover:bg-white/[0.04] transition-colors',
+        active && 'navitem-active-glass'
       )}
     >
       <Icon className="w-3.5 h-3.5" />

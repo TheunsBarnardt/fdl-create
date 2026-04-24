@@ -38,22 +38,22 @@ export function GovernanceRow({
   };
 
   return (
-    <div className="py-3">
+    <div className="px-4 py-3">
       <div className="flex items-center justify-between">
         <button onClick={() => setOpen(!open)} className="text-left">
-          <div className="text-sm">{label}</div>
-          <div className="text-xs text-muted-foreground font-mono">{name}</div>
+          <div className="text-sm font-medium">{label}</div>
+          <div className="text-[11px] mono text-neutral-500">{name}</div>
         </button>
         <div className="flex items-center gap-3">
-          <span className={cn('text-xs', enabled ? 'text-accent' : 'text-muted-foreground')}>
+          <span className={cn('text-[11px]', enabled ? 'text-accent' : 'text-neutral-500')}>
             {enabled ? 'AI on' : 'AI off'}
           </span>
           <Switch checked={enabled} onCheckedChange={toggle} disabled={pending} />
         </div>
       </div>
       {open && enabled && (
-        <div className="mt-3 pl-1 pt-3 border-t border-border space-y-2">
-          <div className="text-xs text-muted-foreground">
+        <div className="mt-3 pl-1 pt-3 border-t border-neutral-100 space-y-2">
+          <div className="text-[11px] text-neutral-500">
             Redact the following fields from any AI read. Unredacted fields are sent to Claude.
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -64,10 +64,10 @@ export function GovernanceRow({
                   key={f}
                   onClick={() => toggleField(f)}
                   className={cn(
-                    'px-2 py-0.5 text-[10px] font-mono rounded border',
+                    'px-2 py-0.5 text-[10px] mono rounded border transition-colors',
                     isRedacted
-                      ? 'bg-destructive/10 border-destructive/30 text-destructive'
-                      : 'bg-secondary border-border text-muted-foreground hover:border-accent'
+                      ? 'bg-danger/10 border-danger/30 text-danger'
+                      : 'bg-neutral-50 border-neutral-200 text-neutral-600 hover:border-accent'
                   )}
                 >
                   {isRedacted ? '🔒 ' : ''}{f}

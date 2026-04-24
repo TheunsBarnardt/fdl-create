@@ -8,8 +8,8 @@ export default async function NewBlockPage({
 }) {
   const sp = await searchParams;
 
-  let initial: { name: string; title?: string; description?: string; source: string; shape?: 'single' | 'list'; slotSchema?: any; category?: string; themeId?: string | null } = {
-    name: '', title: '', description: '', source: '', shape: 'single'
+  let initial: { name: string; title?: string; description?: string; source: string; kind?: 'template' | 'component'; shape?: 'single' | 'list'; slotSchema?: any; category?: string; themeId?: string | null } = {
+    name: '', title: '', description: '', source: '', kind: 'template', shape: 'single'
   };
 
   if (sp.clone) {
@@ -21,6 +21,7 @@ export default async function NewBlockPage({
         title: src.title ?? '',
         description: src.description ?? '',
         source: src.source,
+        kind: src.kind === 'component' ? 'component' : 'template',
         shape: src.shape === 'list' ? 'list' : 'single',
         slotSchema: src.slotSchema ? JSON.parse(src.slotSchema) : null,
         category: src.category ?? '',

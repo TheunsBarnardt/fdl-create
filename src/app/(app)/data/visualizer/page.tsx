@@ -104,8 +104,8 @@ export default async function VisualizerPage() {
         }
         chips={
           <>
-            <Chip tone="neutral">{boxes.length} tables</Chip>
-            <Chip tone="neutral">{edges.length} relations</Chip>
+            <Chip tone="accent">{boxes.length} tables</Chip>
+            <Chip tone="accent">{edges.length} relations</Chip>
           </>
         }
         actions={

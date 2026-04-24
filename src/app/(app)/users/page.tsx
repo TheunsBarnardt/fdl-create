@@ -80,9 +80,9 @@ export default async function UsersPage({
         chips={
           <>
             <Chip tone="accent">{users.length} shown</Chip>
-            <Chip tone="neutral">{totalByRole['admin'] ?? 0} admins</Chip>
-            <Chip tone="neutral">{totalByRole['editor'] ?? 0} editors</Chip>
-            <Chip tone="neutral">{totalByRole['viewer'] ?? 0} viewers</Chip>
+            <Chip tone="accent">{totalByRole['admin'] ?? 0} admins</Chip>
+            <Chip tone="accent">{totalByRole['editor'] ?? 0} editors</Chip>
+            <Chip tone="accent">{totalByRole['viewer'] ?? 0} viewers</Chip>
           </>
         }
         actions={<NewUserButton />}

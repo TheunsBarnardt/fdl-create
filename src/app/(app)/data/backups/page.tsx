@@ -25,8 +25,8 @@ export default async function BackupsPage() {
         }
         chips={
           <>
-            <Chip tone="neutral">{collections.length} tables</Chip>
-            <Chip tone="neutral">{totalRecords.toLocaleString()} rows</Chip>
+            <Chip tone="accent">{collections.length} tables</Chip>
+            <Chip tone="accent">{totalRecords.toLocaleString()} rows</Chip>
           </>
         }
       />
