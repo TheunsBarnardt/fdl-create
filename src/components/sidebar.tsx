@@ -163,11 +163,11 @@ function NavLink({
     <Link
       href={href}
       className={cn(
-        'w-full text-left px-2.5 py-1.5 rounded-md flex items-center gap-2 text-white/60 hover:text-white hover:bg-white/[0.04] transition-colors',
-        active && 'navitem-active-glass'
+        'w-full text-left px-3 py-2 rounded-md flex items-center gap-2.5 text-white/70 text-xs font-medium transition-all btn-tactical-frame',
+        active && 'active text-white'
       )}
     >
-      <Icon className="w-3.5 h-3.5" />
+      <Icon className="w-4 h-4" />
       {label}
     </Link>
   );
