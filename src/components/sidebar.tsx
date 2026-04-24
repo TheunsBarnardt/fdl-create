@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { ProjectSwitcher } from '@/components/project-switcher';
 
 const buildNav = [
+  { href: '/showcase', label: 'Showcase', icon: ShowcaseIcon },
   { href: '/dashboard', label: 'Dashboard', icon: HomeIcon },
   { href: '/variables', label: 'Variables', icon: VariablesIcon },
   { href: '/assets', label: 'Assets', icon: AssetsIcon },
@@ -177,6 +178,13 @@ function NavLink({
   );
 }
 
+function ShowcaseIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M3 5h18M3 12h18M3 19h18M6 5v14M12 5v14M18 5v14" />
+    </svg>
+  );
+}
 function HomeIcon({ className }: { className?: string }) {
   return (
     <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
