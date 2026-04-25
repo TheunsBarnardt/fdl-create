@@ -42,6 +42,10 @@ const runNav = [
   { href: '/governance', label: 'Governance', icon: GovernanceIcon }
 ];
 
+const docsNav = [
+  { href: '/docs', label: 'Guides', icon: DocsIcon }
+];
+
 const adminNav = [
   { href: '/users', label: 'Users', icon: UsersIcon }
 ];
@@ -136,6 +140,7 @@ export function Sidebar({
         <NavGroup label="Data"  items={dataNav}  isActive={isActive} defaultOpen={hasActive(dataNav)} />
         <NavGroup label="Repo"  items={repoNav}  isActive={isActive} defaultOpen={hasActive(repoNav)} />
         <NavGroup label="Run"   items={runNav}   isActive={isActive} defaultOpen={hasActive(runNav)} />
+        <NavGroup label="Docs"  items={docsNav}  isActive={isActive} defaultOpen={hasActive(docsNav)} />
         {role === 'admin' && (
           <NavGroup label="Admin" items={adminNav} isActive={isActive} defaultOpen={hasActive(adminNav)} />
         )}
@@ -272,6 +277,15 @@ function BookIcon({ className }: { className?: string }) {
     <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M4 4h10a4 4 0 014 4v12H8a4 4 0 01-4-4V4z" />
       <path d="M4 4v12a4 4 0 014-4h10" />
+    </svg>
+  );
+}
+function DocsIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+      <path d="M14 2v6h6" />
+      <path d="M8 13h8M8 17h6" />
     </svg>
   );
 }

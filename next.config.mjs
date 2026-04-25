@@ -1,3 +1,5 @@
+import { createMDX } from 'fumadocs-mdx/next';
+
 /** @type {import('next').NextConfig} */
 const HEAVY_SERVER_PKGS = /^(lighthouse|chrome-launcher|@paulirish\/trace_engine)(\/|$)/;
 
@@ -19,4 +21,7 @@ const nextConfig = {
     return config;
   }
 };
-export default nextConfig;
+
+const withMDX = createMDX();
+
+export default withMDX(nextConfig);

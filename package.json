@@ -12,7 +12,8 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "postinstall": "fumadocs-mdx"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",
@@ -31,6 +32,9 @@
     "chrome-launcher": "^1.2.1",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "fumadocs-core": "^14.7.7",
+    "fumadocs-mdx": "^11.0.0",
+    "fumadocs-ui": "^14.7.7",
     "lexical": "^0.43.0",
     "lighthouse": "^13.1.0",
     "lucide-react": "^0.454.0",

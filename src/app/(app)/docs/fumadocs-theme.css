@@ -1,0 +1,78 @@
+/* Map Fumadocs UI tokens onto the Lattice midnight palette.
+   Loaded after fumadocs-ui/style.css in src/app/(app)/docs/layout.tsx. */
+
+:root, .dark, .docs-shell {
+  --background: 240 6% 4%;
+  --foreground: 240 5% 91%;
+  --card: 240 5% 7%;
+  --card-foreground: 240 5% 91%;
+  --popover: 240 5% 7%;
+  --popover-foreground: 240 5% 91%;
+  --primary: 38 92% 50%;
+  --primary-foreground: 240 6% 4%;
+  --secondary: 0 0% 100% / 0.04;
+  --secondary-foreground: 240 5% 91%;
+  --muted: 0 0% 100% / 0.04;
+  --muted-foreground: 240 4% 65%;
+  --accent: 0 0% 100% / 0.06;
+  --accent-foreground: 38 92% 60%;
+  --border: 0 0% 100% / 0.08;
+  --input: 0 0% 100% / 0.08;
+  --ring: 38 92% 50%;
+
+  --color-fd-background: hsl(240 6% 4%);
+  --color-fd-foreground: hsl(240 5% 91%);
+  --color-fd-card: hsl(240 5% 7%);
+  --color-fd-card-foreground: hsl(240 5% 91%);
+  --color-fd-popover: hsl(240 5% 7%);
+  --color-fd-popover-foreground: hsl(240 5% 91%);
+  --color-fd-primary: hsl(38 92% 55%);
+  --color-fd-primary-foreground: hsl(240 6% 4%);
+  --color-fd-secondary: rgba(255, 255, 255, 0.04);
+  --color-fd-secondary-foreground: hsl(240 5% 91%);
+  --color-fd-muted: rgba(255, 255, 255, 0.04);
+  --color-fd-muted-foreground: hsl(240 4% 65%);
+  --color-fd-accent: rgba(255, 255, 255, 0.06);
+  --color-fd-accent-foreground: hsl(38 92% 60%);
+  --color-fd-border: rgba(255, 255, 255, 0.08);
+  --color-fd-input: rgba(255, 255, 255, 0.08);
+  --color-fd-ring: hsl(38 92% 50%);
+}
+
+/* Fumadocs sets its layout to a fixed-height column; clamp it inside our app shell. */
+.docs-shell {
+  background: transparent;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Headings → Plus Jakarta Sans, code → IBM Plex Mono, matching globals.css. */
+.docs-shell article h1,
+.docs-shell article h2,
+.docs-shell article h3,
+.docs-shell article h4 {
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  letter-spacing: -0.018em;
+}
+.docs-shell article code,
+.docs-shell article pre {
+  font-family: 'IBM Plex Mono', 'JetBrains Mono', ui-monospace, monospace;
+  font-feature-settings: 'zero' on;
+}
+.docs-shell article a {
+  color: hsl(38 92% 60%);
+}
+.docs-shell article a:hover {
+  text-decoration: underline;
+}
+
+/* Subtle inset card look for code blocks, matching glass-card aesthetic. */
+.docs-shell article pre {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0.25rem;
+}
+
+/* Sidebar tweaks — match the project's sidebar density. */
+.docs-shell aside[data-collapsed='false'] {
+  border-color: rgba(255, 255, 255, 0.06);
+}

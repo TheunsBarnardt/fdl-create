@@ -1,0 +1,109 @@
+---
+title: Drop shadows and blurs in Tailwind
+description: How the effect variable type emits Tailwind classes, plus which Figma fields don't translate to CSS.
+---
+
+The `effect` variable type stores Figma's *Effect style* shape — a stack of drop shadows, inner shadows, layer blurs, and background blurs — and emits a **Tailwind class string** ready to drop into `className`.
+
+## When to reach for the `effect` type
+
+Use it whenever you'd otherwise hand-write a `shadow-[…]` arbitrary value or pick a `shadow-md`/`blur-md` class. Authoring through the variable system gets you:
+
+- A single named token (`shadows/xxsmall`, `elevation/card`) reused across the project.
+- Round-trip parity with Figma — designers can hand off effect styles 1:1.
+- Automatic preset-snapping when the spec matches Tailwind's built-in scale.
+
+## Tailwind output map
+
+| Figma layer | Tailwind output |
+| :-- | :-- |
+| Drop shadow (single, matches preset) | `shadow-sm`, `shadow-2xl`, `shadow-inner` |
+| Drop shadow (custom) | `shadow-[0px_1px_2px_0px_#0000000d]` |
+| Multiple stacked drops | `shadow-[…,…]` (comma-separated inside one arbitrary value) |
+| Inner shadow | `shadow-[inset_0px_2px_4px_0px_#00000020]` |
+| Drop + inner mixed | `shadow-[0px_1px_2px_#0000000d,inset_0px_2px_4px_#00000020]` |
+| Layer blur | `blur-sm` / `blur-md` / … or `blur-[Xpx]` |
+| Background blur | `backdrop-blur-md` / `backdrop-blur-[Xpx]` |
+| All layers hidden / empty | `shadow-none` |
+
+The editor snaps to a preset when the spec matches exactly; otherwise it falls back to an arbitrary value.
+
+## The `xxsmall` example from Figma
+
+The screenshot's `xxsmall = 0 / 1 / 2 / 0  #000  5%` translates directly:
+
+```tsx
+<div className="shadow-sm">…</div>
+```
+
+Because that exact spec matches Tailwind's built-in `shadow-sm`, the variable emits the preset name rather than `shadow-[0px_1px_2px_0px_#0000000d]`. Both render identically; the preset is shorter and self-documenting.
+
+## Stacking shadows
+
+Tailwind lets you put multiple `box-shadow` layers in one arbitrary class via comma-separated values:
+
+```tsx
+<div className="shadow-[0px_4px_8px_0px_#0000001a,0px_12px_24px_-4px_#00000014]">
+  Floating card
+</div>
+```
+
+In the editor, the **top of the layer list = first in the comma list = top of the CSS shadow stack**. Reorder via the up/down buttons on each layer card.
+
+## Inner vs drop shadows
+
+Inner shadows render with the `inset_` keyword inside the arbitrary value:
+
+```tsx
+<div className="shadow-[inset_0px_2px_4px_0px_#00000020]">Pressed</div>
+```
+
+You can mix them freely with drop shadows in one variable:
+
+```tsx
+<div className="shadow-[0px_1px_2px_#0000000d,inset_0px_2px_4px_#00000020]">
+  Inset highlight on a raised card
+</div>
+```
+
+## Layer blur vs background blur
+
+| Concept | CSS prop | Tailwind class | Use when |
+| :-- | :-- | :-- | :-- |
+| **Layer blur** | `filter: blur(…)` | `blur-md`, `blur-[Xpx]` | You want the *element itself* blurred |
+| **Background blur** | `backdrop-filter: blur(…)` | `backdrop-blur-md`, `backdrop-blur-[Xpx]` | You want *what's behind a translucent element* blurred (frosted glass) |
+
+If your variable contains multiple layer blurs, the radii are summed (Tailwind/CSS only allows one blur per `filter`). Same for background blurs.
+
+```tsx
+<div className="bg-white/10 backdrop-blur-md">Frosted glass panel</div>
+```
+
+> Browser support: `backdrop-filter` is well-supported in all current browsers but degrades to no blur on very old ones — safe for app UIs, double-check for public marketing sites.
+
+## Figma fields that don't translate
+
+CSS `box-shadow` and `filter` are simpler than Figma's effect model. These three fields are **stored** on the variable (so values round-trip from Figma without information loss) but **ignored** when emitting the Tailwind class:
+
+- **Blend mode** — Figma blends each effect against the underlying layer. CSS shadows have no per-shadow blend mode; they always composite normally.
+- **Show behind transparent areas** — a Figma rendering hint specific to drop shadows on transparent fills. There is no CSS equivalent.
+- **Per-layer visibility** — a hidden layer (eye icon off) is simply omitted from the emitted class. The flag persists in case you toggle it back on.
+
+The variable editor flags these fields with an ⓘ tooltip so authors know they're stored-only.
+
+## Copy from Figma recipe
+
+Open Figma's *Effect style* panel, then for each layer:
+
+| Figma field | Editor field |
+| :-- | :-- |
+| X | X |
+| Y | Y |
+| Blur | Blur |
+| Spread | Spread |
+| Color (hex) | Color |
+| Color opacity | Opacity (%) |
+| Blend mode | Blend mode (stored, not emitted) |
+| Show behind transparent areas | Show behind transparent (stored, not emitted) |
+
+Hit **Save** — the Tailwind class field at the bottom of the editor is your `className` value.
