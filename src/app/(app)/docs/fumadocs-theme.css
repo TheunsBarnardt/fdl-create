@@ -1,78 +1,101 @@
-/* Map Fumadocs UI tokens onto the Lattice midnight palette.
-   Loaded after fumadocs-ui/style.css in src/app/(app)/docs/layout.tsx. */
+/* Force-dark theme for Fumadocs, scoped to /docs route group only.
+   Scopes overrides at .docs-root which wraps RootProvider + DocsLayout. */
 
-:root, .dark, .docs-shell {
-  --background: 240 6% 4%;
-  --foreground: 240 5% 91%;
-  --card: 240 5% 7%;
-  --card-foreground: 240 5% 91%;
-  --popover: 240 5% 7%;
-  --popover-foreground: 240 5% 91%;
-  --primary: 38 92% 50%;
-  --primary-foreground: 240 6% 4%;
-  --secondary: 0 0% 100% / 0.04;
-  --secondary-foreground: 240 5% 91%;
-  --muted: 0 0% 100% / 0.04;
-  --muted-foreground: 240 4% 65%;
-  --accent: 0 0% 100% / 0.06;
-  --accent-foreground: 38 92% 60%;
-  --border: 0 0% 100% / 0.08;
-  --input: 0 0% 100% / 0.08;
-  --ring: 38 92% 50%;
+.docs-root {
+  color-scheme: dark;
 
-  --color-fd-background: hsl(240 6% 4%);
+  /* Fumadocs UI 14.x CSS variables — exhaustive override to the Lattice midnight palette.
+     Surfaces are translucent so the showcase ambient layers behind show through. */
+  --color-fd-background: transparent;
   --color-fd-foreground: hsl(240 5% 91%);
-  --color-fd-card: hsl(240 5% 7%);
+  --color-fd-card: rgba(20, 20, 22, 0.75);
   --color-fd-card-foreground: hsl(240 5% 91%);
-  --color-fd-popover: hsl(240 5% 7%);
+  --color-fd-popover: rgba(20, 20, 22, 0.92);
   --color-fd-popover-foreground: hsl(240 5% 91%);
   --color-fd-primary: hsl(38 92% 55%);
   --color-fd-primary-foreground: hsl(240 6% 4%);
   --color-fd-secondary: rgba(255, 255, 255, 0.04);
   --color-fd-secondary-foreground: hsl(240 5% 91%);
   --color-fd-muted: rgba(255, 255, 255, 0.04);
-  --color-fd-muted-foreground: hsl(240 4% 65%);
+  --color-fd-muted-foreground: hsl(240 4% 60%);
   --color-fd-accent: rgba(255, 255, 255, 0.06);
   --color-fd-accent-foreground: hsl(38 92% 60%);
   --color-fd-border: rgba(255, 255, 255, 0.08);
   --color-fd-input: rgba(255, 255, 255, 0.08);
   --color-fd-ring: hsl(38 92% 50%);
-}
 
-/* Fumadocs sets its layout to a fixed-height column; clamp it inside our app shell. */
-.docs-shell {
-  background: transparent;
   font-family: 'Inter', sans-serif;
 }
 
-/* Headings → Plus Jakarta Sans, code → IBM Plex Mono, matching globals.css. */
-.docs-shell article h1,
-.docs-shell article h2,
-.docs-shell article h3,
-.docs-shell article h4 {
+/* Sidebar gets a soft glass panel so the ambient orbs bleed through. */
+.docs-root [data-sidebar],
+.docs-root aside {
+  background: rgba(10, 10, 12, 0.55) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* DocsLayout puts its sidebar/nav OUTSIDE containerProps, so target deeply. */
+.docs-root,
+.docs-root nav,
+.docs-root aside,
+.docs-root [data-radix-popper-content-wrapper],
+.docs-root .dark {
+  color-scheme: dark;
+}
+
+/* Headings → Plus Jakarta Sans, code → IBM Plex Mono. */
+.docs-root article h1,
+.docs-root article h2,
+.docs-root article h3,
+.docs-root article h4 {
   font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
   letter-spacing: -0.018em;
+  color: hsl(240 5% 95%);
 }
-.docs-shell article code,
-.docs-shell article pre {
+.docs-root article code,
+.docs-root article pre,
+.docs-root article kbd {
   font-family: 'IBM Plex Mono', 'JetBrains Mono', ui-monospace, monospace;
   font-feature-settings: 'zero' on;
 }
-.docs-shell article a {
+.docs-root article a {
   color: hsl(38 92% 60%);
 }
-.docs-shell article a:hover {
+.docs-root article a:hover {
   text-decoration: underline;
 }
 
-/* Subtle inset card look for code blocks, matching glass-card aesthetic. */
-.docs-shell article pre {
+/* Code blocks: subtle inset card, matching .glass-card aesthetic from globals.css. */
+.docs-root article pre {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 0.25rem;
 }
+.docs-root article :not(pre) > code {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0.1em 0.35em;
+  border-radius: 0.2rem;
+  font-size: 0.9em;
+  color: hsl(38 92% 70%);
+}
 
-/* Sidebar tweaks — match the project's sidebar density. */
-.docs-shell aside[data-collapsed='false'] {
+/* Tables — match the project's data-table look. */
+.docs-root article table {
   border-color: rgba(255, 255, 255, 0.06);
+}
+.docs-root article table th,
+.docs-root article table td {
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+/* "Next/Previous" footer cards in DocsPage — currently rendering on light bg. */
+.docs-root a[data-card],
+.docs-root [data-pagination] a,
+.docs-root .nd-card,
+.docs-root [class*="bg-fd-card"] {
+  background: hsl(240 5% 7%);
+  border-color: rgba(255, 255, 255, 0.08);
 }
