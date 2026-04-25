@@ -24,7 +24,6 @@ export const GET = withApi('read:themes', async () => {
     collections.map((col) => ({
       id: col.id,
       name: col.name,
-      label: col.label,
       order: col.order,
       variables: col.variables.map((v) => ({
         id: v.id,
@@ -63,7 +62,6 @@ export const POST = withApi('write:themes', async (req) => {
   const created = await prisma.variableCollection.create({
     data: {
       name: body.data.name,
-      label: body.data.label,
       order: (maxOrder?.order ?? 0) + 1,
       projectId: project.id,
     },
@@ -76,7 +74,6 @@ export const POST = withApi('write:themes', async (req) => {
     {
       id: created.id,
       name: created.name,
-      label: created.label,
       order: created.order,
       variables: [],
     },

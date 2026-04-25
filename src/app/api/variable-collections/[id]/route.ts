@@ -14,7 +14,7 @@ export const PATCH = withApi<P>('write:themes', async (req, { params }) => {
   const updated = await prisma.variableCollection.update({
     where: { id: params.id },
     data: {
-      ...(body.data.label !== undefined && { label: body.data.label }),
+      ...(body.data.name !== undefined && { name: body.data.name }),
       ...(body.data.order !== undefined && { order: body.data.order }),
     },
   });
@@ -22,7 +22,6 @@ export const PATCH = withApi<P>('write:themes', async (req, { params }) => {
   return NextResponse.json({
     id: updated.id,
     name: updated.name,
-    label: updated.label,
     order: updated.order,
   });
 });

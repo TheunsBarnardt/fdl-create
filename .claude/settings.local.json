@@ -112,7 +112,9 @@
       "Bash(curl -sS -o /dev/null -w \"theme %{http_code}\\\\n\" \"http://localhost:58629/theme\" --max-time 60)",
       "Bash(curl -sS -o /dev/null -w \"variables %{http_code}\\\\n\" \"http://localhost:58629/variables\" --max-time 60)",
       "Bash(npx tsx *)",
-      "Bash(git stash *)"
+      "Bash(git stash *)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(k\\) for k in d.get\\('dependencies',{}\\).keys\\(\\)]\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:62080/ --max-time 5)"
     ]
   }
 }

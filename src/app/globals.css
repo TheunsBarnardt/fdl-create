@@ -336,24 +336,27 @@
   .glow-ring {
     transition: box-shadow 240ms ease, border-color 240ms ease, transform 240ms ease;
   }
-  /* Tactical list row — subtle left-anchored tilt + amber edge on hover */
+  /* Tactical list row — amber edge + first-column nudge on hover */
   .tilt-row {
     position: relative;
-    transform-origin: left center;
-    transition: transform 180ms cubic-bezier(.2,.7,.2,1), background-color 180ms ease, box-shadow 180ms ease;
-    will-change: transform;
+    transition: background-color 180ms ease, box-shadow 180ms ease;
+  }
+  .tilt-row > *:first-child {
+    transition: transform 180ms cubic-bezier(.2,.7,.2,1);
   }
   .tilt-row::before {
     content: '';
     position: absolute;
-    left: -1px; top: 10%; bottom: 10%;
+    left: 0; top: 10%; bottom: 10%;
     width: 2px;
     background: transparent;
     transition: background 180ms ease, box-shadow 180ms ease;
   }
   .tilt-row:hover {
-    transform: perspective(500px) rotateY(-2.5deg) translateX(2px);
     background: rgba(245, 158, 11, 0.06);
+  }
+  .tilt-row:hover > *:first-child {
+    transform: translateX(3px);
   }
   .tilt-row:hover::before {
     background: rgba(245, 158, 11, 0.9);
@@ -371,10 +374,9 @@
     background: #f59e0b;
     box-shadow: 0 0 10px rgba(245, 158, 11, 0.85);
   }
-  .tilt-row.active:hover,
-  .tilt-row[data-active='true']:hover {
+  .tilt-row.active:hover > *:first-child,
+  .tilt-row[data-active='true']:hover > *:first-child {
     transform: none;
-    background: rgba(245, 158, 11, 0.95);
   }
   /* Heartbeat — two quick pulses on hover, amber glow bloom */
   @keyframes heartbeat {

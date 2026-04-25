@@ -25,10 +25,11 @@ type Var = {
   order: number;
 };
 
+const fmtColName = (n: string) => n.replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
 type Col = {
   id: string;
   name: string;
-  label: string;
   order: number;
   variables: Var[];
 };
@@ -169,34 +170,32 @@ function FontPicker({ value, onChange, usedFonts }: { value: string; onChange: (
   if (tab === 'local') {
     return (
       <div className="space-y-2">
-        <div className="flex gap-1 p-0.5 bg-neutral-100 rounded-md w-fit">
-          <button onClick={() => setTab('google')} className="text-[11px] px-2.5 py-1 rounded hover:bg-white">Google</button>
-          <button className="text-[11px] px-2.5 py-1 rounded bg-white shadow-sm font-medium">Local</button>
+        <div className="flex gap-1 p-0.5 bg-white/[0.04] rounded-md w-fit">
+          <button onClick={() => setTab('google')} className="text-[11px] px-2.5 py-1 rounded text-white/50 hover:text-white/80 hover:bg-white/[0.06]">Google</button>
+          <button className="text-[11px] px-2.5 py-1 rounded bg-white/[0.08] text-white/90 font-medium">Local</button>
         </div>
         <input ref={fileRef} type="file" accept=".ttf,.otf,.woff,.woff2" className="hidden" onChange={pickLocalFont} />
         <button
           onClick={() => fileRef.current?.click()}
-          className="w-full flex items-center gap-2 px-3 py-2.5 border border-dashed border-neutral-300 rounded-md hover:border-neutral-400 hover:bg-neutral-50 text-sm text-neutral-600 transition-colors"
+          className="w-full flex items-center gap-2 px-3 py-2.5 border border-dashed border-white/[0.15] rounded-md hover:border-accent/50 hover:bg-white/[0.04] text-sm text-white/60 transition-colors"
         >
-          <FolderOpen className="w-4 h-4 text-neutral-400" />
+          <FolderOpen className="w-4 h-4 text-white/40" />
           <span>Browse font files</span>
-          <span className="ml-auto text-[10px] text-neutral-400">.ttf .otf .woff .woff2</span>
+          <span className="ml-auto text-[10px] text-white/30">.ttf .otf .woff .woff2</span>
         </button>
         {localName && (
           <>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                className="flex-1 px-3 py-2 text-sm border border-neutral-200 rounded-md focus:outline-none focus:ring-1 focus:ring-accent font-mono"
-                value={localName}
-                onChange={e => { setLocalName(e.target.value); onChange(e.target.value); }}
-                placeholder="Font family name"
-              />
-            </div>
-            <p className="text-[10px] text-neutral-400">Edit the family name if needed — this is what gets stored</p>
-            <div className="p-3 border border-neutral-200 rounded-md">
-              <p className="text-[10px] text-neutral-400 mb-1">Preview</p>
-              <p className="text-sm leading-relaxed" style={{ fontFamily: localName }}>The quick brown fox jumps over the lazy dog</p>
+            <input
+              type="text"
+              className="w-full px-2.5 py-1.5 text-sm border border-white/[0.08] rounded-md bg-white/[0.03] text-white/90 placeholder-white/30 focus:outline-none focus:border-accent/60 font-mono"
+              value={localName}
+              onChange={e => { setLocalName(e.target.value); onChange(e.target.value); }}
+              placeholder="Font family name"
+            />
+            <p className="text-[10px] text-white/30">Edit the family name if needed — this is what gets stored</p>
+            <div className="p-3 border border-white/[0.08] rounded-md">
+              <p className="text-[10px] text-white/40 mb-1">Preview</p>
+              <p className="text-sm leading-relaxed text-white/80" style={{ fontFamily: localName }}>The quick brown fox jumps over the lazy dog</p>
             </div>
           </>
         )}
@@ -206,14 +205,14 @@ function FontPicker({ value, onChange, usedFonts }: { value: string; onChange: (
 
   return (
     <div className="space-y-2">
-      <div className="flex gap-1 p-0.5 bg-neutral-100 rounded-md w-fit">
-        <button className="text-[11px] px-2.5 py-1 rounded bg-white shadow-sm font-medium">Google</button>
-        <button onClick={() => { setTab('local'); setSearch(''); }} className="text-[11px] px-2.5 py-1 rounded hover:bg-white">Local</button>
+      <div className="flex gap-1 p-0.5 bg-white/[0.04] rounded-md w-fit">
+        <button className="text-[11px] px-2.5 py-1 rounded bg-white/[0.08] text-white/90 font-medium">Google</button>
+        <button onClick={() => { setTab('local'); setSearch(''); }} className="text-[11px] px-2.5 py-1 rounded text-white/50 hover:text-white/80 hover:bg-white/[0.06]">Local</button>
       </div>
       <input
         type="text"
         autoFocus
-        className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-md focus:outline-none focus:ring-1 focus:ring-accent"
+        className="w-full px-2.5 py-1.5 text-sm border border-white/[0.08] rounded-md bg-white/[0.03] text-white/90 placeholder-white/30 focus:outline-none focus:border-accent/60"
         value={search}
         onChange={e => setSearch(e.target.value)}
         placeholder="Search fonts…"
@@ -223,46 +222,46 @@ function FontPicker({ value, onChange, usedFonts }: { value: string; onChange: (
           <button
             key={c || 'all'}
             onClick={() => setCat(c)}
-            className={cn('text-[10px] px-1.5 py-0.5 rounded', cat === c ? 'bg-neutral-900 text-white' : 'bg-neutral-100 hover:bg-neutral-200')}
+            className={cn('text-[10px] px-1.5 py-0.5 rounded', cat === c ? 'bg-accent text-neutral-900 font-medium' : 'bg-white/[0.05] text-white/60 hover:bg-white/[0.10] hover:text-white/90')}
           >
             {c ? getCategoryLabel(c) : 'All'}
           </button>
         ))}
       </div>
-      <div className="max-h-44 overflow-auto border border-neutral-200 rounded-md divide-y divide-neutral-100">
+      <div className="max-h-44 overflow-auto border border-white/[0.08] rounded-md divide-y divide-white/[0.04]">
         {fonts.slice(0, 30).map(f => (
           <button
             key={f.family}
             onClick={() => selectFont(f.family)}
             className={cn(
-              'w-full px-3 py-2 flex items-center justify-between gap-2 hover:bg-neutral-50 text-left group/font',
-              value === f.family && 'bg-sky-50'
+              'w-full px-3 py-2 flex items-center justify-between gap-2 text-left group/font',
+              value === f.family ? 'bg-accent/10' : 'hover:bg-white/[0.06]'
             )}
           >
             <div className="flex-1 min-w-0">
               <span
-                className={cn('text-sm block truncate', usedFonts.includes(f.family) && 'font-bold')}
+                className={cn('text-sm block truncate text-white/90', usedFonts.includes(f.family) && 'font-bold')}
                 style={{ fontFamily: f.family }}
               >
                 {f.family}
               </span>
-              <span className="text-[10px] text-neutral-400 capitalize">{f.category.replace('-', ' ')}</span>
+              <span className="text-[10px] text-white/40 capitalize">{f.category.replace('-', ' ')}</span>
             </div>
             <button
               onClick={e => copyImport(f.family, e)}
-              className="shrink-0 opacity-0 group-hover/font:opacity-100 text-[10px] text-neutral-400 hover:text-neutral-900 px-1.5 py-0.5 rounded hover:bg-neutral-100 flex items-center gap-1"
+              className="shrink-0 opacity-0 group-hover/font:opacity-100 text-[10px] text-white/40 hover:text-white/80 px-1.5 py-0.5 rounded hover:bg-white/[0.08] flex items-center gap-1"
               title="Copy @import"
             >
-              {copied === f.family ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+              {copied === f.family ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
             </button>
           </button>
         ))}
-        {fonts.length === 0 && <p className="text-sm text-neutral-400 px-3 py-4 text-center">No fonts found</p>}
+        {fonts.length === 0 && <p className="text-sm text-white/40 px-3 py-4 text-center">No fonts found</p>}
       </div>
       {value && (
-        <div className="p-3 border border-neutral-200 rounded-md">
-          <p className="text-[10px] text-neutral-400 mb-1">Preview — <span className="font-mono">{value}</span></p>
-          <p className="text-sm leading-relaxed" style={{ fontFamily: value }}>The quick brown fox jumps over the lazy dog</p>
+        <div className="p-3 border border-white/[0.08] rounded-md">
+          <p className="text-[10px] text-white/40 mb-1">Preview — <span className="font-mono">{value}</span></p>
+          <p className="text-sm leading-relaxed text-white/80" style={{ fontFamily: value }}>The quick brown fox jumps over the lazy dog</p>
         </div>
       )}
     </div>
@@ -335,11 +334,10 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.45)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-white rounded-xl shadow-2xl w-96 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <div className="glass-card glow-ring shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto text-white" onClick={(e) => e.stopPropagation()}>
         {children}
       </div>
     </div>,
@@ -351,16 +349,15 @@ function CollectionModal({
   col, onClose, onSave,
 }: { col: Col | null; onClose: () => void; onSave: (d: any) => Promise<void> }) {
   const [name, setName]   = useState(col?.name ?? '');
-  const [label, setLabel] = useState(col?.label ?? '');
   const [busy, setBusy]   = useState(false);
   const [err, setErr]     = useState('');
 
   async function submit() {
-    if (!label.trim()) { setErr('Label is required'); return; }
-    if (!col && !name.trim()) { setErr('Name is required'); return; }
+    if (!name.trim()) { setErr('Name is required'); return; }
     setBusy(true);
     try {
-      await onSave(col ? { label } : { name: name.trim().toLowerCase().replace(/\s+/g, '_'), label });
+      const slug = name.trim().toLowerCase().replace(/\s+/g, '_');
+      await onSave(col ? { id: col.id, name: slug } : { name: slug });
       onClose();
     } catch (e: any) {
       setErr(String(e));
@@ -371,42 +368,31 @@ function CollectionModal({
 
   return (
     <Modal onClose={onClose}>
-      <div className="p-6 space-y-4">
-        <h2 className="text-base font-semibold">{col ? 'Edit collection' : 'New collection'}</h2>
-
-        {!col && (
-          <label className="block">
-            <span className="text-[11px] uppercase tracking-wider text-neutral-500">Name</span>
-            <input
-              className="mt-1 w-full px-3 py-2 text-sm border border-neutral-200 rounded-md focus:outline-none focus:ring-1 focus:ring-accent"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="colors, typography…"
-              autoFocus
-            />
-            <p className="mt-1 text-[10px] text-neutral-400">Lowercase, underscores only — used as the collection key</p>
-          </label>
-        )}
-
+      <div className="px-5 py-3 border-b border-white/[0.06] flex items-center justify-between">
+        <div className="display text-base text-white/95">{col ? 'Edit collection' : 'New collection'}</div>
+        <button onClick={onClose} className="text-white/45 hover:text-white/90">✕</button>
+      </div>
+      <div className="p-5 space-y-4 text-xs">
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wider text-neutral-500">Label</span>
+          <span className="text-[11px] uppercase tracking-wider text-white/45">Name</span>
           <input
-            className="mt-1 w-full px-3 py-2 text-sm border border-neutral-200 rounded-md focus:outline-none focus:ring-1 focus:ring-accent"
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            placeholder="Colors, Typography…"
-            autoFocus={!!col}
+            className="mt-1 w-full px-2.5 py-1.5 text-sm border border-white/[0.08] rounded-md bg-white/[0.03] text-white/90 placeholder-white/30 focus:outline-none focus:border-accent/60"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="colors, typography…"
+            autoFocus
           />
         </label>
 
-        {err && <p className="text-xs text-destructive">{err}</p>}
 
-        <div className="flex justify-end gap-2 pt-2 border-t border-neutral-100">
-          <button onClick={onClose} className="px-4 py-2 text-sm rounded-md hover:bg-neutral-100">Cancel</button>
+        {err && <p className="text-xs text-rose-400">{err}</p>}
+
+        <div className="flex justify-end gap-2 pt-2 border-t border-white/[0.06]">
+          <button onClick={onClose} className="px-3 py-1.5 text-xs rounded-md text-white/70 hover:bg-white/[0.06] hover:text-white/95 transition-colors">Cancel</button>
           <button
             onClick={submit}
             disabled={busy}
-            className="px-4 py-2 text-sm bg-neutral-900 text-white rounded-md hover:bg-neutral-800 disabled:opacity-50"
+            className="px-3 py-1.5 text-xs bg-accent text-neutral-900 rounded-md hover:bg-amber-400 disabled:opacity-50 font-medium"
           >
             {busy ? 'Saving…' : col ? 'Save' : 'Create'}
           </button>
@@ -417,10 +403,52 @@ function CollectionModal({
 }
 
 
+function DarkSelect({ value, onChange, options }: {
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+  const selected = options.find(o => o.value === value);
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-2.5 py-1.5 text-sm border border-white/[0.08] rounded-md bg-white/[0.03] text-white/90 focus:outline-none hover:border-white/20 transition-colors"
+      >
+        <span>{selected?.label ?? value}</span>
+        <ChevronDown className="w-3.5 h-3.5 text-white/40 shrink-0" />
+      </button>
+      {open && (
+        <ul className="absolute z-50 left-0 right-0 top-full mt-0.5 bg-neutral-950 border border-white/[0.08] rounded-md shadow-xl overflow-hidden py-0.5 text-sm">
+          {options.map(o => (
+            <li
+              key={o.value}
+              className={cn('tilt-row px-3 py-1.5 cursor-pointer', value === o.value ? 'text-accent font-medium' : 'text-white/80')}
+              onMouseDown={e => { e.preventDefault(); onChange(o.value); setOpen(false); }}
+            >
+              {o.label}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function TwClassInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [open, setOpen] = useState(false);
   const [idx, setIdx]   = useState(-1);
-  const ref = useRef<HTMLDivElement>(null);
+  const ref      = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [dropRect, setDropRect] = useState<DOMRect | null>(null);
   const suggestions = open ? getTwSuggestions(value) : [];
   const hint = getTwHint(value);
 
@@ -430,6 +458,11 @@ function TwClassInput({ value, onChange }: { value: string; onChange: (v: string
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  function openDropdown() {
+    if (inputRef.current) setDropRect(inputRef.current.getBoundingClientRect());
+    setOpen(true);
+  }
 
   function onKey(e: React.KeyboardEvent) {
     if (!open || suggestions.length === 0) return;
@@ -442,34 +475,39 @@ function TwClassInput({ value, onChange }: { value: string; onChange: (v: string
   return (
     <div ref={ref} className="relative">
       <input
+        ref={inputRef}
         type="text"
         autoFocus
-        className="mt-1 w-full px-3 py-2 text-sm border border-neutral-200 rounded-md focus:outline-none focus:ring-1 focus:ring-accent font-mono"
+        className="mt-1 w-full px-2.5 py-1.5 text-sm border border-white/[0.08] rounded-md bg-white/[0.03] text-white/90 placeholder-white/30 focus:outline-none focus:border-accent/60 font-mono"
         value={value}
         placeholder="pt-4, text-lg, rounded-md…"
-        onChange={e => { onChange(e.target.value); setOpen(true); }}
-        onFocus={() => setOpen(true)}
+        onChange={e => { onChange(e.target.value); openDropdown(); }}
+        onFocus={openDropdown}
         onKeyDown={onKey}
       />
       {hint && (
-        <p className="mt-1 text-[10px] text-neutral-400 font-mono">→ {hint}</p>
+        <p className="mt-1 text-[10px] text-white/40 font-mono">→ {hint}</p>
       )}
-      {open && suggestions.length > 0 && (
-        <ul className="absolute z-50 left-0 right-0 top-full mt-0.5 bg-white border border-neutral-200 rounded-md shadow-lg max-h-44 overflow-auto py-0.5 text-[12px]">
+      {open && suggestions.length > 0 && dropRect && createPortal(
+        <ul
+          style={{ position: 'fixed', top: dropRect.bottom + 2, left: dropRect.left, width: dropRect.width, zIndex: 9999 }}
+          className="bg-neutral-950 border border-white/[0.08] rounded-md shadow-xl max-h-44 overflow-y-auto overflow-x-hidden py-0.5 text-[12px]"
+        >
           {suggestions.map((s, i) => {
             const sh = getTwHint(s);
             return (
               <li
                 key={s}
-                className={cn('px-3 py-1.5 cursor-pointer flex items-center justify-between gap-2', i === idx ? 'bg-accent text-white' : 'hover:bg-neutral-50')}
+                className={cn('tilt-row px-3 py-1.5 cursor-pointer flex items-center justify-between gap-2', i === idx ? 'text-accent font-medium' : 'text-white/80')}
                 onMouseDown={e => { e.preventDefault(); onChange(s); setOpen(false); }}
               >
                 <span className="font-mono">{s}</span>
-                {sh && <span className={cn('text-[10px] truncate max-w-[140px]', i === idx ? 'text-white/70' : 'text-neutral-400')}>{sh.split(';')[0]}</span>}
+                {sh && <span className={cn('text-[10px] truncate max-w-[140px]', i === idx ? 'text-accent/60' : 'text-white/40')}>{sh.split(';')[0]}</span>}
               </li>
             );
           })}
-        </ul>
+        </ul>,
+        document.body
       )}
     </div>
   );
@@ -505,54 +543,59 @@ function VariableModal({
 
   return (
     <Modal onClose={onClose}>
-      <div className="p-6 space-y-4">
-        <h2 className="text-base font-semibold">{v ? 'Edit variable' : 'New variable'}</h2>
+      <div className="px-5 py-3 border-b border-white/[0.06] flex items-center justify-between">
+        <div className="display text-base text-white/95">{v ? 'Edit variable' : 'New variable'}</div>
+        <button onClick={onClose} className="text-white/45 hover:text-white/90">✕</button>
+      </div>
+      <div className="p-5 space-y-4 text-xs">
 
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wider text-neutral-500">Name</span>
+          <span className="text-[11px] uppercase tracking-wider text-white/45">Name</span>
           <input
-            className="mt-1 w-full px-3 py-2 text-sm border border-neutral-200 rounded-md focus:outline-none focus:ring-1 focus:ring-accent font-mono"
+            className="mt-1 w-full px-2.5 py-1.5 text-sm border border-white/[0.08] rounded-md bg-white/[0.03] text-white/90 placeholder-white/30 focus:outline-none focus:border-accent/60 font-mono"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="colors/primary/base"
             autoFocus
           />
-          <p className="mt-1 text-[10px] text-neutral-400">Use slashes to create groups: colors/primary/base</p>
+          <p className="mt-1 text-[10px] text-white/30">Use slashes to create groups: colors/primary/base</p>
         </label>
 
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wider text-neutral-500">Type</span>
-          <select
-            className="mt-1 w-full px-3 py-2 text-sm border border-neutral-200 rounded-md focus:outline-none focus:ring-1 focus:ring-accent bg-white"
-            value={type}
-            onChange={(e) => {
-              const t = e.target.value as VariableType;
-              setType(t);
-              if (t === 'tailwind' || type === 'tailwind' || t === 'font' || type === 'font') { setLv(''); setDv(''); }
-            }}
-          >
-            <option value="color">Color</option>
-            <option value="tailwind">Tailwind</option>
-            <option value="font">Font</option>
-          </select>
+          <span className="text-[11px] uppercase tracking-wider text-white/45">Type</span>
+          <div className="mt-1">
+            <DarkSelect
+              value={type}
+              onChange={(v) => {
+                const t = v as VariableType;
+                setType(t);
+                if (t === 'tailwind' || type === 'tailwind' || t === 'font' || type === 'font') { setLv(''); setDv(''); }
+              }}
+              options={[
+                { value: 'color', label: 'Color' },
+                { value: 'tailwind', label: 'Tailwind' },
+                { value: 'font', label: 'Font' },
+              ]}
+            />
+          </div>
         </label>
 
         {type === 'font' ? (
           <div>
-            <span className="text-[11px] uppercase tracking-wider text-neutral-500">Font family</span>
+            <span className="text-[11px] uppercase tracking-wider text-white/45">Font family</span>
             <div className="mt-2">
               <FontPicker value={lv} onChange={setLv} usedFonts={usedFonts} />
             </div>
           </div>
         ) : type === 'tailwind' ? (
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wider text-neutral-500">Value</span>
+            <span className="text-[11px] uppercase tracking-wider text-white/45">Value</span>
             <TwClassInput value={lv} onChange={setLv} />
           </label>
         ) : (
           <>
             <div className="flex items-center justify-between">
-              <span className="text-[11px] uppercase tracking-wider text-neutral-500">
+              <span className="text-[11px] uppercase tracking-wider text-white/45">
                 {darkMode ? 'Light value' : 'Value'}
               </span>
               <button
@@ -564,11 +607,11 @@ function VariableModal({
                 className={cn(
                   'flex items-center gap-1.5 text-[10px] px-2 py-0.5 rounded border transition-colors',
                   darkMode
-                    ? 'border-sky-300 bg-sky-50 text-sky-700'
-                    : 'border-neutral-200 text-neutral-400 hover:border-neutral-300 hover:text-neutral-600'
+                    ? 'border-sky-400/60 bg-sky-500/15 text-sky-200'
+                    : 'border-white/[0.08] text-white/50 hover:bg-white/[0.06] hover:text-white/80'
                 )}
               >
-                <span className={cn('w-2 h-2 rounded-full', darkMode ? 'bg-sky-500' : 'bg-neutral-300')} />
+                <span className={cn('w-2 h-2 rounded-full', darkMode ? 'bg-sky-400' : 'bg-white/30')} />
                 Dark mode
               </button>
             </div>
@@ -578,7 +621,7 @@ function VariableModal({
               return (
                 <label key={m} className="block">
                   {darkMode && (
-                    <span className="text-[10px] text-neutral-400 mb-1 block">
+                    <span className="text-[10px] text-white/30 mb-1 block">
                       {m === 'light' ? '☀ Light' : '☽ Dark'}
                     </span>
                   )}
@@ -587,11 +630,11 @@ function VariableModal({
                       type="color"
                       value={val.startsWith('#') ? val : (val ? hslToHex(val) : '#000000')}
                       onChange={(e) => set(e.target.value)}
-                      className="w-10 h-10 rounded cursor-pointer border border-neutral-200 p-0.5"
+                      className="w-10 h-10 rounded cursor-pointer border border-white/[0.08] p-0.5"
                     />
                     <input
                       type="text"
-                      className="flex-1 px-3 py-2 text-sm border border-neutral-200 rounded-md focus:outline-none focus:ring-1 focus:ring-accent font-mono"
+                      className="flex-1 px-2.5 py-1.5 text-sm border border-white/[0.08] rounded-md bg-white/[0.03] text-white/90 placeholder-white/30 focus:outline-none focus:border-accent/60 font-mono"
                       value={val}
                       onChange={(e) => set(e.target.value)}
                       placeholder="#FF0000 or 222 47% 11%"
@@ -605,9 +648,9 @@ function VariableModal({
 
 
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wider text-neutral-500">Description</span>
+          <span className="text-[11px] uppercase tracking-wider text-white/45">Description</span>
           <textarea
-            className="mt-1 w-full px-3 py-2 text-sm border border-neutral-200 rounded-md focus:outline-none focus:ring-1 focus:ring-accent"
+            className="mt-1 w-full px-2.5 py-1.5 text-sm border border-white/[0.08] rounded-md bg-white/[0.03] text-white/90 placeholder-white/30 focus:outline-none focus:border-accent/60"
             value={desc}
             onChange={(e) => setDesc(e.target.value)}
             placeholder="Optional…"
@@ -615,14 +658,14 @@ function VariableModal({
           />
         </label>
 
-        {err && <p className="text-xs text-destructive">{err}</p>}
+        {err && <p className="text-xs text-rose-400">{err}</p>}
 
-        <div className="flex justify-end gap-2 pt-2 border-t border-neutral-100">
-          <button onClick={onClose} className="px-4 py-2 text-sm rounded-md hover:bg-neutral-100">Cancel</button>
+        <div className="flex justify-end gap-2 pt-2 border-t border-white/[0.06]">
+          <button onClick={onClose} className="px-3 py-1.5 text-xs rounded-md text-white/70 hover:bg-white/[0.06] hover:text-white/95 transition-colors">Cancel</button>
           <button
             onClick={submit}
             disabled={busy}
-            className="px-4 py-2 text-sm bg-neutral-900 text-white rounded-md hover:bg-neutral-800 disabled:opacity-50"
+            className="px-3 py-1.5 text-xs bg-accent text-neutral-900 rounded-md hover:bg-amber-400 disabled:opacity-50 font-medium"
           >
             {busy ? 'Saving…' : v ? 'Save' : 'Add variable'}
           </button>
@@ -645,43 +688,48 @@ export function VariableCollectionsPanel() {
   const [varModal,  setVarModal]  = useState<'new' | 'edit' | null>(null);
 
   // load
-  useEffect(() => {
-    fetch('/api/variable-collections')
-      .then(async (r) => {
-        const data = await r.json();
-        if (!r.ok) throw new Error(data?.error || 'Failed to load');
-        const list: Col[] = Array.isArray(data) ? data : [];
-        setCols(list);
-        if (list.length) setActive(list[0]);
-      })
-      .catch((e) => setErr(String(e)));
+  const loadCols = useCallback(async () => {
+    const r = await fetch('/api/variable-collections');
+    const data = await r.json();
+    if (!r.ok) throw new Error(data?.error || 'Failed to load');
+    const list: Col[] = Array.isArray(data) ? data : [];
+    setCols(list);
+    setActive((prev) => list.find((c) => c.id === prev?.id) ?? list[0] ?? null);
   }, []);
+
+  useEffect(() => { loadCols().catch((e) => setErr(String(e))); }, [loadCols]);
 
   // helpers to keep local state in sync without router.refresh()
   const updateCols = (next: Col[]) => { setCols(next); };
 
   // ── Collection CRUD ──────────────────────────────────────────────────────
   const saveCol = useCallback(async (data: any) => {
-    if (colModal === 'edit' && active) {
-      const res = await fetch(`/api/variable-collections/${active.id}`, {
-        method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(data),
+    if (data.id) {
+      const { id, ...patch } = data;
+      const res = await fetch(`/api/variable-collections/${id}`, {
+        method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(patch),
       });
-      if (!res.ok) throw new Error((await res.json()).error || 'Failed');
-      const updated: Col = { ...active, ...data };
-      const next = cols.map((c) => c.id === active.id ? updated : c);
+      if (!res.ok) { const j = await res.json(); throw new Error(typeof j.error === 'string' ? j.error : (j.error?.message ?? 'Failed to save')); }
+      const updated: Col = { ...(cols.find(c => c.id === id) ?? {}), ...patch, id } as Col;
+      const next = cols.map((c) => c.id === id ? updated : c);
       updateCols(next);
       setActive(updated);
     } else {
       const res = await fetch('/api/variable-collections', {
         method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error((await res.json()).error || 'Failed');
-      const created: Col = { ...(await res.json()), variables: [] };
+      const json = await res.json();
+      if (!res.ok) {
+        const msg: string = typeof json.error === 'string' ? json.error : (json.error?.message ?? '');
+        if (msg.includes('Unique constraint')) { await loadCols(); throw new Error('A collection with that name already exists'); }
+        throw new Error(msg || 'Failed to create collection');
+      }
+      const created: Col = { ...json, variables: [] };
       const next = [...cols, created];
       updateCols(next);
       setActive(created);
     }
-  }, [colModal, active, cols]);
+  }, [cols, loadCols]);
 
   const deleteCol = async (id: string) => {
     if (!confirm('Delete collection and all its variables?')) return;
@@ -770,7 +818,7 @@ export function VariableCollectionsPanel() {
                 )}
                 onClick={() => { setActive(c); setSelVar(null); }}
               >
-                <span className="flex-1 truncate">{c.label}</span>
+                <span className="flex-1 truncate">{fmtColName(c.name)}</span>
                 <span className={cn('text-[10px] group-hover:hidden', active?.id === c.id ? 'text-white/50' : 'text-neutral-400')}>
                   {c.variables.length}
                 </span>
@@ -784,7 +832,7 @@ export function VariableCollectionsPanel() {
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); deleteCol(c.id); }}
-                    className={cn('p-0.5 rounded', active?.id === c.id ? 'hover:bg-white/20 text-red-300' : 'hover:bg-neutral-200 text-destructive')}
+                    className={cn('p-0.5 rounded transition-colors', active?.id === c.id ? 'hover:bg-rose-500/10 text-rose-400 hover:text-rose-300' : 'hover:bg-rose-500/10 text-red-600 hover:text-red-500')}
                     title="Delete collection"
                   >
                     <Trash2 className="w-3 h-3" />
@@ -801,12 +849,12 @@ export function VariableCollectionsPanel() {
           <main className="flex-1 flex flex-col overflow-hidden border-r border-neutral-200">
             <div className="p-3 border-b border-neutral-200 flex items-center justify-between shrink-0">
               <div>
-                <p className="font-semibold text-sm">{active.label}</p>
+                <p className="font-semibold text-sm">{fmtColName(active.name)}</p>
                 <p className="text-[10px] text-neutral-400 mt-0.5">{active.variables.length} variables</p>
               </div>
               <button
                 onClick={() => { setSelVar(null); setVarModal('new'); }}
-                className="px-3 py-1.5 text-sm bg-neutral-900 text-white rounded-md hover:bg-neutral-800"
+                className="px-3 py-1.5 text-sm bg-accent text-neutral-900 rounded-md hover:bg-amber-400 font-medium transition-colors"
               >
                 + Add variable
               </button>
@@ -829,7 +877,7 @@ export function VariableCollectionsPanel() {
               <p className="text-sm text-neutral-500">No collection selected</p>
               <button
                 onClick={() => setColModal('new')}
-                className="px-4 py-2 text-sm bg-neutral-900 text-white rounded-md hover:bg-neutral-800"
+                className="px-4 py-2 text-sm bg-accent text-neutral-900 rounded-md hover:bg-amber-400 font-medium transition-colors"
               >
                 Create first collection
               </button>
@@ -913,7 +961,7 @@ export function VariableCollectionsPanel() {
               <div className="flex gap-2 pt-4 border-t border-white/10">
                 <button
                   onClick={() => setVarModal('edit')}
-                  className="flex-1 px-3 py-2 text-sm bg-sky-500 hover:bg-sky-400 text-white rounded-md font-medium shadow-accent-glow transition-colors"
+                  className="flex-1 px-3 py-2 text-sm bg-accent text-neutral-900 rounded-md hover:bg-amber-400 font-medium transition-colors"
                 >
                   Edit
                 </button>
