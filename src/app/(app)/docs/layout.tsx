@@ -8,9 +8,9 @@ import type { ReactNode } from 'react';
 
 export default function DocsRootLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="docs-root dark relative flex-1 min-h-0 overflow-hidden bg-[#070709]">
-      {/* Showcase ambient layers — same vocabulary as the showcase hero, dialed down for reading */}
-      <div className="pointer-events-none absolute inset-0 z-0">
+    <div className="docs-root dark relative flex-1 min-h-0 overflow-y-auto bg-[#070709]">
+      {/* Showcase ambient layers — fixed so they stay in place while the article scrolls */}
+      <div className="pointer-events-none fixed inset-0 z-0">
         <div
           className="mesh-orb mesh-orb-amber"
           style={{ width: '700px', height: '700px', top: '-15%', left: '-15%', opacity: 0.55 }}
@@ -23,7 +23,7 @@ export default function DocsRootLayout({ children }: { children: ReactNode }) {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#070709]/20 to-[#070709]/60" />
       </div>
 
-      <div className="relative z-10 h-full">
+      <div className="relative z-10 min-h-full">
         <RootProvider
           theme={{
             defaultTheme: 'dark',
