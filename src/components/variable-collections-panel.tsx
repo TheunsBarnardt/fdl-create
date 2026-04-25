@@ -2,17 +2,21 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { Plus, Trash2, ChevronDown, Palette, Pencil, Wind, ALargeSmall, Copy, Check, FolderOpen } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronUp, Palette, Pencil, Wind, ALargeSmall, Copy, Check, FolderOpen, Layers, Eye, EyeOff, Info } from 'lucide-react';
 import { getTwSuggestions, getTwHint } from '@/lib/tailwind-classes';
 import { loadGoogleFont, getFontImport, searchFonts, getCategoryLabel, POPULAR_FONTS } from '@/lib/google-fonts-list';
+import {
+  type Effect, type EffectKind, type DropShadow, type InnerShadow, type LayerBlur, type BackgroundBlur,
+  BLEND_MODES, blendModeLabel, defaultEffect, effectKindLabel, effectsToCss, effectsToTailwind, effectSummary, isEffectArray,
+} from '@/lib/effect-types';
 import { cn } from '@/lib/utils';
 import { ScreenHeader, Chip } from './screen-header';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type VariableType = 'color' | 'tailwind' | 'font';
+type VariableType = 'color' | 'tailwind' | 'font' | 'effect';
 
-type VariableValue = string | { light: string; dark: string };
+type VariableValue = string | { light: string; dark: string } | Effect[];
 
 type Var = {
   id: string;
@@ -105,14 +109,29 @@ function typeIcon(t: string) {
   if (t === 'color')    return <Palette className={cls} />;
   if (t === 'tailwind') return <Wind className={cls} />;
   if (t === 'font')     return <ALargeSmall className={cls} />;
+  if (t === 'effect')   return <Layers className={cls} />;
   return null;
 }
 
-function colorSwatch(value: VariableValue, type: string) {
-  if (type !== 'color') return null;
-  const raw = typeof value === 'string' ? value : value.light;
-  const hex = raw.startsWith('#') ? raw : hslToHex(raw);
-  return <span className="w-3 h-3 rounded-sm border border-neutral-200 shrink-0" style={{ background: hex }} />;
+function rowPreview(value: VariableValue, type: string) {
+  if (type === 'color') {
+    const raw = typeof value === 'string' ? value : (value as any).light;
+    const hex = raw.startsWith('#') ? raw : hslToHex(raw);
+    return <span className="w-3 h-3 rounded-sm border border-neutral-200 shrink-0" style={{ background: hex }} />;
+  }
+  if (type === 'effect' && isEffectArray(value)) {
+    const css = effectsToCss(value);
+    return (
+      <span
+        className="w-4 h-4 rounded-sm shrink-0 bg-white"
+        style={{
+          boxShadow: css.boxShadow || undefined,
+          filter:    css.filter || undefined,
+        }}
+      />
+    );
+  }
+  return null;
 }
 
 function fmtValue(v: VariableValue, type?: string) {
@@ -120,8 +139,12 @@ function fmtValue(v: VariableValue, type?: string) {
     const hint = getTwHint(v);
     return hint ? `${v} — ${hint.split(';')[0]}` : v;
   }
+  if (type === 'effect' && isEffectArray(v)) {
+    return effectsToTailwind(v) || effectSummary(v);
+  }
   if (typeof v === 'string') return v;
-  return `${v.light} / ${v.dark}`;
+  if (v && typeof v === 'object' && 'light' in v) return `${v.light} / ${v.dark}`;
+  return '';
 }
 
 // ─── Font picker ──────────────────────────────────────────────────────────────
@@ -310,7 +333,7 @@ function GroupNode({
               <span className="flex-1 text-[12px] truncate">{v.name.split('/').pop()}</span>
               <div className="flex items-center gap-1.5 shrink-0 pr-2">
                 <span className="text-[10px] text-neutral-400 max-w-[100px] truncate">{fmtValue(v.value, v.type)}</span>
-                {colorSwatch(v.value, v.type)}
+                {rowPreview(v.value, v.type)}
               </div>
             </button>
           ))}
@@ -514,22 +537,336 @@ function TwClassInput({ value, onChange }: { value: string; onChange: (v: string
 }
 
 
+// ─── Effect editor ────────────────────────────────────────────────────────────
+
+function NumInput({ value, onChange, label }: { value: number; onChange: (n: number) => void; label: string }) {
+  return (
+    <label className="block">
+      <span className="text-[10px] text-white/40">{label}</span>
+      <input
+        type="number"
+        value={Number.isFinite(value) ? value : 0}
+        onChange={e => onChange(Number(e.target.value) || 0)}
+        className="mt-0.5 w-full px-2 py-1 text-sm border border-white/[0.08] rounded-md bg-white/[0.03] text-white/90 placeholder-white/30 focus:outline-none focus:border-accent/60 font-mono"
+      />
+    </label>
+  );
+}
+
+function ShadowFields({
+  e, onChange,
+}: { e: DropShadow | InnerShadow; onChange: (next: DropShadow | InnerShadow) => void }) {
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-2">
+        <NumInput label="X"      value={e.x}      onChange={x => onChange({ ...e, x })} />
+        <NumInput label="Y"      value={e.y}      onChange={y => onChange({ ...e, y })} />
+        <NumInput label="Blur"   value={e.blur}   onChange={blur   => onChange({ ...e, blur })} />
+        <NumInput label="Spread" value={e.spread} onChange={spread => onChange({ ...e, spread })} />
+      </div>
+
+      <div>
+        <span className="text-[10px] text-white/40">Color</span>
+        <div className="mt-0.5 flex gap-2">
+          <input
+            type="color"
+            value={e.color}
+            onChange={ev => onChange({ ...e, color: ev.target.value })}
+            className="w-9 h-9 rounded cursor-pointer border border-white/[0.08] p-0.5"
+          />
+          <input
+            type="text"
+            value={e.color}
+            onChange={ev => onChange({ ...e, color: ev.target.value })}
+            className="flex-1 px-2 py-1 text-sm border border-white/[0.08] rounded-md bg-white/[0.03] text-white/90 placeholder-white/30 focus:outline-none focus:border-accent/60 font-mono"
+            placeholder="#000000"
+          />
+          <div className="w-20">
+            <input
+              type="number"
+              min={0}
+              max={100}
+              value={Math.round(e.opacity * 100)}
+              onChange={ev => onChange({ ...e, opacity: Math.max(0, Math.min(100, Number(ev.target.value) || 0)) / 100 })}
+              className="w-full px-2 py-1 text-sm border border-white/[0.08] rounded-md bg-white/[0.03] text-white/90 focus:outline-none focus:border-accent/60 font-mono"
+            />
+            <span className="text-[10px] text-white/30 block text-center mt-0.5">opacity %</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 items-end">
+        <div>
+          <span className="text-[10px] text-white/40 flex items-center gap-1">
+            Blend mode
+            <span title="Stored for Figma round-trip; not emitted in CSS — see docs">
+              <Info className="w-3 h-3 text-white/30" />
+            </span>
+          </span>
+          <div className="mt-0.5">
+            <DarkSelect
+              value={e.blendMode}
+              onChange={(v) => onChange({ ...e, blendMode: v as any })}
+              options={BLEND_MODES.map(m => ({ value: m, label: blendModeLabel(m) }))}
+            />
+          </div>
+        </div>
+        {e.kind === 'drop_shadow' && (
+          <label className="flex items-center gap-2 px-2 py-1.5 border border-white/[0.08] rounded-md bg-white/[0.03] cursor-pointer">
+            <input
+              type="checkbox"
+              checked={e.showBehindTransparent}
+              onChange={ev => onChange({ ...e, showBehindTransparent: ev.target.checked })}
+              className="accent-accent"
+            />
+            <span className="text-[11px] text-white/70 flex items-center gap-1">
+              Show behind transparent
+              <span title="Stored for Figma round-trip; not emitted in CSS — see docs">
+                <Info className="w-3 h-3 text-white/30" />
+              </span>
+            </span>
+          </label>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function BlurFields({
+  e, onChange,
+}: { e: LayerBlur | BackgroundBlur; onChange: (next: LayerBlur | BackgroundBlur) => void }) {
+  return (
+    <div className="space-y-2">
+      <NumInput label="Radius (px)" value={e.radius} onChange={radius => onChange({ ...e, radius })} />
+      <div
+        className="h-14 rounded border border-white/[0.08] relative overflow-hidden"
+        style={{ background: 'linear-gradient(135deg,#f59e0b 0%,#8b5cf6 100%)' }}
+      >
+        <div
+          className="absolute inset-0"
+          style={
+            e.kind === 'layer_blur'
+              ? { filter: `blur(${e.radius}px)`, background: 'linear-gradient(135deg,#f59e0b 0%,#8b5cf6 100%)' }
+              : { backdropFilter: `blur(${e.radius}px)`, background: 'rgba(255,255,255,0.04)' }
+          }
+        />
+      </div>
+    </div>
+  );
+}
+
+function EffectLayerCard({
+  e, idx, total, onChange, onRemove, onMove,
+}: {
+  e: Effect;
+  idx: number;
+  total: number;
+  onChange: (next: Effect) => void;
+  onRemove: () => void;
+  onMove: (dir: -1 | 1) => void;
+}) {
+  const [open, setOpen] = useState(true);
+  return (
+    <div className="border border-white/[0.08] rounded-md bg-white/[0.02]">
+      <div className="flex items-center gap-1 px-2 py-1.5">
+        <button
+          type="button"
+          onClick={() => onChange({ ...e, visible: !e.visible } as Effect)}
+          className="p-1 rounded hover:bg-white/[0.06] text-white/60"
+          title={e.visible ? 'Hide layer' : 'Show layer'}
+        >
+          {e.visible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5 text-white/30" />}
+        </button>
+        <button
+          type="button"
+          onClick={() => setOpen(o => !o)}
+          className="flex-1 flex items-center gap-1.5 text-left text-[11px] text-white/80 px-1"
+        >
+          <ChevronDown className={cn('w-3 h-3 text-white/40 transition-transform', !open && '-rotate-90')} />
+          <span className="font-medium">{effectKindLabel(e.kind)}</span>
+          {!e.visible && <span className="text-[10px] text-white/30 italic">(hidden)</span>}
+        </button>
+        <button
+          type="button"
+          disabled={idx === 0}
+          onClick={() => onMove(-1)}
+          className="p-1 rounded hover:bg-white/[0.06] text-white/50 disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Move up"
+        >
+          <ChevronUp className="w-3.5 h-3.5" />
+        </button>
+        <button
+          type="button"
+          disabled={idx === total - 1}
+          onClick={() => onMove(1)}
+          className="p-1 rounded hover:bg-white/[0.06] text-white/50 disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Move down"
+        >
+          <ChevronDown className="w-3.5 h-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={onRemove}
+          className="p-1 rounded hover:bg-rose-500/10 text-rose-400/70 hover:text-rose-300"
+          title="Remove layer"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+      {open && (
+        <div className="px-3 pt-2 pb-3 border-t border-white/[0.06]">
+          {(e.kind === 'drop_shadow' || e.kind === 'inner_shadow') && (
+            <ShadowFields e={e} onChange={onChange as any} />
+          )}
+          {(e.kind === 'layer_blur' || e.kind === 'background_blur') && (
+            <BlurFields e={e} onChange={onChange as any} />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EffectEditor({ effects, onChange }: { effects: Effect[]; onChange: (next: Effect[]) => void }) {
+  const [addOpen, setAddOpen] = useState(false);
+  const css = effectsToCss(effects);
+  const tw  = effectsToTailwind(effects);
+  const [copied, setCopied] = useState(false);
+
+  function add(kind: EffectKind) {
+    onChange([...effects, defaultEffect(kind)]);
+    setAddOpen(false);
+  }
+  function update(idx: number, next: Effect) {
+    onChange(effects.map((e, i) => i === idx ? next : e));
+  }
+  function remove(idx: number) {
+    onChange(effects.filter((_, i) => i !== idx));
+  }
+  function move(idx: number, dir: -1 | 1) {
+    const target = idx + dir;
+    if (target < 0 || target >= effects.length) return;
+    const next = [...effects];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    onChange(next);
+  }
+  function copyTw() {
+    if (!tw) return;
+    navigator.clipboard.writeText(tw);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] uppercase tracking-wider text-white/45">Effects</span>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setAddOpen(o => !o)}
+            className="flex items-center gap-1 px-2 py-1 text-[11px] rounded-md bg-white/[0.05] text-white/80 hover:bg-white/[0.10] hover:text-white/95 border border-white/[0.08]"
+          >
+            <Plus className="w-3 h-3" /> Add layer
+          </button>
+          {addOpen && (
+            <div className="absolute right-0 top-full mt-1 z-20 bg-neutral-950 border border-white/[0.08] rounded-md shadow-xl py-0.5 text-[12px] min-w-[160px]">
+              {(['drop_shadow', 'inner_shadow', 'layer_blur', 'background_blur'] as const).map(k => (
+                <button
+                  key={k}
+                  type="button"
+                  onMouseDown={e => { e.preventDefault(); add(k); }}
+                  className="tilt-row w-full text-left px-3 py-1.5 text-white/80 cursor-pointer"
+                >
+                  {effectKindLabel(k)}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        {effects.length === 0 && (
+          <p className="text-[11px] text-white/40 px-3 py-4 text-center border border-dashed border-white/[0.10] rounded-md">
+            No layers yet — click <span className="text-white/70">Add layer</span> to start
+          </p>
+        )}
+        {effects.map((e, i) => (
+          <EffectLayerCard
+            key={i}
+            e={e}
+            idx={i}
+            total={effects.length}
+            onChange={next => update(i, next)}
+            onRemove={() => remove(i)}
+            onMove={dir => move(i, dir)}
+          />
+        ))}
+      </div>
+
+      <div className="space-y-2 pt-3 border-t border-white/[0.06]">
+        <div>
+          <span className="text-[10px] uppercase tracking-wider text-white/45">Preview</span>
+          <div className="mt-1 h-20 rounded-md bg-white relative overflow-hidden flex items-center justify-center">
+            <div
+              className="w-12 h-12 rounded bg-white"
+              style={{
+                boxShadow:      css.boxShadow || undefined,
+                filter:         css.filter || undefined,
+                backdropFilter: css.backdropFilter || undefined,
+              }}
+            />
+          </div>
+        </div>
+        <div>
+          <span className="text-[10px] uppercase tracking-wider text-white/45">Tailwind class</span>
+          <div className="mt-1 flex gap-2">
+            <code className="flex-1 px-2 py-1.5 text-[11px] border border-white/[0.08] rounded-md bg-white/[0.03] text-accent/90 font-mono break-all">
+              {tw || <span className="text-white/30">— no visible layers —</span>}
+            </code>
+            <button
+              type="button"
+              onClick={copyTw}
+              disabled={!tw}
+              className="shrink-0 px-2 py-1.5 text-[11px] rounded-md bg-white/[0.05] hover:bg-white/[0.10] text-white/80 border border-white/[0.08] disabled:opacity-40"
+              title="Copy Tailwind class"
+            >
+              {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function VariableModal({
   v, col, onClose, onSave, usedFonts,
 }: { v: Var | null; col: Col; onClose: () => void; onSave: (d: any) => Promise<void>; usedFonts: string[] }) {
   const [name,     setName]     = useState(v?.name ?? '');
   const [type,     setType]     = useState<VariableType>(v?.type ?? 'color');
-  const [lv,       setLv]       = useState(typeof v?.value === 'string' ? v.value : (v?.value as any)?.light ?? '');
-  const [dv,       setDv]       = useState(typeof v?.value === 'object' ? (v.value as any)?.dark ?? '' : '');
-  const [darkMode, setDarkMode] = useState(typeof v?.value === 'object');
+  const initialEffects = isEffectArray(v?.value) ? (v!.value as Effect[]) : [];
+  const initialLight   = typeof v?.value === 'string' ? v.value : (v?.value && typeof v.value === 'object' && 'light' in (v.value as any)) ? (v!.value as any).light : '';
+  const initialDark    = (v?.value && typeof v.value === 'object' && 'dark' in (v.value as any)) ? (v!.value as any).dark : '';
+  const [lv,       setLv]       = useState<string>(initialLight ?? '');
+  const [dv,       setDv]       = useState<string>(initialDark ?? '');
+  const [darkMode, setDarkMode] = useState(v?.value !== undefined && typeof v.value === 'object' && !Array.isArray(v.value));
+  const [effects,  setEffects]  = useState<Effect[]>(initialEffects);
   const [desc,     setDesc]     = useState(v?.description ?? '');
   const [busy,     setBusy]     = useState(false);
   const [err,      setErr]      = useState('');
 
   async function submit() {
     if (!name.trim()) { setErr('Name is required'); return; }
-    if (!lv.trim()) { setErr('Value is required'); return; }
-    const value = (darkMode && type === 'color') ? { light: lv.trim(), dark: dv.trim() } : lv.trim();
+    let value: any;
+    if (type === 'effect') {
+      if (effects.length === 0) { setErr('Add at least one effect layer'); return; }
+      value = effects;
+    } else {
+      if (!lv.trim()) { setErr('Value is required'); return; }
+      value = (darkMode && type === 'color') ? { light: lv.trim(), dark: dv.trim() } : lv.trim();
+    }
     setBusy(true);
     try {
       await onSave({ name: name.trim().toLowerCase().replace(/\s+/g, '-'), type, value, description: desc.trim() || undefined });
@@ -575,12 +912,15 @@ function VariableModal({
                 { value: 'color', label: 'Color' },
                 { value: 'tailwind', label: 'Tailwind' },
                 { value: 'font', label: 'Font' },
+                { value: 'effect', label: 'Effect (shadow / blur)' },
               ]}
             />
           </div>
         </label>
 
-        {type === 'font' ? (
+        {type === 'effect' ? (
+          <EffectEditor effects={effects} onChange={setEffects} />
+        ) : type === 'font' ? (
           <div>
             <span className="text-[11px] uppercase tracking-wider text-white/45">Font family</span>
             <div className="mt-2">
@@ -930,6 +1270,51 @@ export function VariableCollectionsPanel() {
                         </div>
                       </>
                     )}
+                  </div>
+                );
+              })()}
+
+              {selVar.type === 'effect' && isEffectArray(selVar.value) && (() => {
+                const css = effectsToCss(selVar.value);
+                const tw = effectsToTailwind(selVar.value);
+                return (
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-neutral-400">Layers</p>
+                      <ul className="mt-1 space-y-0.5">
+                        {(selVar.value as Effect[]).map((e, i) => (
+                          <li key={i} className="text-[11px] text-neutral-600 flex items-center gap-1.5">
+                            {e.visible ? <Eye className="w-3 h-3 text-neutral-400" /> : <EyeOff className="w-3 h-3 text-neutral-300" />}
+                            <span className={cn(!e.visible && 'line-through text-neutral-400')}>{effectKindLabel(e.kind)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-neutral-400">Tailwind</p>
+                      <code className="mt-1 block text-[11px] text-neutral-700 font-mono break-all">{tw || '—'}</code>
+                    </div>
+                    <div className="h-20 rounded-md bg-neutral-100 border border-neutral-200 relative overflow-hidden flex items-center justify-center">
+                      <div
+                        className="w-12 h-12 rounded bg-white"
+                        style={{
+                          boxShadow:      css.boxShadow || undefined,
+                          filter:         css.filter || undefined,
+                          backdropFilter: css.backdropFilter || undefined,
+                        }}
+                      />
+                    </div>
+                    <details className="text-[11px] text-neutral-500">
+                      <summary className="cursor-pointer hover:text-neutral-700">Show CSS</summary>
+                      <div className="mt-1 space-y-1 font-mono">
+                        {css.boxShadow      && <p><span className="text-neutral-400">box-shadow:</span> {css.boxShadow}</p>}
+                        {css.filter         && <p><span className="text-neutral-400">filter:</span> {css.filter}</p>}
+                        {css.backdropFilter && <p><span className="text-neutral-400">backdrop-filter:</span> {css.backdropFilter}</p>}
+                      </div>
+                    </details>
+                    <Link href="/docs/effects/drop-shadows-and-blurs" className="text-[11px] text-accent hover:underline inline-block">
+                      How effects map to Tailwind →
+                    </Link>
                   </div>
                 );
               })()}

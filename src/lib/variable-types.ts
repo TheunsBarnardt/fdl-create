@@ -1,10 +1,12 @@
 import { z } from 'zod';
+import { EffectValueSchema, type EffectValue } from './effect-types';
 
-export type VariableType = 'color' | 'tailwind' | 'font';
+export type VariableType = 'color' | 'tailwind' | 'font' | 'effect';
 
 export type VariableValue =
   | string // single mode: "#FF0000" or "16px" or "true" or "{colors/primary}"
-  | { light: string; dark: string }; // multi mode
+  | { light: string; dark: string } // multi mode (color light/dark)
+  | EffectValue; // effect: ordered array of shadow/blur layers
 
 export type Variable = {
   id: string;
@@ -49,11 +51,12 @@ export type UpdateVariableCollection = z.infer<typeof UpdateVariableCollectionSc
 const VariableValueSchema = z.union([
   z.string(),
   z.object({ light: z.string(), dark: z.string() }),
+  EffectValueSchema,
 ]);
 
 export const CreateVariableSchema = z.object({
   name: z.string().min(1).regex(/^[a-z0-9_-]+(?:\/[a-z0-9_-]+)*$/, 'Invalid variable name format'),
-  type: z.enum(['color', 'tailwind', 'font']),
+  type: z.enum(['color', 'tailwind', 'font', 'effect']),
   value: VariableValueSchema,
   description: z.string().optional(),
 });
@@ -62,7 +65,7 @@ export type CreateVariable = z.infer<typeof CreateVariableSchema>;
 
 export const UpdateVariableSchema = z.object({
   name: z.string().min(1).regex(/^[a-z0-9_-]+(?:\/[a-z0-9_-]+)*$/).optional(),
-  type: z.enum(['color', 'tailwind', 'font']).optional(),
+  type: z.enum(['color', 'tailwind', 'font', 'effect']).optional(),
   value: VariableValueSchema.optional(),
   description: z.string().optional(),
   order: z.number().int().optional(),
